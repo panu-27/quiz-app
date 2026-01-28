@@ -4,6 +4,9 @@ import Login from "./auth/Login";
 import ProtectedRoute from "./auth/ProtectedRoute";
 import AdminDashboard from "./admin/Dashboard";
 import StudentDashboard from "./student/Dashboard";
+import CreateTest from "./admin/CreateTest";
+import TestAttempt from "./student/TestAttempt";
+
 
 function RedirectAfterLogin() {
   const { user } = useAuth();
@@ -39,6 +42,25 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+
+          <Route
+            path="/admin/create-test"
+            element={
+              <ProtectedRoute role="admin">
+                <CreateTest />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/student/test/:testId"
+            element={
+              <ProtectedRoute role="student">
+                <TestAttempt />
+              </ProtectedRoute>
+            }
+          />
+
         </Routes>
       </BrowserRouter>
     </AuthProvider>
