@@ -14,7 +14,15 @@ const generatedTestSchema = new mongoose.Schema({
   questionIds: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: "Question"
-  }]
+  }],
+  sectionTimes: {
+    type: Map,
+    of: Number // seconds
+  },
+  startedAt: {
+    type: Date,
+    default: Date.now
+  }
 }, { timestamps: true });
 
 module.exports = mongoose.model("GeneratedTest", generatedTestSchema);

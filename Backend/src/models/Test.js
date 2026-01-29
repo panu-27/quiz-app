@@ -1,15 +1,38 @@
 const mongoose = require("mongoose");
 
+const subjectConfigSchema = new mongoose.Schema({
+  subjectId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Subject",
+    required: true
+  },
+  questions: {
+    type: Number,
+    required: true
+  },
+  time: {
+    type: Number,
+    required: true
+  },
+  difficulty: {
+    easy: { type: Number, default: 100 },
+    medium: { type: Number, default: 0 },
+    hard: { type: Number, default: 0 }
+  }
+}, { _id: false });
+
 const testSchema = new mongoose.Schema({
   title: {
     type: String,
     required: true
   },
 
-  subjectIds: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Subject"
-  }],
+  isPyqOnly: {
+    type: Boolean,
+    default: false
+  },
+
+  subjectConfigs: [subjectConfigSchema],
 
   chapterIds: [{
     type: mongoose.Schema.Types.ObjectId,
@@ -21,36 +44,18 @@ const testSchema = new mongoose.Schema({
     ref: "Topic"
   }],
 
-  totalQuestions: {
-    type: Number,
-    required: true
-  },
-
-  duration: {
-    type: Number, // minutes
-    required: true
-  },
-
-  compulsoryQuestionIds: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Question"
-  }],
-
-  useCetWeightage: {
-    type: Boolean,
-    default: true
-  },
-
-  difficultyDistribution: {
-    easy: Number,
-    medium: Number,
-    hard: Number
+  // custom questions grouped by subject
+  customQuestions: {
+    type: Object,
+    default: {}
   },
 
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User"
+    ref: "User",
+    required: true
   }
+
 }, { timestamps: true });
 
 module.exports = mongoose.model("Test", testSchema);
