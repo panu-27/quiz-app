@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Power, LayoutGrid, BookOpen, Heart, User as UserIcon } from "lucide-react";
+import { LogOut, Power, LayoutGrid, BookOpen, Heart, User as UserIcon , ChevronRight, BarChart2 } from "lucide-react";
 
 export default function StudentDashboard() {
   const { user, logout } = useAuth();
@@ -96,22 +96,37 @@ export default function StudentDashboard() {
       </div>
 
       {/* Completed Tests */}
-      <div className="px-6 mt-10 flex justify-between items-center">
-        <h3 className="text-lg font-bold text-zinc-900">Completed Tests</h3>
-        <button className="text-zinc-400 text-sm font-medium">History</button>
+     {/* Completed Tests & History */}
+<div className="px-6 mt-10 flex justify-between items-center">
+  <h3 className="text-lg font-bold text-zinc-900">Performance History</h3>
+  {/* Header "History" button now navigates */}
+  <button 
+    onClick={() => navigate("/student/history")} 
+    className="text-zinc-400 text-sm font-medium hover:text-indigo-600 transition-colors"
+  >
+    See all
+  </button>
+</div>
+
+<div className="px-6 mt-6">
+  <div 
+    onClick={() => navigate("/student/history")}
+    className="bg-white p-6 rounded-[2rem] flex items-center justify-between shadow-sm border border-zinc-50 hover:shadow-md transition-all cursor-pointer group"
+  >
+    <div className="flex items-center gap-4">
+      <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+        <span className="text-xl">📊</span>
       </div>
-      <div className="px-6 mt-6">
-        <div className="bg-white p-6 rounded-[2rem] flex items-center justify-between shadow-sm border border-zinc-50">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center"><span className="text-xl">✅</span></div>
-            <div>
-              <p className="font-bold text-sm text-zinc-900">Last Session</p>
-              <p className="text-xs text-zinc-400">View your scores and review</p>
-            </div>
-          </div>
-          <button className="text-indigo-600 font-bold text-xs uppercase tracking-widest">View</button>
-        </div>
+      <div>
+        <p className="font-bold text-sm text-zinc-900">Detailed Analytics</p>
+        <p className="text-xs text-zinc-400">View all past attempt scores & review</p>
       </div>
+    </div>
+    <div className="bg-zinc-50 p-2 rounded-full group-hover:translate-x-1 transition-transform">
+      <ChevronRight className="w-4 h-4 text-zinc-400" />
+    </div>
+  </div>
+</div>
 
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 w-full bg-white shadow-2xl shadow-indigo-200 px-8 py-3 flex justify-between items-center border border-zinc-100/50 backdrop-blur-sm z-50">
