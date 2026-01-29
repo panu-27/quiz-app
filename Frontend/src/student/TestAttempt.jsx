@@ -18,6 +18,7 @@ export default function TestAttempt() {
   const [activeSubject, setActiveSubject] = useState(null);
   const [examCompleted, setExamCompleted] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [attemptNumber, setAttemptNumber] = useState(null); // New state to track the session
 
   const [index, setIndex] = useState(0);
   const [timers, setTimers] = useState({ block1: 0, block2: 0 });
@@ -162,6 +163,7 @@ export default function TestAttempt() {
         const { questions, sectionTimes } = res.data;
         setQuestions(questions);
         setTimers({ block1: sectionTimes.block1, block2: sectionTimes.block2 });
+        setAttemptNumber(serverAttempt);
         setSectionBlock("block1");
       })
       .catch(() => {
@@ -204,7 +206,8 @@ export default function TestAttempt() {
     const performSubmit = async () => {
       const payload = {
         answers: Object.entries(answers).map(([qId, opt]) => ({ questionId: qId, selectedOption: opt })),
-        violations: violationCount
+        violations: violationCount,
+        attemptNumber: attemptNumber
       };
       try {
         const res = await api.post(`/submit/${testId}`, payload);
@@ -312,23 +315,23 @@ export default function TestAttempt() {
 
         <div className="flex items-center gap-2 md:gap-8">
           {sectionBlock === "block1" && sectionalData.block2.questions.length > 0 && (
-      <button 
-        onClick={moveToNextSection} 
-        className="px-6 py-2 border-2 border-dashed border-indigo-500/20 rounded-2xl text-[10px] font-black uppercase tracking-widest text-indigo-500 hover:bg-indigo-50"
-      >
-        Switch Section
-      </button>
-    )}
+            <button
+              onClick={moveToNextSection}
+              className="px-6 py-2  rounded-2xl text-[10px] font-black uppercase tracking-widest text-indigo-500 hover:bg-indigo-50"
+            >
+              Next Section
+            </button>
+          )}
           <div className="flex items-center gap-2 font-mono text-base md:text-xl font-black text-indigo-600 bg-indigo-50 md:bg-transparent px-3 py-1 rounded-lg">
             <ClockIcon className="w-4 h-4 md:w-5 md:h-5" />
             {Math.floor(timers[sectionBlock] / 60)}:{(timers[sectionBlock] % 60).toString().padStart(2, '0')}
           </div>
-          
+
           <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-2 bg-zinc-100 rounded-lg">
-             <Bars3BottomRightIcon className="w-5 h-5 text-zinc-600" />
+            <Bars3BottomRightIcon className="w-5 h-5 text-zinc-600" />
           </button>
 
-          <button onClick={() => { if (!hasSubmitted) { setHasSubmitted(true); handleSubmit(); }}} className="hidden md:block bg-red-600 text-white px-6 py-2.5 rounded-full font-black text-[10px] uppercase tracking-widest">Finish</button>
+          <button onClick={() => { if (!hasSubmitted) { setHasSubmitted(true); handleSubmit(); } }} className="hidden md:block bg-red-600 text-white px-6 py-2.5 rounded-full font-black text-[10px] uppercase tracking-widest">Finish</button>
         </div>
       </header>
 
@@ -347,9 +350,9 @@ export default function TestAttempt() {
               <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Question {index + 1}</span>
               <div className="h-[1px] flex-1 bg-zinc-100"></div>
             </div>
-            
+
             <p className="text-lg md:text-2xl font-medium leading-relaxed mb-8 md:text-zinc-800">{q?.questionText}</p>
-            
+
             <div className="grid gap-3 md:gap-4 pb-20 md:pb-0">
               {q?.options?.map((opt, i) => (
                 <button key={i} onClick={() => setAnswers(prev => ({ ...prev, [q._id]: i }))} className={`flex items-center p-3 md:p-2 border cursor-pointer rounded-xl md:rounded-2xl transition-all text-left ${answers[q._id] === i ? 'border-indigo-600 bg-indigo-50/50' : 'border-zinc-100'}`}>
@@ -361,12 +364,12 @@ export default function TestAttempt() {
           </div>
 
           {/* Bottom Actions - Responsive */}
-          <footer className="h-16 md:h-20 border-t flex items-center justify-between px-4 md:px-12 bg-white fixed bottom-0 left-0 right-0 md:relative">
+          <footer className="h-16 mb-2 md:h-20 border-t flex items-center justify-between px-4 md:px-12 bg-white fixed bottom-0 left-0 right-0 md:relative">
             <button onClick={handleBack} disabled={index === 0} className="p-3 md:px-8 md:py-4 rounded-xl border border-zinc-100 disabled:opacity-0">
               <ChevronLeftIcon className="w-5 h-5 md:hidden" />
               <span className="hidden md:inline font-black text-[10px] uppercase">Previous</span>
             </button>
-            
+
             <div className="flex gap-2 md:gap-4">
               <button onClick={handleMarkAndNext} className={`px-4 md:px-8 py-3 md:py-4 rounded-xl font-black text-[9px] md:text-[10px] uppercase border ${marked[q._id] ? 'bg-amber-500 text-white' : 'text-zinc-400 border-zinc-100'}`}>
                 {marked[q._id] ? (window.innerWidth < 768 ? 'Unmark' : 'Unmark & Next') : (window.innerWidth < 768 ? 'Mark' : 'Mark & Next')}
@@ -402,7 +405,7 @@ export default function TestAttempt() {
                     className={`h-11 rounded-xl font-bold text-xs transition-all ${index === i
                       ? 'bg-indigo-600 text-white shadow-lg'
                       : (marked[item._id] ? 'bg-amber-500 text-white' : (answers[item._id] !== undefined ? 'bg-indigo-100 text-indigo-600' : 'bg-white border border-zinc-100 text-zinc-400'))
-                    }`}
+                      }`}
                   >
                     {i + 1}
                   </button>
@@ -411,16 +414,16 @@ export default function TestAttempt() {
             </div>
 
             <div className="mt-auto space-y-3 pt-6 border-t md:border-0">
-               <div className={`p-4 rounded-2xl border transition-all ${violationCount > 0 ? 'bg-red-50 border-red-100 text-red-600' : 'bg-white border-zinc-100 text-zinc-400'}`}>
-                 <p className="text-[8px] font-black uppercase tracking-widest mb-1">Status</p>
-                 <p className="text-xs font-bold font-mono">Violations: {violationCount} / 3</p>
-               </div>
-               
-               <button onClick={() => { if (!hasSubmitted) { setHasSubmitted(true); handleSubmit(); }}} className="md:hidden w-full py-3 bg-red-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest">Submit Exam</button>
-               
-               <div className="hidden md:block text-[9px] font-mono opacity-20 text-zinc-500 uppercase leading-loose">
-                 PROCTORING: ENABLED<br />LOCK: SECURE<br />SOURCE: ELECTRON_CORE
-               </div>
+              <div className={`p-4 rounded-2xl border transition-all ${violationCount > 0 ? 'bg-red-50 border-red-100 text-red-600' : 'bg-white border-zinc-100 text-zinc-400'}`}>
+                <p className="text-[8px] font-black uppercase tracking-widest mb-1">Status</p>
+                <p className="text-xs font-bold font-mono">Violations: {violationCount} / 3</p>
+              </div>
+
+              <button onClick={() => { if (!hasSubmitted) { setHasSubmitted(true); handleSubmit(); } }} className="md:hidden w-full py-3 bg-red-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest">Submit Exam</button>
+
+              <div className="hidden md:block text-[9px] font-mono opacity-20 text-zinc-500 uppercase leading-loose">
+                PROCTORING: ENABLED<br />LOCK: SECURE<br />SOURCE: ELECTRON_CORE
+              </div>
             </div>
           </div>
         </aside>

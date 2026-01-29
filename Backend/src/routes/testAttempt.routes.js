@@ -1,8 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const { protect } = require("../middlewares/auth.middleware");
-const attemptController = require("../controllers/testAttempt.controller");
+const {startTest} = require("../controllers/testAttempt.controller");
 
-router.post("/start/:testId", protect, attemptController.startTest);
+router.post("/start/:testId", protect, startTest);
 
 module.exports = router;
