@@ -4,49 +4,65 @@ const Question = require("../models/Question");
 const UserTest = require("../models/UserTest");
 
 exports.submitTest = async (req, res) => {
-  const { testId } = req.params;
-  const userId = req.user.id;
-  
-  // 1️⃣ Receive attemptNumber and other data from frontend
-  const { answers, timeTaken, violations, attemptNumber } = req.body;
-
   try {
-    // 2️⃣ Validation: Ensure attemptNumber is present
-    if (!attemptNumber) {
-      return res.status(400).json({ error: "Attempt number is required from the frontend." });
-    }
+    const { testId } = req.params;
+    const userId = req.user.id;
 
-    // 3️⃣ Double-Submission Check: Prevent re-submitting the SAME attempt number
-    const existingSubmission = await Submission.findOne({ testId, userId, attemptNumber });
-    if (existingSubmission) {
-      return res.status(400).json({ 
-        error: `Attempt ${attemptNumber} has already been submitted.`,
-        score: existingSubmission.score 
+    const { answers, timeTaken, violations, attemptNumber } = req.body;
+
+    // 1️⃣ Validate attempt number
+    if (!attemptNumber) {
+      return res.status(400).json({
+        error: "Attempt number is required"
       });
     }
 
-    // 4️⃣ Verify against the Generated Session
-    // We make sure the questions match the ones specifically picked for THIS attempt
-    const generated = await GeneratedTest.findOne({ testId, userId, attemptNumber });
-    if (!generated) {
-      return res.status(404).json({ error: "No active test session found for this attempt number." });
+    // 2️⃣ Prevent duplicate submission (soft check)
+    const existingSubmission = await Submission.findOne({
+      testId,
+      userId,
+      attemptNumber
+    });
+
+    if (existingSubmission) {
+      return res.status(409).json({
+        error: `Attempt ${attemptNumber} already submitted`,
+        score: existingSubmission.score
+      });
     }
 
+    // 3️⃣ Verify generated test exists (anti-tampering)
+    const generated = await GeneratedTest.findOne({
+      testId,
+      userId,
+      attemptNumber
+    });
+
+    if (!generated) {
+      return res.status(404).json({
+        error: "No active test session found for this attempt"
+      });
+    }
+
+    // 4️⃣ Load exact questions for THIS attempt
     const questions = await Question.find({
       _id: { $in: generated.questionIds }
     });
 
-    // 5️⃣ Evaluation Logic
+    // 5️⃣ Evaluate answers
     let score = 0;
-    const answerSheet = questions.map(q => {
+
+    const evaluatedAnswers = questions.map(q => {
       const submitted = answers.find(
         a => a.questionId === q._id.toString()
       );
 
-      const isCorrect = submitted && submitted.selectedOption === q.correctOption;
-      
+      const isCorrect =
+        submitted &&
+        submitted.selectedOption === q.correctOption;
+
       if (isCorrect) {
-        score += q.marks || 4; // Using your default scoring logic
+        score += q.marks || 4;
       }
 
       return {
@@ -57,22 +73,29 @@ exports.submitTest = async (req, res) => {
       };
     });
 
-    // 6️⃣ Create the Submission Record
+    // 6️⃣ Create submission (FINAL SOURCE OF TRUTH)
     const submission = await Submission.create({
       testId,
       userId,
-      attemptNumber, 
-      answers: answerSheet,
+      attemptNumber,
+      answers: evaluatedAnswers,
       score,
       timeTaken,
       violations: violations || 0
     });
 
-    // 7️⃣ Update the UserTest status to 'completed'
+    // 7️⃣ Mark UserTest completed
     await UserTest.findOneAndUpdate(
       { userId, testId },
-      { status: 'completed' }
+      { status: "completed" }
     );
+
+    // 8️⃣ Clean up generated session (optional but recommended)
+    await GeneratedTest.deleteOne({
+      testId,
+      userId,
+      attemptNumber
+    });
 
     return res.json({
       message: `Attempt ${attemptNumber} submitted successfully`,
@@ -82,12 +105,16 @@ exports.submitTest = async (req, res) => {
 
   } catch (error) {
     console.error("Submission Error:", error);
-    
-    // Handle MongoDB Unique Index collisions (Double clicks)
+
+    // Hard protection against race-condition / double click
     if (error.code === 11000) {
-      return res.status(409).json({ error: "Duplicate submission detected at database level." });
+      return res.status(409).json({
+        error: "Duplicate submission detected"
+      });
     }
-    
-    return res.status(500).json({ error: "Internal server error during submission." });
+
+    return res.status(500).json({
+      error: "Internal server error during submission"
+    });
   }
 };

@@ -8,7 +8,8 @@ import StudentDashboard from "./student/Dashboard";
 import CreateTest from "./admin/CreateTest/CreateTest";
 import TestAttempt from "./student/TestAttempt";
 import SubjectPage from "./student/SubjectPage";
-import TestHistory from "./pages/TestHistory";
+import TestHistory from "./student/TestHistory";
+import AttemptAnalytics from "./student/AttemptAnalysis";
 function RedirectAfterLogin() {
   const { user } = useAuth();
   if (!user) return <Login />;
@@ -66,6 +67,7 @@ export default function App() {
         <Route path="/student/test/:testId" element={<ProtectedRoute role="student"><TestAttempt /></ProtectedRoute>} />
         <Route path="/student/subject/:subjectName" element={<ProtectedRoute><SubjectPage /></ProtectedRoute>} />
         <Route path="/student/history" element={<ProtectedRoute><TestHistory /></ProtectedRoute>} />
+        <Route path="/student/analytics/:testId/attempt/:attemptNumber" element={<AttemptAnalytics/>}/>
       </Routes>
     </AuthProvider>
   );

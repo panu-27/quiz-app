@@ -160,10 +160,10 @@ export default function TestAttempt() {
   useEffect(() => {
     api.post(`/attempt/start/${testId}`)
       .then(res => {
-        const { questions, sectionTimes } = res.data;
+        const { questions, sectionTimes , attemptNumber } = res.data;
         setQuestions(questions);
         setTimers({ block1: sectionTimes.block1, block2: sectionTimes.block2 });
-        setAttemptNumber(serverAttempt);
+        setAttemptNumber(attemptNumber);
         setSectionBlock("block1");
       })
       .catch(() => {
@@ -203,11 +203,23 @@ export default function TestAttempt() {
 
   const handleSubmit = async (isAuto = false) => {
     if (hasSubmitted && !isAuto) return;
+    const totalSeconds =
+  (block1Minutes + block2Minutes) * 60;
+
+const remainingSeconds =
+  (timers.block1 || 0) + (timers.block2 || 0);
+
+const timeTaken = Math.max(
+  totalSeconds - remainingSeconds,
+  0
+);
+
     const performSubmit = async () => {
       const payload = {
         answers: Object.entries(answers).map(([qId, opt]) => ({ questionId: qId, selectedOption: opt })),
         violations: violationCount,
-        attemptNumber: attemptNumber
+        attemptNumber: attemptNumber,
+        timeTaken 
       };
       try {
         const res = await api.post(`/submit/${testId}`, payload);
