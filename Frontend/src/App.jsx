@@ -63,7 +63,6 @@ export default function App() {
       <Routes>
         <Route element={<StudentLayout />}>
           <Route path="/student" element={<ProtectedRoute role="student"><StudentDashboard /></ProtectedRoute>} />
-          <Route path="/student/test/:testId" element={<ProtectedRoute role="student"><TestAttempt /></ProtectedRoute>} />
           <Route path="/student/subject/:subjectName" element={<ProtectedRoute><SubjectPage /></ProtectedRoute>} />
           <Route path="/student/history" element={<ProtectedRoute><TestHistory /></ProtectedRoute>} />
           <Route path="/student/analytics/:testId/attempt/:attemptNumber" element={<AttemptAnalytics />} />
@@ -74,7 +73,7 @@ export default function App() {
         <Route path="/" element={<RedirectAfterLogin />} />
         <Route path="/admin" element={<ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>} />
         <Route path="/admin/create-test" element={<ProtectedRoute role="admin"><CreateTest /></ProtectedRoute>} />
-
+        <Route path="/student/test/:testId" element={<ProtectedRoute role="student"><TestAttempt /></ProtectedRoute>} />
       </Routes>
     </AuthProvider>
   );
