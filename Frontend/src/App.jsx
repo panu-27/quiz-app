@@ -10,6 +10,10 @@ import TestAttempt from "./student/TestAttempt";
 import SubjectPage from "./student/SubjectPage";
 import TestHistory from "./student/TestHistory";
 import AttemptAnalytics from "./student/AttemptAnalysis";
+import StudentLayout from "./student/Layout/StudentLayout";
+import StudentPersonalAnalytics from "./student/StudentPersonalAnalytics";
+import StudentLibrary from "./student/StudentLibrary";
+import StudentProfile from "./student/StudentProfile";
 function RedirectAfterLogin() {
   const { user } = useAuth();
   if (!user) return <Login />;
@@ -33,11 +37,8 @@ export default function App() {
         <div className="relative flex items-center justify-center mb-6">
           <div className="w-24 h-24 border-4 border-indigo-600 rounded-full flex items-center justify-center animate-pulse">
             <div className="w-16 h-16 border-2 border-indigo-400 rounded-full flex items-center justify-center">
-              <span className="text-4xl transform translate-x-1 -translate-y-1">🎯</span>
+              <span className="text-4xl transform translate-x-1 pr-1 pb-1 pl-1 -translate-y-1">🎯</span>
             </div>
-          </div>
-          <div className="absolute -left-8 animate-bounce">
-            <span className="text-2xl">🏹</span>
           </div>
         </div>
         <div className="text-center">
@@ -60,14 +61,20 @@ export default function App() {
   return (
     <AuthProvider>
       <Routes>
+        <Route element={<StudentLayout />}>
+          <Route path="/student" element={<ProtectedRoute role="student"><StudentDashboard /></ProtectedRoute>} />
+          <Route path="/student/test/:testId" element={<ProtectedRoute role="student"><TestAttempt /></ProtectedRoute>} />
+          <Route path="/student/subject/:subjectName" element={<ProtectedRoute><SubjectPage /></ProtectedRoute>} />
+          <Route path="/student/history" element={<ProtectedRoute><TestHistory /></ProtectedRoute>} />
+          <Route path="/student/analytics/:testId/attempt/:attemptNumber" element={<AttemptAnalytics />} />
+          <Route path="/student/profile" element={<StudentProfile/>} />
+          <Route path="/student/library" element={<StudentLibrary/>} />
+          <Route path="/student/personal" element={<StudentPersonalAnalytics/>} />
+        </Route>
         <Route path="/" element={<RedirectAfterLogin />} />
         <Route path="/admin" element={<ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>} />
-        <Route path="/student" element={<ProtectedRoute role="student"><StudentDashboard /></ProtectedRoute>} />
         <Route path="/admin/create-test" element={<ProtectedRoute role="admin"><CreateTest /></ProtectedRoute>} />
-        <Route path="/student/test/:testId" element={<ProtectedRoute role="student"><TestAttempt /></ProtectedRoute>} />
-        <Route path="/student/subject/:subjectName" element={<ProtectedRoute><SubjectPage /></ProtectedRoute>} />
-        <Route path="/student/history" element={<ProtectedRoute><TestHistory /></ProtectedRoute>} />
-        <Route path="/student/analytics/:testId/attempt/:attemptNumber" element={<AttemptAnalytics/>}/>
+
       </Routes>
     </AuthProvider>
   );

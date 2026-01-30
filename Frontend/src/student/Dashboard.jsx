@@ -32,7 +32,7 @@ export default function StudentDashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-[#F8FAFF] pb-32 font-sans text-zinc-800 animate-in fade-in duration-500">
+    <div className=" bg-[#F8FAFF] pb-32 font-sans text-zinc-800 animate-in fade-in duration-500">
       {/* Header */}
       <header className="px-6 pt-8 flex justify-between items-center">
         <div className="flex items-center gap-4">
@@ -129,12 +129,6 @@ export default function StudentDashboard() {
 </div>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 w-full bg-white shadow-2xl shadow-indigo-200 px-8 py-3 flex justify-between items-center border border-zinc-100/50 backdrop-blur-sm z-50">
-        <button className="text-indigo-600 bg-indigo-50 p-2 rounded-2xl"><LayoutGrid className="w-6 h-6" /></button>
-        <button className="text-zinc-300 hover:text-indigo-400 transition-colors"><BookOpen className="w-6 h-6" /></button>
-        <button className="text-zinc-300 hover:text-indigo-400 transition-colors"><Heart className="w-6 h-6" /></button>
-        <button className="text-zinc-300 hover:text-indigo-400 transition-colors"><UserIcon className="w-6 h-6" /></button>
-      </nav>
     </div>
   );
 }
