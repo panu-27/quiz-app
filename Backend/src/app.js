@@ -30,8 +30,9 @@ const analyticsRoutes = require("./routes/analytics.routes");
 
 
 app.get("/", (req, res) => {
-  res.send("QuizApp API running");
+  res.status(200).json({ status: "OK", app: "Quiz App" });
 });
+
 app.use("/api/subjects", subjectRoutes);
 app.use("/api/chapters", chapterRoutes);
 app.use("/api/topics", topicRoutes);
