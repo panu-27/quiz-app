@@ -1,10 +1,8 @@
 const { app, BrowserWindow, globalShortcut, powerSaveBlocker, ipcMain } = require("electron");
 const path = require("path");
-const { spawn } = require("child_process");
 
 let mainWindow;
 let psbId;
-let backendProcess;
 
 /* ================= CREATE WINDOW ================= */
 function createWindow() {
@@ -55,20 +53,6 @@ app.whenReady().then(() => {
   // 🟢 Prevent sleep
   psbId = powerSaveBlocker.start("prevent-display-sleep");
 
-  // 🚀 START BACKEND (IMPORTANT)
-  backendProcess = spawn(
-    process.execPath, // Electron's bundled Node
-    [path.join(__dirname, "../Backend/src/server.js")],
-    {
-      cwd: path.join(__dirname, ".."),
-      stdio: "inherit"
-    }
-  );
-
-  backendProcess.on("error", (err) => {
-    console.error("❌ Backend failed to start:", err);
-  });
-
   createWindow();
 
   // 🔒 Block common shortcuts
@@ -82,10 +66,6 @@ app.whenReady().then(() => {
 
 /* ================= CLEANUP ================= */
 app.on("will-quit", () => {
-  if (backendProcess) {
-    backendProcess.kill();
-  }
-
   globalShortcut.unregisterAll();
   if (psbId) powerSaveBlocker.stop(psbId);
 });

@@ -1,137 +1,44 @@
-const express = require("express");
-const cors = require("cors");
+import express from "express";
+import cors from "cors";
 
-
-
+// Routes
+import authRoutes from "./modules/auth/auth.routes.js";
+import superRoutes from "./modules/super/super.routes.js";
+import instituteRoutes from "./modules/institute/institute.routes.js";
+import teacherRoutes from "./modules/teacher/teacher.routes.js";
+import studentRoutes from "./modules/student/student.routes.js";
+import pdfRoutes from "./modules/pdf/pdf.routes.js";
 
 
 const app = express();
 
+// Middlewares
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-const Subject = require("./models/Subject");
-const Chapter = require("./models/Chapter");
-const Topic = require("./models/Topic");
-const Question = require("./models/Question");
+import bcrypt from "bcryptjs";
+bcrypt.hash("password123", 10).then(console.log);
 
-
-
-const subjectRoutes = require("./routes/subject.routes");
-const chapterRoutes = require("./routes/chapter.routes");
-const topicRoutes = require("./routes/topic.routes");
-const questionRoutes = require("./routes/question.routes");
-const authRoutes = require("./routes/auth.routes");
-const testRoutes = require("./routes/test.routes");
-const attemptRoutes = require("./routes/testAttempt.routes");
-const submitRoutes = require("./routes/testSubmit.routes");
-const analyticsRoutes = require("./routes/analytics.routes");
-
-
-
+// Health check
 app.get("/", (req, res) => {
-  res.status(200).json({ status: "OK", app: "Quiz App" });
+  res.send("API running 🚀");
 });
 
-app.use("/api/subjects", subjectRoutes);
-app.use("/api/chapters", chapterRoutes);
-app.use("/api/topics", topicRoutes);
-app.use("/api/questions", questionRoutes);
+// Routes
 app.use("/api/auth", authRoutes);
-app.use("/api/tests", testRoutes);
-app.use("/api/attempt", attemptRoutes);
-app.use("/api/submit", submitRoutes);
-app.use("/api/analytics", analyticsRoutes);
-app.post("/api/seed/generate-dummy", async (req, res) => {
-  const { examType, subjects, topicsPerChapter, questionsPerTopic } = req.body;
+app.use("/api/super", superRoutes);
+app.use("/api/institute", instituteRoutes);
+app.use("/api/teacher", teacherRoutes);
+app.use("/api/student", studentRoutes);
+app.use("/api/pdf", pdfRoutes);
 
-  const result = [];
-
-  for (const sub of subjects) {
-    const subject = await Subject.create({
-      name: sub.name,
-      examType
-    });
-
-    const subjectData = {
-      subject: subject.name,
-      subjectId: subject._id,
-      chapters: []
-    };
-
-    for (const chapName of sub.chapters) {
-      const chapter = await Chapter.create({
-        subjectId: subject._id,
-        name: chapName,
-        cetWeightage: 1
-      });
-
-      const chapterData = {
-        chapter: chapName,
-        chapterId: chapter._id,
-        topics: []
-      };
-
-      for (let t = 1; t <= topicsPerChapter; t++) {
-        const topicName = `${chapName} t${t}`;
-
-        const topic = await Topic.create({
-          chapterId: chapter._id,
-          name: topicName
-        });
-
-        const topicData = {
-          topic: topicName,
-          topicId: topic._id,
-          questions: []
-        };
-
-        for (let q = 1; q <= questionsPerTopic; q++) {
-          const questionText = `${topicName} q${q}`;
-
-          // ✅ Difficulty distribution
-          let difficulty = "easy";
-          const ratio = q / questionsPerTopic;
-
-          if (ratio > 0.8) difficulty = "hard";
-          else if (ratio > 0.5) difficulty = "medium";
-
-          const options = [
-            { text: `${questionText} option A` },
-            { text: `${questionText} option B` }, // correct
-            { text: `${questionText} option C` },
-            { text: `${questionText} option D` }
-          ];
-
-          const question = await Question.create({
-            subjectId: subject._id,
-            chapterId: chapter._id,
-            topicId: topic._id,
-            questionText,
-            options,
-            correctOption: 1,
-            difficulty,
-            marks: 1
-          });
-
-          topicData.questions.push(question._id);
-        }
-
-        chapterData.topics.push(topicData);
-      }
-
-      subjectData.chapters.push(chapterData);
-    }
-
-    result.push(subjectData);
-  }
-
-  res.json({
-    message: "Dummy data generated successfully with difficulty distribution",
-    structure: result
+// Global error handler (always last)
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(500).json({
+    message: err.message || "Internal Server Error",
   });
 });
 
-
-
-module.exports = app;
+export default app;

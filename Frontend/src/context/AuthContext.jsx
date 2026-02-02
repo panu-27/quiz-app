@@ -1,21 +1,35 @@
 import { createContext, useContext, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const AuthContext = createContext();
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(
-    JSON.parse(localStorage.getItem("user"))
-  );
+export function AuthProvider({ children }) {
+  const navigate = useNavigate();
 
-  const login = (data) => {
-    localStorage.setItem("token", data.token);
-    localStorage.setItem("user", JSON.stringify(data.user));
-    setUser(data.user);
-  };
+  const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem("user");
+    return saved ? JSON.parse(saved) : null;
+  });
+
+const login = ({ token, user }) => {
+  if (!token || !user) return; // 🛑 hard stop
+
+  localStorage.setItem("token", token);
+  localStorage.setItem("user", JSON.stringify(user));
+  setUser(user);
+
+  if (user.role === "SUPER_ADMIN") navigate("/super");
+  else if (user.role === "INSTITUTE_ADMIN") navigate("/institute-admin");
+  else if (user.role === "TEACHER") navigate("/admin");
+  else if (user.role === "STUDENT") navigate("/student");
+  else navigate("/login");
+};
+
 
   const logout = () => {
     localStorage.clear();
     setUser(null);
+    navigate("/login");
   };
 
   return (
@@ -23,6 +37,6 @@ export const AuthProvider = ({ children }) => {
       {children}
     </AuthContext.Provider>
   );
-};
+}
 
 export const useAuth = () => useContext(AuthContext);

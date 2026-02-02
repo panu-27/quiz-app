@@ -1,0 +1,49 @@
+import express from "express";
+const router = express.Router();
+
+// Local imports
+import * as controller from "./teacher.controller.js";
+import auth from "../../middlewares/auth.middleware.js";
+import role from "../../middlewares/role.middleware.js";
+
+/* ---------------- GET TEACHER BATCHES ---------------- */
+router.get(
+  "/my-batches",
+  auth,
+  role(["TEACHER"]),
+  controller.getMyBatches
+);
+
+/* ---------------- PDF TEST (EXISTING, UNCHANGED) ---------------- */
+router.post(
+  "/create-test",
+  auth,
+  role(["TEACHER"]),
+  controller.createTest
+);
+
+/* ---------------- CUSTOM TEST (NEW) ---------------- */
+router.post(
+  "/create-custom-test",
+  auth,
+  role(["TEACHER"]),
+  controller.createCustomTest
+);
+
+/* ---------------- GENERATE CUSTOM TEST ---------------- */
+router.post(
+  "/tests/:id/generate",
+  auth,
+  role(["TEACHER"]),
+  controller.generateCustomTest
+);
+
+router.get(
+  "/my-batches",
+  auth,
+  role(["TEACHER"]),
+  controller.getMyBatches
+);
+
+
+export default router;

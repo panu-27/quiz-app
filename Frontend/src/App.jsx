@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "./context/AuthContext";
+import { AuthProvider } from "./context/AuthContext";
 import Login from "./auth/Login";
 import ProtectedRoute from "./auth/ProtectedRoute";
+
 import AdminDashboard from "./admin/Dashboard";
 import StudentDashboard from "./student/Dashboard";
 import CreateTest from "./admin/CreateTest/CreateTest";
@@ -14,66 +14,92 @@ import StudentLayout from "./student/Layout/StudentLayout";
 import StudentPersonalAnalytics from "./student/StudentPersonalAnalytics";
 import StudentLibrary from "./student/StudentLibrary";
 import StudentProfile from "./student/StudentProfile";
-function RedirectAfterLogin() {
-  const { user } = useAuth();
-  if (!user) return <Login />;
-  return user.role === "admin" ? <Navigate to="/admin" /> : <Navigate to="/student" />;
-}
+import SuperAdmin from "./SuperAdmin";
+import InstituteAdmin from "./InstituteAdmin";
+import Performance from "./admin/Performance";
+import SeeTests from "./admin/SeeTests";
 
 export default function App() {
-  const [startupLoading, setStartupLoading] = useState(true);
-
-  useEffect(() => {
-    // Initial App Startup Branding - runs only once
-    const timer = setTimeout(() => {
-      setStartupLoading(false);
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (startupLoading) {
-    return (
-      <div className="h-screen w-screen bg-white flex flex-col items-center justify-center font-sans">
-        <div className="relative flex items-center justify-center mb-6">
-          <div className="w-24 h-24 border-4 border-indigo-600 rounded-full flex items-center justify-center animate-pulse">
-            <div className="w-16 h-16 border-2 border-indigo-400 rounded-full flex items-center justify-center">
-              <span className="text-4xl transform translate-x-1 pr-1 pb-1 pl-1 -translate-y-1">🎯</span>
-            </div>
-          </div>
-        </div>
-        <div className="text-center">
-          <h1 className="text-2xl font-black text-zinc-900 tracking-tighter uppercase mb-1">
-            Target Coaching Classes
-          </h1>
-          <p className="text-indigo-600 font-bold tracking-[0.3em] text-xs uppercase">Manchar</p>
-        </div>
-        <div className="w-48 h-1 bg-zinc-100 rounded-full mt-12 overflow-hidden">
-          <div className="h-full bg-indigo-600 animate-[loading_2s_ease-in-out]" style={{ width: '100%' }}></div>
-        </div>
-        <style dangerouslySetInnerHTML={{
-          __html: `
-          @keyframes loading { 0% { width: 0%; } 100% { width: 100%; } }
-        `}} />
-      </div>
-    );
-  }
-
   return (
     <AuthProvider>
       <Routes>
-        <Route element={<StudentLayout />}>
-          <Route path="/student" element={<ProtectedRoute role="student"><StudentDashboard /></ProtectedRoute>} />
-          <Route path="/student/subject/:subjectName" element={<ProtectedRoute><SubjectPage /></ProtectedRoute>} />
-          <Route path="/student/history" element={<ProtectedRoute><TestHistory /></ProtectedRoute>} />
-          <Route path="/student/analytics/:testId/attempt/:attemptNumber" element={<AttemptAnalytics />} />
-          <Route path="/student/profile" element={<StudentProfile/>} />
-          <Route path="/student/library" element={<StudentLibrary/>} />
-          <Route path="/student/personal" element={<StudentPersonalAnalytics/>} />
+        {/* Login */}
+        <Route path="/login" element={<Login />} />
+
+        {/* STUDENT */}
+        <Route
+          path="/student"
+          element={
+            <ProtectedRoute role="STUDENT">
+              <StudentLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<StudentDashboard />} />
+          <Route path="subject/:subjectName" element={<SubjectPage />} />
+          <Route path="history" element={<TestHistory />} />
+          <Route path="analytics/:testId/attempt/:attemptNumber" element={<AttemptAnalytics />} />
+          <Route path="profile" element={<StudentProfile />} />
+          <Route path="library" element={<StudentLibrary />} />
+          <Route path="personal" element={<StudentPersonalAnalytics />} />
+          <Route path="test/:testId" element={<TestAttempt />} />
         </Route>
-        <Route path="/" element={<RedirectAfterLogin />} />
-        <Route path="/admin" element={<ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>} />
-        <Route path="/admin/create-test" element={<ProtectedRoute role="admin"><CreateTest /></ProtectedRoute>} />
-        <Route path="/student/test/:testId" element={<ProtectedRoute role="student"><TestAttempt /></ProtectedRoute>} />
+       
+
+        {/* ADMIN */}
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute role="TEACHER">
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/admin/create-test"
+          element={
+            <ProtectedRoute role="TEACHER">
+              <CreateTest />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/performance"
+          element={
+            <ProtectedRoute role="TEACHER">
+              <Performance />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/tests"
+          element={
+            <ProtectedRoute role="TEACHER">
+              <SeeTests />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/institute-admin"
+          element={
+            <ProtectedRoute role="INSTITUTE_ADMIN">
+              <InstituteAdmin />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/super"
+          element={
+            <ProtectedRoute role="SUPER_ADMIN">
+              <SuperAdmin />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* DEFAULT */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </AuthProvider>
   );
