@@ -1,10 +1,6 @@
 import * as service from "./student.service.js";
 import Test from "../test/test.model.js";
 import TestAttempt from "../test/testAttempt.model.js";
-import User from "../user/user.model.js";
-
-import mongoose from "mongoose";
-import { log } from "async";
 
 export const getMyTests = async (req, res) => {
   try {
