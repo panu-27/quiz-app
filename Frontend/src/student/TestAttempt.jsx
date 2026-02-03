@@ -118,28 +118,29 @@ const handleSubmit = useCallback(async (isAuto = false) => {
   });
 }, [answers, testId, navigate, sectionBlock, timers, initialTimes]);
 
-  const registerViolation = useCallback((reason) => {
-    if (hasSubmitted || submitLock.current) return;
-    setViolations(prev => {
-      const next = prev + 1;
-      if (next >= 3) {
-        setModal({
-          type: "critical",
-          title: "Maximum Violations",
-          message: "Test auto-submitting due to rule violations.",
-          onConfirm: () => handleSubmit(true)
-        });
-      } else {
-        setModal({
-          type: "warning",
-          title: `Violation ${next} / 3`,
-          message: reason,
-          onConfirm: () => setModal(null)
-        });
-      }
-      return next;
-    });
-  }, [handleSubmit, hasSubmitted]);
+const registerViolation = useCallback((reason) => {
+  if (hasSubmitted || submitLock.current) return;
+  
+  setViolations(prev => {
+    const next = prev + 1;
+    
+    if (next >= 3) {
+      // 1. NO MODAL HERE. 
+      // 2. We trigger the submission process immediately.
+      console.warn("CRITICAL: Maximum violations reached. Forced submission in progress.");
+      handleSubmit(true); 
+    } else {
+      // Keep the modal for warning 1 and 2 so they know they are being watched
+      setModal({
+        type: "warning",
+        title: `Violation ${next} / 3`,
+        message: reason,
+        onConfirm: () => setModal(null)
+      });
+    }
+    return next;
+  });
+}, [handleSubmit, hasSubmitted]);
 
   /* ================= DATA & TIMERS ================= */
   useEffect(() => {

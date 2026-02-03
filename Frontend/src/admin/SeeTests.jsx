@@ -4,7 +4,7 @@ import AdminHeader from "./AdminHeader";
 import { useAuth } from "../context/AuthContext";
 import { 
   ArrowLeft, FileText, ChevronRight, Trophy, 
-  Users, BarChart2, Search
+  Users, BarChart3, Search, Target
 } from "lucide-react";
 
 export default function SeeTests() {
@@ -45,141 +45,156 @@ export default function SeeTests() {
   );
 
   return (
-    <div className="h-screen bg-[#f0ebf8] flex flex-col overflow-hidden font-sans">
-      <AdminHeader userName={user?.name} onLogout={logout} />
+    <div className="h-[100dvh] bg-[#fcfcfc] flex flex-col overflow-hidden font-sans text-slate-900">
+      {/* <AdminHeader userName={user?.name} onLogout={logout} /> */}
 
-      {/* MOBILE BACK NAV */}
+      {/* MOBILE HEADER OVERLAY */}
       {selectedTest && (
-        <div className="lg:hidden px-6 py-4 bg-white/80 backdrop-blur-md border-b border-slate-100 flex items-center gap-3 shrink-0">
-          <button onClick={() => setSelectedTest(null)} className="p-2 bg-slate-100 rounded-xl text-slate-600">
+        <div className="lg:hidden px-6 py-4 bg-white border-b border-slate-100 flex items-center gap-4 shrink-0">
+          <button 
+            onClick={() => setSelectedTest(null)} 
+            className="p-2 bg-slate-900 text-white rounded-lg shadow-lg active:scale-95 transition-all"
+          >
             <ArrowLeft size={16} />
           </button>
-          <h2 className="font-black text-[10px] uppercase tracking-widest text-slate-400">Back to Test Bank</h2>
+          <div>
+            <h2 className="text-sm font-black tracking-tight">{selectedTest.title}</h2>
+            <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">{selectedTest.subject}</p>
+          </div>
         </div>
       )}
 
-      <main className="flex-1 max-w-7xl mx-auto w-full p-4 lg:p-6 flex flex-col lg:flex-row gap-6 overflow-hidden">
+      <main className="flex-1 max-w-7xl mx-auto w-full p-4 lg:p-8 flex flex-col lg:flex-row gap-8 overflow-hidden">
         
-        {/* LEFT SIDEBAR: STAYS FIXED, LIST SCROLLS */}
-        <div className={`flex flex-col gap-4 w-full lg:w-80 shrink-0 h-full ${selectedTest ? 'hidden lg:flex' : 'flex'}`}>
-          <div className="flex items-center gap-3 shrink-0">
-            <button onClick={() => navigate(-1)} className="p-2.5 bg-white rounded-2xl shadow-sm text-slate-400 hover:text-[#673ab7] transition-all">
+        {/* LEFT PANEL: TEST BANK */}
+        <div className={`flex flex-col gap-6 w-full lg:w-[360px] shrink-0 h-full ${selectedTest ? 'hidden lg:flex' : 'flex'}`}>
+          <div className="flex items-center gap-4 shrink-0">
+            <button onClick={() => navigate(-1)} className="p-2.5 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-indigo-600 transition-all">
               <ArrowLeft size={20} />
             </button>
-            <h1 className="text-2xl font-black text-slate-800 tracking-tight">Tests</h1>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tighter italic uppercase">Vault</h1>
           </div>
 
-          {/* SEARCH BOX FIXED */}
           <div className="relative shrink-0">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <input 
               type="text"
-              placeholder="Search by title..."
-              className="w-full bg-white border-transparent focus:border-purple-200 focus:ring-0 rounded-[22px] py-4 pl-12 pr-4 text-sm font-bold text-slate-700 shadow-sm"
+              placeholder="Search by test title..."
+              className="w-full bg-white border border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 rounded-xl py-4 pl-12 pr-4 text-sm font-medium transition-all"
               value={testSearch}
               onChange={(e) => setTestSearch(e.target.value)}
             />
           </div>
 
-          {/* INTERNAL SCROLL AREA */}
-          <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-hide">
+          <div className="flex-1 overflow-y-auto space-y-2 pr-2 no-scrollbar">
             {filteredTests.map((test) => (
               <button
                 key={test.id}
                 onClick={() => setSelectedTest(test)}
-                className={`w-full text-left p-5 rounded-[30px] border transition-all duration-300 flex items-center justify-between group ${
+                className={`w-full text-left p-5 rounded-xl border transition-all duration-300 group ${
                   selectedTest?.id === test.id 
-                  ? "bg-[#673ab7] border-[#673ab7] text-white shadow-xl shadow-purple-200 translate-x-1" 
-                  : "bg-white border-transparent hover:border-purple-100 text-slate-800"
+                  ? "bg-slate-900 border-slate-900 text-white shadow-2xl shadow-slate-200 translate-x-1" 
+                  : "bg-white border-slate-100 hover:border-indigo-400 text-slate-800"
                 }`}
               >
-                <div className="flex items-center gap-4 truncate">
-                  <div className={`p-3 rounded-2xl transition-colors ${selectedTest?.id === test.id ? "bg-white/20" : "bg-purple-50 text-[#673ab7]"}`}>
-                    <FileText size={18} />
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0">
+                    <p className="font-bold text-sm truncate">{test.title}</p>
+                    <div className={`flex items-center gap-2 mt-2 text-[10px] font-bold uppercase tracking-widest ${selectedTest?.id === test.id ? 'text-indigo-400' : 'text-slate-400'}`}>
+                      <span>{test.date}</span>
+                      <div className="w-1 h-1 rounded-full bg-current opacity-30" />
+                      <span>{test.avg} avg</span>
+                    </div>
                   </div>
-                  <div className="truncate">
-                    <p className="font-bold text-[13px] truncate">{test.title}</p>
-                    <p className={`text-[9px] font-black uppercase tracking-widest mt-0.5 ${selectedTest?.id === test.id ? 'text-purple-200' : 'text-slate-400'}`}>
-                      {test.date} • {test.avg} avg
-                    </p>
-                  </div>
+                  <ChevronRight size={16} className={`transition-transform duration-300 ${selectedTest?.id === test.id ? 'translate-x-1 opacity-100' : 'opacity-20'}`} />
                 </div>
-                <ChevronRight size={16} className={`transition-transform duration-300 ${selectedTest?.id === test.id ? 'translate-x-1 opacity-100' : 'opacity-20'}`} />
               </button>
             ))}
           </div>
         </div>
 
-        {/* RIGHT PANEL: DETAILS */}
-        <div className={`flex-1 bg-white rounded-[40px] shadow-sm border border-slate-100 flex flex-col overflow-hidden transition-all duration-500 ${!selectedTest ? 'hidden lg:flex opacity-40 bg-slate-50' : 'flex'}`}>
+        {/* RIGHT PANEL: ANALYTICS DETAIL */}
+        <div className={`flex-1 bg-white rounded-[2rem] border border-slate-200 flex flex-col overflow-hidden transition-all duration-500 ${!selectedTest ? 'hidden lg:flex opacity-20 bg-slate-50 border-dashed' : 'flex'}`}>
           {selectedTest ? (
             <>
-              {/* FIXED DETAIL HEADER */}
-              <div className="p-8 border-b border-slate-50 flex justify-between items-end bg-slate-50/40 shrink-0">
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="bg-[#673ab7]/10 text-[#673ab7] text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
-                      {selectedTest.subject}
-                    </span>
-                  </div>
-                  <h2 className="text-2xl lg:text-3xl font-black text-slate-800 tracking-tight">{selectedTest.title}</h2>
-                </div>
-                <div className="text-right">
-                  <p className="text-3xl lg:text-4xl font-black text-[#673ab7] tracking-tighter">{selectedTest.avg}</p>
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Class Average</p>
-                </div>
-              </div>
+              {/* ANALYTICS HEADER */}
+              <div className="p-5 sm:p-8 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 sm:gap-6 bg-slate-50/50 shrink-0">
+  <div>
+    <span className="inline-block bg-indigo-600 text-white text-[8px] sm:text-[9px] font-black px-2 sm:px-3 py-0.5 sm:py-1 rounded-md uppercase tracking-[0.2em] mb-2 sm:mb-4">
+      {selectedTest.subject}
+    </span>
+    {/* Scaled down on mobile (text-2xl), full power on desktop (text-4xl) */}
+    <h2 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight sm:tracking-tighter leading-tight">
+      {selectedTest.title}
+    </h2>
+  </div>
 
-              {/* DETAIL CONTENT SCROLL AREA */}
-              <div className="flex-1 overflow-y-auto p-8 space-y-10 scrollbar-hide">
+  <div className="text-left sm:text-right flex items-baseline sm:flex-col gap-2 sm:gap-0 mt-1 sm:mt-0">
+    {/* Average score made more compact for mobile */}
+    <p className="text-3xl sm:text-4xl font-black text-indigo-600 tracking-tighter">
+      {selectedTest.avg}
+    </p>
+    <p className="text-[8px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">
+      Cohort Average
+    </p>
+  </div>
+</div>
+
+              {/* DASHBOARD CONTENT */}
+              <div className="flex-1 overflow-y-auto p-8 space-y-12 no-scrollbar">
                 
-                {/* PODIUM VIEW */}
-                <div className="space-y-5">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-2">Podium Finishers</p>
-                  <div className="grid grid-cols-3 gap-4">
+                {/* TOP 3 GRID */}
+                <div className="space-y-6">
+                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2">
+                    <Trophy size={14} className="text-indigo-500" />
+                    Top Performance
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {currentResults.top.map((name, i) => (
-                      <div key={name} className="bg-slate-50 p-5 rounded-[32px] border border-slate-100 flex flex-col items-center group hover:bg-white hover:shadow-md transition-all">
-                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center mb-3 ${i === 0 ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-400'}`}>
-                          <Trophy size={20} />
+                      <div key={name} className="bg-white border border-slate-100 p-6 rounded-xl flex items-center sm:flex-col gap-4 sm:gap-2 group hover:border-indigo-600 transition-all">
+                        <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${i === 0 ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                          <span className="text-xs font-black">0{i+1}</span>
                         </div>
-                        <span className="text-[11px] font-black text-slate-800 text-center leading-tight">{name.split(' ')[0]}</span>
-                        <span className="text-[8px] font-black text-slate-400 uppercase mt-1">Rank {i+1}</span>
+                        <div className="sm:text-center">
+                          <p className="text-sm font-bold text-slate-900">{name}</p>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Rank Distinction</p>
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* ROSTER WITH SEARCH */}
+                {/* ROSTER TABLE */}
                 <div className="space-y-6">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-2">
-                    <div className="flex items-center gap-2">
-                      <Users size={16} className="text-slate-400" />
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Student Roster</p>
-                    </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2">
+                      <Users size={14} className="text-indigo-500" />
+                      Detailed Scores
+                    </h3>
                     <div className="relative">
                       <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
                       <input 
                         type="text"
                         placeholder="Filter by name..."
-                        className="bg-slate-50 border-transparent rounded-[20px] py-3 pl-10 pr-4 text-[11px] font-bold focus:ring-0 focus:bg-white focus:shadow-sm w-full md:w-56 transition-all"
+                        className="bg-slate-50 border border-slate-100 rounded-lg py-3 pl-10 pr-4 text-xs font-bold focus:bg-white focus:border-indigo-500 w-full sm:w-64 transition-all"
                         value={studentSearch}
                         onChange={(e) => setStudentSearch(e.target.value)}
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {filteredStudents.map((student) => (
-                      <div key={student.name} className="flex items-center justify-between p-5 rounded-[28px] bg-slate-50/50 hover:bg-white border border-transparent hover:border-slate-100 hover:shadow-sm transition-all group">
+                      <div key={student.name} className="flex items-center justify-between p-5 rounded-xl border border-slate-50 bg-slate-50/30 hover:bg-white hover:border-indigo-100 hover:shadow-xl transition-all group">
                         <span className="text-sm font-bold text-slate-700">{student.name}</span>
-                        <div className="flex items-center gap-5">
-                          <div className="w-24 lg:w-32 h-2 bg-slate-200/50 rounded-full overflow-hidden hidden sm:block">
+                        <div className="flex items-center gap-6">
+                          <div className="w-24 h-1.5 bg-slate-200 rounded-full overflow-hidden hidden md:block">
                             <div 
-                              className={`h-full rounded-full transition-all duration-1000 ${student.score > 85 ? 'bg-emerald-400' : student.score > 60 ? 'bg-[#673ab7]' : 'bg-red-400'}`} 
+                              className={`h-full transition-all duration-1000 ${student.score > 85 ? 'bg-indigo-600' : student.score > 60 ? 'bg-slate-900' : 'bg-rose-500'}`} 
                               style={{ width: `${student.score}%` }}
                             />
                           </div>
-                          <span className={`text-sm font-black w-10 text-right ${student.score > 85 ? 'text-emerald-500' : 'text-slate-900'}`}>{student.score}%</span>
+                          <span className={`text-sm font-black w-12 text-right ${student.score > 85 ? 'text-indigo-600' : 'text-slate-900'}`}>{student.score}%</span>
                         </div>
                       </div>
                     ))}
@@ -188,16 +203,21 @@ export default function SeeTests() {
               </div>
             </>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-slate-300 p-12 text-center">
-              <div className="w-20 h-20 bg-white rounded-[30px] shadow-sm flex items-center justify-center mb-6">
-                <BarChart2 size={32} className="text-slate-200" />
+            <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
+              <div className="w-16 h-16 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-center mb-6">
+                <BarChart3 size={32} className="text-slate-200" />
               </div>
-              <h3 className="text-sm font-black text-slate-400 uppercase tracking-[0.3em]">Select Test Session</h3>
-              <p className="text-[10px] text-slate-300 mt-2 max-w-[200px] leading-relaxed">Choose a test from the bank to see student scores and ranking</p>
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Selection Required</h3>
+              <p className="text-xs text-slate-400 mt-4 max-w-[240px] leading-relaxed">Select a session from the test bank to analyze real-time cohort performance and roster data.</p>
             </div>
           )}
         </div>
       </main>
+
+      <style>{`
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
     </div>
   );
 }

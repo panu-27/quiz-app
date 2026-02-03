@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-
+import path from "path"
 // Routes
 import authRoutes from "./modules/auth/auth.routes.js";
 import superRoutes from "./modules/super/super.routes.js";
@@ -16,7 +16,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 import bcrypt from "bcryptjs";
 bcrypt.hash("password123", 10).then(console.log);
 

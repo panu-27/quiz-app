@@ -7,7 +7,6 @@ import AdminDashboard from "./admin/Dashboard";
 import StudentDashboard from "./student/Dashboard";
 import CreateTest from "./admin/CreateTest/CreateTest";
 import TestAttempt from "./student/TestAttempt";
-import SubjectPage from "./student/SubjectPage";
 import TestHistory from "./student/TestHistory";
 import AttemptAnalytics from "./student/AttemptAnalysis";
 import StudentLayout from "./student/Layout/StudentLayout";
@@ -36,7 +35,6 @@ export default function App() {
           }
         >
           <Route index element={<StudentDashboard />} />
-          <Route path="subject/:subjectName" element={<SubjectPage />} />
           <Route path="history" element={<TestHistory />} />
           <Route path="analytics/:testId/attempt/:attemptNumber" element={<AttemptAnalytics />} />
           <Route path="profile" element={<StudentProfile />} />

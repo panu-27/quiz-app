@@ -30,11 +30,16 @@ const testAttemptSchema = new mongoose.Schema(
         selectedOption: Number,
       },
     ],
+    status: {
+    type: String,
+    enum: ["started", "completed"],
+    default: "started"
+  },
 
     score: Number,
     timeTaken: Number,
   },
   { timestamps: true }
 );
-
+testAttemptSchema.index({ testId: 1, studentId: 1, attemptNumber: 1 }, { unique: true });
 export default mongoose.model("TestAttempt", testAttemptSchema);

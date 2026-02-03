@@ -2,22 +2,23 @@ import { useEffect, useState } from "react";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Power, LayoutGrid, BookOpen, Heart, User as UserIcon, ChevronRight, BarChart2, Loader2, Calendar } from "lucide-react";
+import {
+  LayoutGrid, BarChart2, Loader2, Clock,
+  ArrowUpRight, MonitorPlay, ClipboardCheck,
+  History, ArrowRight
+} from "lucide-react";
 
 export default function StudentDashboard() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [tests, setTests] = useState([]);
-  const [loading, setLoading] = useState(true); // Added loading state
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchMyTests = async () => {
       try {
         setLoading(true);
-        // Using the endpoint you provided
         const res = await api.get("/student/my-tests");
-        
-        // Ensure we handle both array or object response
         const testData = Array.isArray(res.data) ? res.data : (res.data.tests || []);
         setTests(testData);
       } catch (err) {
@@ -26,137 +27,124 @@ export default function StudentDashboard() {
         setLoading(false);
       }
     };
-
     fetchMyTests();
   }, []);
 
-  const exitApp = () => {
-    if (window.electron?.forceExit) {
-      window.electron.forceExit();
-    } else {
-      alert("Exit works only in desktop app");
-    }
-  };
-
-  const SubjectCard = ({ title, icon, color }) => (
-    <div onClick={() => navigate(`/student/subject/${title}`)} className="bg-white p-6 rounded-[2rem] flex flex-col items-center text-center shadow-sm hover:shadow-md transition-all cursor-pointer border border-zinc-50 group">
-      <div className={`w-20 h-20 mb-4 flex items-center justify-center rounded-2xl ${color} group-hover:scale-110 transition-transform`}>
-        <span className="text-3xl">{icon}</span>
-      </div>
-      <p className="font-bold text-sm tracking-tight text-zinc-900">{title}</p>
-    </div>
-  );
-
   return (
-    <div className=" bg-[#F8FAFF] pb-32 font-sans text-zinc-800 animate-in fade-in duration-500 min-h-screen">
-      {/* Header */}
-      <header className="px-6 pt-8 flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm border border-zinc-100">
-            <LayoutGrid className="w-5 h-5 text-indigo-600" />
+    <div className="bg-[#fcfcfc] pb-24 font-sans text-slate-900 min-h-screen">
+
+      {/* 1. TOP NAV */}
+      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100 px-6 py-3">
+        <div className="max-w-6xl mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <div className="bg-indigo-600 text-white p-1 rounded-lg shadow-sm">
+              <LayoutGrid size={16} />
+            </div>
+            <span className="font-black italic tracking-tighter text-lg text-slate-900 uppercase">Nexus</span>
           </div>
-          <div fertile-cols>
-             <h1 className="text-xl font-bold tracking-tight">Hi, {user?.name || "Student"} 👋</h1>
-             <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">{user?.batchName || "Standard Plan"}</p>
+          <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-inner">
+            {user?.name?.charAt(0) || "S"}
           </div>
         </div>
-        <div className="flex gap-3">
-          <button onClick={logout} className="p-2 text-zinc-400 hover:text-red-500 transition-colors"><LogOut className="w-5 h-5" /></button>
-          <button onClick={exitApp} className="p-2 hidden md:block bg-red-50 text-red-600 rounded-full hover:bg-red-100 transition-colors"><Power className="w-5 h-5" /></button>
-        </div>
-      </header>
+      </nav>
 
-      {/* Promo Banner */}
-      <div className="px-6 mt-8">
-        <div className="bg-[#A5C0FF] rounded-3xl p-8 relative overflow-hidden flex justify-between items-center shadow-lg shadow-indigo-100">
-          <div className="z-10 max-w-[60%]">
-            <h2 className="text-3xl font-black text-white leading-tight mb-2">Ready for your next challenge?</h2>
-            <button className="bg-white/30 backdrop-blur-md text-white px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">View Schedule</button>
+      <main className="max-w-4xl mx-auto px-6 pt-8">
+
+        {/* 2. CINEMATIC POSTER */}
+        {/* 2. CINEMATIC CLASSROOM POSTER (CLEAN) */}
+       <div className="relative w-full aspect-[21/9] rounded-[2rem] overflow-hidden mb-10 bg-slate-900 shadow-2xl shadow-indigo-100">
+  <img
+    src="https://images.unsplash.com/photo-1529070538774-1843cb3265df?auto=format&fit=crop&q=80&w=1600"
+    alt="Students studying in classroom"
+    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 hover:scale-105"
+  />
+  <div className="absolute inset-0 bg-indigo-900/5 pointer-events-none" />
+</div>
+
+
+        {/* 3. CORE ACTION CARDS (TWO IN A ROW) */}
+        <section className="grid grid-cols-2 gap-4 mb-12">
+          <div
+            onClick={() => navigate("/student/library")}
+            className="group bg-white border border-slate-100 p-6 rounded-3xl hover:border-indigo-600 transition-all cursor-pointer shadow-sm hover:shadow-xl hover:shadow-indigo-500/5"
+          >
+            <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-10 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-inner">
+              <ClipboardCheck size={24} />
+            </div>
+            <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest leading-none mb-2">Initialize Quiz</h3>
+            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">Enter Courseware</p>
           </div>
-          <div className="absolute right-[-10px] bottom-[-20px] w-48 h-48 bg-white/20 rounded-full blur-3xl" />
-          <div className="text-6xl grayscale opacity-80">🚀</div>
-        </div>
-      </div>
 
-      {/* Study Material */}
-      <div className="px-6 mt-10 flex justify-between items-center">
-        <h3 className="text-lg font-bold text-zinc-900">Subjects</h3>
-        <button className="text-zinc-400 text-sm font-medium">See all</button>
-      </div>
-      <div className="px-6 mt-6 grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <SubjectCard title="Physics" icon="⚛️" color="bg-blue-50" />
-        <SubjectCard title="Chemistry" icon="🧪" color="bg-orange-50" />
-        <SubjectCard title="Maths" icon="📐" color="bg-green-50" />
-        <SubjectCard title="Biology" icon="🧬" color="bg-red-50" />
-      </div>
-
-      {/* Scheduled Tests Section */}
-      <div className="px-6 mt-10 flex justify-between items-center">
-        <h3 className="text-lg font-bold text-zinc-900">Upcoming Tests</h3>
-        <span className="bg-indigo-100 text-indigo-600 text-[10px] font-black px-2 py-0.5 rounded-md uppercase">Live Now</span>
-      </div>
-
-      <div className="px-6 mt-6 space-y-4">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-10 gap-3">
-             <Loader2 className="animate-spin text-indigo-600" />
-             <p className="text-xs font-bold text-zinc-400 uppercase tracking-tighter">Fetching your assigned tests...</p>
+          <div
+            onClick={() => navigate("/student/history")}
+            className="group bg-white border border-slate-100 p-6 rounded-3xl hover:border-violet-600 transition-all cursor-pointer shadow-sm hover:shadow-xl hover:shadow-violet-500/5"
+          >
+            <div className="w-12 h-12 bg-violet-50 text-violet-600 rounded-2xl flex items-center justify-center mb-10 group-hover:bg-violet-600 group-hover:text-white transition-all shadow-inner">
+              <History size={24} />
+            </div>
+            <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest leading-none mb-2">Quiz History</h3>
+            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">Access Records</p>
           </div>
-        ) : tests.length === 0 ? (
-          <div className="bg-white p-10 rounded-[2rem] border-2 border-dashed border-zinc-100 flex flex-col items-center">
-            <Calendar className="text-zinc-200 mb-2" size={32} />
-            <p className="text-zinc-400 text-sm font-medium italic">No upcoming tests scheduled for your batch.</p>
+        </section>
+
+        {/* 4. SCHEDULED TESTS */}
+        <section className="mb-12">
+          <div className="flex items-center gap-3 mb-6">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Scheduled Exams</h3>
+            <div className="h-[1px] flex-1 bg-slate-100" />
           </div>
-        ) : (
-          tests.map((t) => (
-            <div key={t._id} className="bg-white p-6 rounded-[2rem] flex items-center justify-between shadow-sm border border-zinc-50 hover:shadow-md transition-shadow group">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                  <span className="text-xl font-bold">
-                    {t.metadata?.pattern === "NEET" ? "N" : t.metadata?.pattern === "JEE MAINS" ? "J" : "T"}
-                  </span>
-                </div>
-                <div>
-                  <h4 className="font-bold text-sm text-zinc-900">{t.title}</h4>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[9px] font-black text-zinc-400 uppercase bg-zinc-50 px-1.5 py-0.5 rounded-md">{t.duration} Mins</span>
-                    <span className="text-[9px] font-black text-indigo-500 uppercase bg-indigo-50 px-1.5 py-0.5 rounded-md">{t.metadata?.pattern}</span>
+          <div className="space-y-3">
+            {loading ? (
+              <div className="py-10 flex justify-center"><Loader2 className="animate-spin text-indigo-200" /></div>
+            ) : tests.length > 0 ? (
+              tests.map((t) => (
+                <div key={t._id} className="flex items-center justify-between p-5 bg-white border border-slate-100 rounded-3xl hover:border-indigo-400 transition-all shadow-sm">
+                  <div className="flex items-center gap-5">
+                    <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center shadow-inner">
+                      <Clock size={20} />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-900 uppercase tracking-tight leading-none mb-2">{t.title}</h4>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t.duration} Mins • Diagnostic</p>
+                    </div>
                   </div>
+                  <button onClick={() => navigate(`/student/test/${t._id}`)} className="px-8 py-3 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-indigo-600 transition-all shadow-lg shadow-slate-200">
+                    Launch
+                  </button>
                 </div>
+              ))
+            ) : (
+              <div className="py-8 text-center border border-dashed border-slate-200 rounded-3xl">
+                <p className="text-[10px] font-black text-slate-300 uppercase">No active assessment streams</p>
               </div>
-              <button 
-                onClick={() => navigate(`/student/test/${t._id}`)} 
-                className="bg-indigo-600 text-white px-8 py-3 rounded-full font-black text-[10px] uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 active:scale-95"
-              >
-                Start Test
-              </button>
-            </div>
-          ))
-        )}
-      </div>
-
-      {/* History Card (Keep as is) */}
-      <div className="px-6 mt-10 flex justify-between items-center">
-        <h3 className="text-lg font-bold text-zinc-900">Performance History</h3>
-        <button onClick={() => navigate("/student/history")} className="text-zinc-400 text-sm font-medium hover:text-indigo-600 transition-colors">See all</button>
-      </div>
-
-      <div className="px-6 mt-6 pb-10">
-        <div onClick={() => navigate("/student/history")} className="bg-white p-6 rounded-[2rem] flex items-center justify-between shadow-sm border border-zinc-50 hover:shadow-md transition-all cursor-pointer group">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-              <BarChart2 size={20} />
-            </div>
-            <div>
-              <p className="font-bold text-sm text-zinc-900">Detailed Analytics</p>
-              <p className="text-xs text-zinc-400">View all past attempt scores & review</p>
-            </div>
+            )}
           </div>
-          <div className="bg-zinc-50 p-2 rounded-full group-hover:translate-x-1 transition-transform">
-            <ChevronRight className="w-4 h-4 text-zinc-400" />
+        </section>
+
+        {/* 5. TEST ANALYTICS ARCHIVE */}
+        <section className="mb-10">
+          <div className="flex items-center gap-3 mb-6">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Analysis Hub</h3>
+            <div className="h-[1px] flex-1 bg-slate-100" />
           </div>
-        </div>
-      </div>
+          <div
+            onClick={() => navigate("/student/history")}
+            className="group flex items-center justify-between p-6 bg-white border border-slate-200 rounded-[2.5rem] cursor-pointer hover:border-violet-500 hover:shadow-2xl hover:shadow-violet-500/5 transition-all duration-500"
+          >
+            <div className="flex items-center gap-6">
+              <div className="w-16 h-16 bg-violet-50 text-violet-600 border border-violet-100 rounded-[1.5rem] flex items-center justify-center group-hover:bg-violet-600 group-hover:text-white transition-all shadow-sm">
+                <BarChart2 size={28} />
+              </div>
+              <div>
+                <h4 className="text-lg font-black text-slate-900 uppercase tracking-tight">Intelligence Logs</h4>
+                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Historical Diagnostic Data</p>
+              </div>
+            </div>
+            <ArrowRight className="text-slate-300 group-hover:text-violet-600 group-hover:translate-x-1 transition-all" />
+          </div>
+        </section>
+
+      </main>
     </div>
   );
 }

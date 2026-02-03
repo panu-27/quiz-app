@@ -1,40 +1,49 @@
 import Batch from "../batch/batch.model.js";
 import Test from "../test/test.model.js";
+import fs from "fs";
+import path from "path";
+import Resource from "./Resource.js";
 
 /* ---------------- GET TEACHER BATCHES ---------------- */
 
 /* ---------------- CREATE PDF TEST (UNCHANGED) ---------------- */
 export const createTest = async (
   teacher,
-  { title, batchIds,configuration ,  questions, duration , startTime, endTime }
+  { title, batchIds, configuration, questions, duration, startTime, endTime }
 ) => {
+  // 1. Basic Validations
   if (!batchIds || batchIds.length === 0) {
     throw new Error("At least one batch must be selected");
   }
 
+  // 2. SECURITY CHECK: Query 'teachers' array instead of 'teacherId'
+  // This allows Mongoose to find the teacher's ID inside the Batch's teachers list
   const teacherBatches = await Batch.find({
-    teacherId: teacher.id,
+    teachers: teacher.id || teacher._id,
   }).select("_id");
 
   const allowedBatchIds = teacherBatches.map((b) => b._id.toString());
 
+  // Check if any of the requested batchIds are NOT in the teacher's allowed list
   const invalidBatch = batchIds.find(
     (id) => !allowedBatchIds.includes(id)
   );
 
   if (invalidBatch) {
-    throw new Error("You are not assigned to one or more batches");
+    throw new Error("Operational Error: You are not assigned to one or more selected batches");
   }
 
+  // 3. Questions Validation
   if (!questions || questions.length === 0) {
-    throw new Error("Questions are required for PDF tests");
+    throw new Error("Intelligence Payload Error: Questions are required for PDF tests");
   }
 
+  // 4. Create the Record
   return Test.create({
     title,
     mode: "PDF",
     instituteId: teacher.instituteId,
-    teacherId: teacher.id,
+    teacherId: teacher.id || teacher._id,
     batches: batchIds,
     questions,
     configuration,
@@ -43,26 +52,21 @@ export const createTest = async (
     endTime,
   });
 };
-
 /* ---------------- CREATE CUSTOM TEST (CONFIG ONLY) ---------------- */
+/* ---------------- CREATE CUSTOM TEST ---------------- */
 export const createCustomTest = async (
   teacher,
   { title, batchIds, configuration, duration, metadata, startTime, endTime }
 ) => {
-  if (!batchIds || batchIds.length === 0) {
-    throw new Error("At least one batch must be selected");
-  }
+  // 1. Basic Validations
+  if (!batchIds || batchIds.length === 0) throw new Error("At least one batch must be selected");
+  if (!configuration || configuration.length === 0) throw new Error("Test configuration is required");
+  if (!metadata?.distribution) throw new Error("Test metadata/distribution is required");
 
-  if (!configuration || configuration.length === 0) {
-    throw new Error("Custom test configuration is required");
-  }
-
-  if (!metadata || !metadata.distribution) {
-    throw new Error("Test metadata is required");
-  }
-
+  // 2. SECURITY CHECK: Verify teacher belongs to the selected batches
+  // FIX: We must query the 'teachers' array field defined in your Batch Schema
   const teacherBatches = await Batch.find({
-    teacherId: teacher.id,
+    teachers: teacher.id || teacher._id, // Mongoose searches inside the array automatically
   }).select("_id");
 
   const allowedBatchIds = teacherBatches.map((b) => b._id.toString());
@@ -72,22 +76,24 @@ export const createCustomTest = async (
   );
 
   if (invalidBatch) {
-    throw new Error("You are not assigned to one or more batches");
+    throw new Error("Access Denied: You are not assigned to one or more selected batches");
   }
 
+  // 3. Metadata Validation
   if (!["Single Set", "4 Sets"].includes(metadata.distribution)) {
-    throw new Error("Only Single Set and 4 Sets are supported");
+    throw new Error("Distribution must be 'Single Set' or '4 Sets'");
   }
 
+  // 4. Create Record
   return Test.create({
     title,
     mode: "CUSTOM",
     instituteId: teacher.instituteId,
-    teacherId: teacher.id,
+    teacherId: teacher.id || teacher._id,
     batches: batchIds,
     configuration,
     metadata,
-    duration ,
+    duration,
     questions: [],
     startTime,
     endTime,
@@ -98,25 +104,25 @@ export const createCustomTest = async (
 export const generateCustomTest = async (teacher, testId) => {
   const test = await Test.findOne({
     _id: testId,
-    teacherId: teacher.id,
+    teacherId: teacher.id || teacher._id,
     mode: "CUSTOM",
   });
 
-  if (!test) {
-    throw new Error("Custom test not found");
+  if (!test) throw new Error("Custom test not found or unauthorized");
+
+  // Prevent overwriting existing questions
+  if (test.questions?.length > 0 || test.sets) {
+    throw new Error("Intelligence already generated for this module");
   }
 
-  if (test.questions.length > 0 || test.sets) {
-    throw new Error("Test already generated");
-  }
+  // Generate Questions based on config
+  const questions = await mockGenerateQuestions(test.configuration);
 
-  const questions = mockGenerateQuestions(test.configuration);
-
+  // Apply Distribution Strategy
   if (test.metadata.distribution === "Single Set") {
     test.questions = questions;
-  }
-
-  if (test.metadata.distribution === "4 Sets") {
+  } else if (test.metadata.distribution === "4 Sets") {
+    // Ensure you have a shuffle function imported or defined
     test.sets = {
       A: shuffle([...questions]),
       B: shuffle([...questions]),
@@ -152,13 +158,19 @@ const mockGenerateQuestions = (configuration) => {
 
 /* ---------------- GET TEACHER BATCHES ---------------- */
 export const getMyBatches = async (teacher) => {
-  if (!teacher?.id) {
-    throw new Error("Unauthorized");
+  // Ensure we have a valid ID from the auth middleware
+  const teacherId = teacher._id || teacher.id;
+
+  if (!teacherId) {
+    throw new Error("Unauthorized: Teacher identification missing");
   }
 
+  // Find batches where the teacher's ID exists in the 'teachers' array
   const batches = await Batch.find({
-    teacherId: teacher.id,
-  }).select("_id name");
+    teachers: teacherId, 
+  })
+  .select("_id name") // Only return necessary fields for the frontend chips
+  .lean(); // Faster execution by returning plain JSON objects
 
   return batches;
 };
@@ -172,3 +184,31 @@ const shuffle = (arr) => {
 };
 
 
+
+export const deployMaterial = async (teacher, metadata, file) => {
+  const teacherId = teacher._id || teacher.id;
+  const { subjectId, category, batchIds } = metadata;
+
+  const subjectMap = { phy: "Physics", che: "Chemistry", mat: "Maths", bio: "Biology" };
+
+  // 1. Save File to Disk
+  const uploadDir = path.join(process.cwd(), "uploads", "vault");
+  if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+  const uniqueName = `${Date.now()}-${file.originalname.replace(/\s+/g, "_")}`;
+  const filePath = path.join(uploadDir, uniqueName);
+  fs.writeFileSync(filePath, file.buffer);
+
+  // 2. Create Resource with Batch Access
+  const newResource = await Resource.create({
+    title: file.originalname,
+    category,
+    subject: subjectMap[subjectId] || subjectId,
+    fileUrl: `/uploads/vault/${uniqueName}`,
+    batchIds, // Only students in these batches will see this
+    uploadedBy: teacherId,
+    fileSize: (file.size / 1024 / 1024).toFixed(2) + " MB"
+  });
+
+  return { success: true, resource: newResource };
+};

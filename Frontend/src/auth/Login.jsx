@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
+import GetStarted from "./GetStarted";
 
 export default function AuthPage() {
   const { login } = useAuth();
@@ -47,154 +48,158 @@ export default function AuthPage() {
     }
   };
 
-  // --- GET STARTED SCREEN (PREMIUM BACKGROUND) ---
-  if (!showForm) {
-    return (
-      <div className="relative min-h-screen flex flex-col items-center justify-between p-8 overflow-hidden font-sans">
-        {/* Background Image with Overlay */}
-        <div 
-          className="absolute inset-0 z-0 scale-105"
-          style={{
-            backgroundImage: `url('https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=2070&auto=format&fit=crop')`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-          }}
-        />
-        {/* Gradient Overlay for Text Readability */}
-        <div className="absolute inset-0 z-10 bg-gradient-to-b from-blue-900/40 via-blue-900/20 to-blue-950/90" />
+  // --- GET STARTED (MOBILE-FIRST LANDING) ---
+  // --- GET STARTED (MOBILE-FIRST LANDING) ---
+if (!showForm) {
+  return (
+    <GetStarted 
+      setIsLogin={setIsLogin} 
+      setShowForm={setShowForm} 
+    />
+  );
+}
 
-        <div className="relative z-20 mt-20 text-center space-y-2 animate-in fade-in slide-in-from-top-10 duration-1000">
-          <h1 className="text-7xl font-black italic tracking-tighter text-white drop-shadow-2xl">
-            NEXUS
+  // --- SIGN IN / REGISTER FORM (MOBILE-FIRST) ---
+return (
+  <div className="relative min-h-[100dvh] flex flex-col font-sans selection:bg-blue-100">
+    
+    {/* Background - Matching the Landing Page for Continuity */}
+    <div className="absolute inset-0 z-0">
+      <img 
+        src="https://images.unsplash.com/photo-1497633762265-9d179a990aa6?q=80&w=2073&auto=format&fit=crop" 
+        alt="Classroom"
+        className="w-full h-full object-cover"
+      />
+      <div className="absolute inset-0 bg-white/90 backdrop-blur-md" />
+    </div>
+
+    {/* Header - Super Clean & Thin */}
+    <header className="relative z-10 flex items-center justify-between px-6 py-4 border-b border-slate-200/50 pt-[max(1rem,env(safe-area-inset-top))]">
+      <button
+        type="button"
+        onClick={() => setShowForm(false)}
+        className="group flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors"
+      >
+        <span className="text-xl transition-transform group-hover:-translate-x-1">←</span>
+        <span className="text-sm font-medium">Back</span>
+      </button>
+      <span className="text-slate-900 font-black italic text-xl tracking-tighter">NEXUS</span>
+      <div className="w-10" /> {/* Spacer for symmetry */}
+    </header>
+
+    <main className="relative z-10 flex-1 flex  px-6 py-12">
+      <div className="w-full max-w-[400px]">
+        
+        {/* Form Title Section */}
+        <div className="text-center mb-10">
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
+            {isLogin ? "Welcome back" : "Create your account"}
           </h1>
-          <div className="h-1 w-12 bg-blue-500 mx-auto rounded-full" />
-          <p className="text-blue-50 text-lg font-light tracking-[0.2em] uppercase">
-            Evolution of Learning
+          <p className="text-slate-500 mt-2 text-sm">
+            {isLogin ? "Enter your details to access your dashboard" : "Join our community of elite learners"}
           </p>
         </div>
-        
-        <div className="relative z-20 w-full max-w-sm space-y-4 mb-12">
-          <button 
-            onClick={() => { setIsLogin(true); setShowForm(true); }}
-            className="w-full py-5 bg-white text-blue-700 rounded-2xl font-bold text-lg shadow-2xl transition-all active:scale-95 hover:bg-blue-50"
-          >
-            Enter Portal
-          </button>
-          <button 
-            onClick={() => { setIsLogin(false); setShowForm(true); }}
-            className="w-full py-5 bg-white/10 border border-white/20 text-white rounded-2xl font-semibold backdrop-blur-xl transition-all active:scale-95 hover:bg-white/20"
-          >
-            Join Nexus
-          </button>
-        </div>
-      </div>
-    );
-  }
 
-  // --- MAIN FORM UI (CLEAN & AESTHETIC) ---
-  return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-0 md:p-6 selection:bg-blue-100">
-      <div className="w-full h-full min-h-screen md:min-h-0 md:h-auto md:max-w-md bg-white md:rounded-[3rem] shadow-none md:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-500">
-        
-        <div className="px-8 pt-10 pb-6 flex items-center gap-4">
-          <button 
-            onClick={() => setShowForm(false)}
-            className="w-12 h-12 flex items-center justify-center bg-slate-100 rounded-2xl text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-colors"
-          >
-            ←
-          </button>
-          <span className="text-blue-600 font-black italic text-2xl tracking-tighter">NEXUS</span>
-        </div>
-
-        <div className="px-8 pb-10 flex-1">
-          <div className="mb-10">
-            <h2 className="text-4xl font-bold text-slate-900 tracking-tight leading-none">
-              {isLogin ? "Sign In" : "Register"}
-            </h2>
-            <p className="text-slate-400 mt-3 font-medium text-lg">
-              {isLogin ? "Connect to your dashboard." : "Create your student identity."}
-            </p>
+        {/* Status Messages - Modern Toast Style */}
+        {status.message && (
+          <div className={`mb-6 p-4 rounded-xl text-sm font-medium border ${
+            status.type === "error" 
+              ? "bg-red-50 text-red-700 border-red-100" 
+              : "bg-blue-50 text-blue-700 border-blue-100"
+          }`}>
+            {status.message}
           </div>
+        )}
 
-          {status.message && (
-            <div className={`mb-8 p-5 rounded-[1.5rem] flex items-center gap-4 animate-in slide-in-from-left-4 duration-300 ${
-              status.type === "error" ? "bg-red-50 text-red-700 border border-red-100" : "bg-blue-50 text-blue-700 border border-blue-100"
-            }`}>
-              <div className={`w-3 h-3 rounded-full ${status.type === "error" ? "bg-red-500" : "bg-blue-500"}`} />
-              <p className="text-sm font-bold">{status.message}</p>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {!isLogin && (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {!isLogin && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-500 ml-1 uppercase tracking-wider">Full Name</label>
               <input
                 name="name"
                 required
-                className="w-full bg-slate-100 border-2 border-transparent focus:border-blue-600 focus:bg-white rounded-2xl px-6 py-4 transition-all outline-none font-semibold text-slate-800 placeholder:text-slate-400"
-                placeholder="Full Name"
+                type="text"
+                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-slate-900 placeholder:text-slate-300"
+                placeholder="John Doe"
                 value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               />
-            )}
+            </div>
+          )}
 
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-500 ml-1 uppercase tracking-wider">Email Address</label>
             <input
               name="email"
               type="email"
               required
-              className="w-full bg-slate-100 border-2 border-transparent focus:border-blue-600 focus:bg-white rounded-2xl px-6 py-4 transition-all outline-none font-semibold text-slate-800 placeholder:text-slate-400"
-              placeholder="Email"
+              className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-slate-900 placeholder:text-slate-300"
+              placeholder="name@institute.com"
               value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             />
+          </div>
 
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-500 ml-1 uppercase tracking-wider">Password</label>
             <input
               name="password"
               type="password"
               required
-              className="w-full bg-slate-100 border-2 border-transparent focus:border-blue-600 focus:bg-white rounded-2xl px-6 py-4 transition-all outline-none font-semibold text-slate-800 placeholder:text-slate-400"
-              placeholder="Password"
+              className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-slate-900 placeholder:text-slate-300"
+              placeholder="••••••••"
               value={formData.password}
-              onChange={(e) => setFormData({...formData, password: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
             />
+          </div>
 
-            {!isLogin && (
+          {!isLogin && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-500 ml-1 uppercase tracking-wider">Institute</label>
               <div className="relative">
                 <select
                   name="instituteId"
                   required
-                  className="w-full bg-slate-100 border-2 border-transparent focus:border-blue-600 focus:bg-white rounded-2xl px-6 py-4 transition-all outline-none appearance-none font-semibold text-slate-500"
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none appearance-none text-slate-900 transition-all"
                   value={formData.instituteId}
-                  onChange={(e) => setFormData({...formData, instituteId: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, instituteId: e.target.value })}
                 >
-                  <option value="">Select Institute</option>
+                  <option value="">Select your campus</option>
                   {institutes.map((inst) => (
                     <option key={inst._id} value={inst._id}>{inst.name}</option>
                   ))}
                 </select>
-                <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">↓</div>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                </div>
               </div>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-4 bg-slate-900 text-white rounded-xl font-bold text-base shadow-lg shadow-slate-900/20 hover:bg-slate-800 disabled:opacity-50 active:scale-[0.99] transition-all mt-4"
+          >
+            {loading ? "Authenticating..." : isLogin ? "Sign In" : "Register Now"}
+          </button>
+        </form>
+
+        <footer className="mt-8 text-center">
+          <button
+            type="button"
+            onClick={() => { setIsLogin(!isLogin); setStatus({ type: "", message: "" }); }}
+            className="text-slate-500 font-medium text-sm hover:text-blue-600 transition-colors"
+          >
+            {isLogin ? (
+              <span>Don't have an account? <span className="text-blue-600 font-bold underline underline-offset-4">Join Nexus</span></span>
+            ) : (
+              <span>Already a member? <span className="text-blue-600 font-bold underline underline-offset-4">Log in</span></span>
             )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-5 mt-6 bg-blue-600 text-white rounded-2xl font-black text-lg shadow-[0_20px_40px_-10px_rgba(37,99,235,0.4)] transition-all hover:bg-blue-700 active:scale-[0.98] disabled:bg-slate-300 disabled:shadow-none"
-            >
-              {loading ? "INITIALIZING..." : isLogin ? "LOG IN" : "APPLY"}
-            </button>
-          </form>
-
-          <div className="mt-10 text-center">
-            <button
-              type="button"
-              onClick={() => { setIsLogin(!isLogin); setStatus({type: "", message: ""}); }}
-              className="text-slate-400 font-bold hover:text-blue-600 transition-colors text-sm uppercase tracking-tighter"
-            >
-              {isLogin ? "No account? Register" : "Have access? Sign in"}
-            </button>
-          </div>
-        </div>
+          </button>
+        </footer>
       </div>
-    </div>
-  );
+    </main>
+  </div>
+);
 }

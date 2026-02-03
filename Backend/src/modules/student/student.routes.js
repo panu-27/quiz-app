@@ -14,6 +14,9 @@ router.post(
   controller.startAttempt
 );
 
+
+router.get("/profile", auth, controller.getProfile);
+
 router.post(
   "/submit/:testId",
   auth,
@@ -34,4 +37,8 @@ router.get(
   role(["STUDENT"]), 
   controller.getAttemptAnalysis
 );
+
+
+router.get("/my-library", auth, role(["STUDENT"]), controller.getMyLibrary);
+
 export default router;

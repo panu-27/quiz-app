@@ -1,6 +1,7 @@
 import * as service from "./student.service.js";
 import Test from "../test/test.model.js";
 import TestAttempt from "../test/testAttempt.model.js";
+import Leaderboard from "../test/leaderboard.model.js";
 
 export const getMyTests = async (req, res) => {
   try {
@@ -11,6 +12,16 @@ export const getMyTests = async (req, res) => {
   }
 };
 
+
+export const getProfile = async (req, res) => {
+  try {
+    // req.user.id comes from your 'auth' middleware
+    const profile = await service.getProfile(req.user.id);
+    res.json(profile);
+  } catch (err) {
+    res.status(404).json({ message: err.message });
+  }
+};
 
 
 export const startAttempt = async (req, res) => {
@@ -99,23 +110,36 @@ export const getMyHistory = async (req, res) => {
 };
 
 // @desc    Get detailed analysis of a specific attempt
+// @desc    Get detailed analysis of a specific attempt
 // @route   GET /api/student/test-analysis/:testId/attempt/:attemptNumber
 export const getAttemptAnalysis = async (req, res) => {
   try {
     const { testId, attemptNumber } = req.params;
-    const studentId = req.user.id;
+    const userId = req.user.id;
 
+    // 1. Fetch Test and the specific Attempt
     const test = await Test.findById(testId);
-    const attempt = await TestAttempt.findOne({
-      testId,
-      studentId,
-      attemptNumber: parseInt(attemptNumber),
+    const attempt = await TestAttempt.findOne({ 
+      testId, 
+      studentId: userId, 
+      attemptNumber: parseInt(attemptNumber) 
     });
 
     if (!attempt) return res.status(404).json({ message: "Attempt not found" });
 
-    // Merging questions from Test with answers from Attempt
-    const analysis = test.questions.map((q) => {
+    // 2. Identify the correct set of questions
+    let questions = [];
+    if (test.mode === "PDF") {
+      questions = test.questions;
+    } else {
+      // Logic for CUSTOM tests (Single Set vs 4 Sets)
+      questions = (test.sets instanceof Map && attempt.assignedSet) 
+        ? test.sets.get(attempt.assignedSet) 
+        : test.questions;
+    }
+
+    // 3. Map Questions to Student Answers
+    const analysisData = questions.map((q) => {
       const studentAns = attempt.answers.find(
         (a) => a.questionId.toString() === q._id.toString()
       );
@@ -129,13 +153,45 @@ export const getAttemptAnalysis = async (req, res) => {
       };
     });
 
+    // 4. Rank Calculation (Only from Leaderboard - Attempt #1)
+    let rank = null;
+    const officialRecord = await Leaderboard.findOne({ testId, studentId: userId });
+    
+    if (officialRecord) {
+      const higherScores = await Leaderboard.countDocuments({
+        testId,
+        $or: [
+          { score: { $gt: officialRecord.score } },
+          { score: officialRecord.score, timeTaken: { $lt: officialRecord.timeTaken } }
+        ]
+      });
+      rank = higherScores + 1;
+    }
+
+    // 5. Send Final Payload
     res.json({
       testTitle: test.title,
       score: attempt.score,
-      totalQuestions: test.questions.length,
-      analysis,
+      rank: rank, 
+      totalQuestions: questions.length,
+      assignedSet: attempt.assignedSet || "Single",
+      analysis: analysisData 
     });
   } catch (err) {
+    console.error("ANALYSIS_ERROR:", err);
     res.status(500).json({ message: "Server Error", error: err.message });
+  }
+};
+
+
+import Resource from "../teacher/Resource.js"; // Adjust path as per your folder structure
+
+export const getMyLibrary = async (req, res) => {
+  try {
+    // req.user is populated by your auth middleware
+    const library = await service.getMyLibrary(req.user);
+    res.json(library);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
   }
 };

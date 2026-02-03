@@ -4,7 +4,9 @@ import {
     BookOpen, Target, Clock, GraduationCap, LayoutGrid, Users, Calendar, Loader2
 } from 'lucide-react';
 
+
 export default function CustomFormView() {
+    const baseURL = import.meta.env.VITE_API_BASE_URL;
     const [formData, setFormData] = useState({
         title: "",
         pattern: "JEE MAINS",
@@ -42,7 +44,7 @@ export default function CustomFormView() {
         const fetchBatches = async () => {
             try {
                 const token = localStorage.getItem("token");
-                const res = await fetch("http://localhost:5000/api/teacher/my-batches", {
+                const res = await fetch(`${baseURL}/teacher/my-batches`, {
                     headers: { "Authorization": `Bearer ${token}` }
                 });
                 const data = await res.json();
@@ -91,7 +93,7 @@ export default function CustomFormView() {
 
         try {
             const token = localStorage.getItem("token");
-            const res = await fetch("http://localhost:5000/api/teacher/create-custom-test", {
+            const res = await fetch(`${baseURL}/teacher/create-custom-test`, {
                 method: "POST",
                 headers: { 
                     "Content-Type": "application/json",
@@ -121,7 +123,7 @@ export default function CustomFormView() {
 
         try {
             const token = localStorage.getItem("token");
-            const res = await fetch(`http://localhost:5000/api/teacher/tests/${createdTestId}/generate`, {
+            const res = await fetch(`${baseURL}/teacher/tests/${createdTestId}/generate`, {
                 method: "POST",
                 headers: { "Authorization": `Bearer ${token}` }
             });
@@ -331,62 +333,37 @@ export default function CustomFormView() {
             </div>
 
             {/* UPDATED STICKY FOOTER WITH TWO BUTTONS */}
-<div className="fixed bottom-0 left-0 w-full bg-white border-t border-slate-100 px-8 py-4 z-50 shadow-[0_-10px_40px_rgba(0,0,0,0.04)]">
-    <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
-        
-        {/* Left: Stats Section */}
-        <div className="flex items-center gap-6">
-            <div className="flex items-center gap-3 group">
-                <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 transition-colors group-hover:bg-blue-600 group-hover:text-white">
-                    <Database size={18} />
-                </div>
-                <div className="flex flex-col">
-                    <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">Total Questions</span>
-                    <span className="text-lg font-black text-slate-900 leading-none">{totalQuestions}</span>
-                </div>
-            </div>
+{/* THE ULTRA-SLIM SIDE-BY-SIDE ACTION BAR */}
+<div className="fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-md border-t border-slate-200 px-4 py-3 z-50 shadow-[0_-10px_30px_rgba(0,0,0,0.03)] pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+    <div className="max-w-5xl mx-auto">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end sm:items-center sm:gap-3">
             
-            {/* Status Indicator */}
-            <div className="hidden md:flex items-center gap-2 px-4 py-1.5 bg-slate-50 rounded-full border border-slate-100">
-                <div className={`w-2 h-2 rounded-full ${createdTestId ? 'bg-emerald-500' : 'bg-amber-400 animate-pulse'}`} />
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                    {createdTestId ? "Ready to Generate" : "Awaiting Config"}
-                </span>
-            </div>
-        </div>
-
-        {/* Right: Action Steps */}
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-            
-            {/* Step 1 */}
-            <button 
-                onClick={handleSaveConfig} 
+            {/* Step 1: Save */}
+            <button
+                onClick={handleSaveConfig}
                 disabled={isSubmitting || createdTestId !== null}
-                className={`flex-1 sm:flex-none px-6 py-3 rounded-xl font-bold text-[11px] uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
-                    createdTestId 
-                    ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' 
-                    : 'bg-white border-2 border-slate-200 text-slate-600 hover:border-blue-600 hover:text-blue-600'
+                className={`px-3 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-tight flex items-center justify-center gap-2 transition-all active:scale-95 border ${
+                    createdTestId
+                    ? 'bg-slate-50 text-slate-400 border-slate-100'
+                    : 'bg-white border-slate-200 text-slate-900 hover:border-slate-400 shadow-sm'
                 }`}
             >
-                {createdTestId ? <CheckCircle2 size={16}/> : (isSubmitting ? <Loader2 className="animate-spin" size={16} /> : null)}
-                {createdTestId ? "1. Config Saved" : "1. Save Configuration"}
+                {createdTestId ? <CheckCircle2 size={14} className="text-emerald-500" /> : isSubmitting ? <Loader2 className="animate-spin" size={14} /> : null}
+                {createdTestId ? "Saved" : "1. Save"}
             </button>
 
-            {/* Vertical Divider */}
-            <div className="hidden sm:block w-[1px] h-8 bg-slate-100 mx-1" />
-
-            {/* Step 2 */}
-            <button 
-                onClick={handleGenerateQuestions} 
+            {/* Step 2: Generate */}
+            <button
+                onClick={handleGenerateQuestions}
                 disabled={isSubmitting || !createdTestId}
-                className={`flex-1 sm:flex-none px-8 py-3 rounded-xl font-bold text-[11px] uppercase tracking-wider shadow-sm flex items-center justify-center gap-2 transition-all ${
-                    !createdTestId 
-                    ? 'bg-slate-50 text-slate-300 cursor-not-allowed border border-slate-100' 
-                    : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-blue-200 hover:shadow-lg active:scale-95'
+                className={`px-3 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-tight flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg ${
+                    !createdTestId
+                    ? 'bg-slate-100 text-slate-300 cursor-not-allowed border border-slate-100'
+                    : 'bg-slate-900 text-white hover:bg-indigo-600 shadow-indigo-200/40'
                 }`}
             >
-                {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : <Zap size={16} />}
-                2. Generate Questions
+                {isSubmitting ? <Loader2 className="animate-spin" size={14} /> : <Zap size={14} className={createdTestId ? 'fill-current' : ''} />}
+                2. Generate
             </button>
         </div>
     </div>

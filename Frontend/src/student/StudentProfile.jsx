@@ -1,123 +1,125 @@
+import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { 
-  UserIcon, 
-  HashtagIcon, 
-  AcademicCapIcon, 
-  BoltIcon, 
-  TrophyIcon,
-  ShieldCheckIcon
-} from "@heroicons/react/24/solid";
+  Fingerprint, ArrowLeft, Loader2, 
+  ShieldCheck, Cpu
+} from "lucide-react";
 
 export default function StudentProfile() {
-  const { user } = useAuth();
+  const { user: authUser } = useAuth();
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const baseURL = import.meta.env.VITE_API_BASE_URL;
+  useEffect(() => {
+    const syncProfile = async () => {
+      setLoading(true);
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${baseURL}/student/profile`, {
+          method: "GET",
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        setProfile(data);
+      } catch (err) {
+        console.error("Profile sync failed.");
+        setProfile(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    syncProfile();
+  }, []);
+
+  const getVal = (field) => profile?.[field] || authUser?.[field] || "XXXXXXXXXX";
 
   return (
-    <div className=" font-sans">
+    <div className="h-[88vh] flex flex-col bg-[#F9F9FB] font-sans text-slate-900 overflow-hidden">
       
-      {/* 1. TOP NAVIGATION / INSTITUTE BRANDING */}
-      <div className="bg-slate-900 px-6 pt-12 pb-16">
-        <div className="flex justify-between items-center mb-6">
-          <div className="bg-indigo-500 text-white text-[10px] font-black px-2 py-1 rounded">
-            Student_ID
+      {/* 1. NAV */}
+      <nav className="shrink-0 bg-white border-b border-slate-100 px-6 py-3">
+        <div className="max-w-4xl mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => window.history.back()}
+              className="p-1 hover:bg-slate-900 rounded-lg transition-all border border-slate-100 hover:text-white"
+            >
+              <ArrowLeft size={14} />
+            </button>
+            <h1 className="text-xs font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
+              <span className="text-indigo-600 italic">Nexus Identity</span>
+              <span className="text-slate-300 font-medium">/</span>
+              <span className="truncate">{getVal('name').split(' ')[0]}</span>
+            </h1>
           </div>
-          <p className="text-indigo-400 font-mono text-[10px] tracking-widest">
-            1234ABC
-          </p>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-950 rounded-lg shadow-sm">
+            <Fingerprint size={10} className="text-indigo-400" />
+            <span className="text-[9px] font-black text-white uppercase tracking-tighter">Verified</span>
+          </div>
         </div>
-        
-        {/* COACHING NAME */}
-        <h2 className="text-indigo-300 text-[11px] font-black uppercase tracking-[0.4em]">
-          Target Coaching Classes
-        </h2>
-      </div>
+      </nav>
 
-      {/* 2. PROFILE HEADER (Grounded, No-Float) */}
-      <div className="px-6 -mt-12">
-        <div className="bg-white border-x border-t border-slate-100 p-6 rounded-t-[2rem]">
-          <div className="flex items-center gap-5">
-            <div className="h-20 w-20 bg-slate-100 rounded-2xl flex items-center justify-center border-2 border-indigo-500/20">
-               <UserIcon className="w-10 h-10 text-slate-300" />
-            </div>
-            <div>
-              <h3 className="text-2xl font-black text-slate-900 leading-tight">
-                {user?.name || "Student Name"}
-              </h3>
-              <div className="flex items-center gap-2 mt-1">
-                <ShieldCheckIcon className="w-4 h-4 text-emerald-500" />
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-tighter">
-                  Verified Enrollment
-                </span>
+      {/* 2. CONTENT */}
+      <main className="flex-1 overflow-hidden p-6">
+        <div className="max-w-4xl mx-auto h-full flex flex-col">
+          
+          {/* Identity Header */}
+          <div className="flex items-center gap-6 mb-10">
+            <div className="relative">
+              <div className="w-20 h-20 bg-white border border-slate-200 rounded-[2rem] flex items-center justify-center text-slate-200 shadow-sm">
+                {loading ? <Loader2 size={32} className="animate-spin text-indigo-100" /> : <Cpu size={32} strokeWidth={1.5} />}
+              </div>
+              <div className="absolute -bottom-1 -right-1 bg-indigo-600 w-6 h-6 rounded-full border-4 border-[#F9F9FB] flex items-center justify-center">
+                 <ShieldCheck size={10} className="text-white" />
               </div>
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 3. INFORMATION GRID (Mobile First) */}
-      <div className="px-6">
-        <div className="border-x border-b border-slate-100 bg-white p-6 space-y-4 rounded-b-[2rem]">
-          
-          <div className="grid grid-cols-1 gap-3">
-            <InfoTile 
-              label="Email" 
-              value={user?.email || "student@gmail.com"} 
-              icon={<HashtagIcon className="w-4 h-4 text-indigo-500" />} 
-            />
-            <InfoTile 
-              label="Batch Name" 
-              value={user?.batchId || "MHT-CET"} 
-              icon={<BoltIcon className="w-4 h-4 text-amber-500" />} 
-            />
-            <InfoTile 
-              label="Course" 
-              value="PCM/PCB/PCMB" 
-              icon={<AcademicCapIcon className="w-4 h-4 text-purple-500" />} 
-            />
+            <div>
+              <p className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.3em] mb-1">Authenticated User</p>
+              <h2 className="text-3xl font-black text-slate-900 uppercase italic leading-none">{getVal('name')}</h2>
+            </div>
           </div>
 
-          {/* PERFORMANCE SNIPPET */}
-          <div className="pt-6 border-t border-slate-50 flex gap-4">
-             <div className="flex-1 bg-slate-50 p-4 rounded-2xl">
-                <p className="text-[9px] font-black text-slate-400 uppercase">Avg Accuracy</p>
-                <p className="text-lg font-black text-slate-800">88%</p>
-             </div>
-             <div className="flex-1 bg-slate-50 p-4 rounded-2xl">
-                <p className="text-[9px] font-black text-slate-400 uppercase">Tests Taken</p>
-                <p className="text-lg font-black text-slate-800">24</p>
-             </div>
-          </div>
-        </div>
-      </div>
+          {/* Minimal Info Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8">
+            <MinimalTile label="System Email" value={getVal('email')} />
+            
+            <MinimalTile 
+              label="Assigned Institute" 
+              value={profile?.instituteId?.name || "Nexus Central"} 
+            />
 
-      {/* 4. FOOTER NOTE */}
-      <div className="px-10 mt-5">
-        <div className="flex items-center gap-3 justify-center text-slate-300 mb-4">
-          <div className="h-[1px] flex-1 bg-slate-100"></div>
-          <TrophyIcon className="w-4 h-4" />
-          <div className="h-[1px] flex-1 bg-slate-100"></div>
+            <MinimalTile 
+              label="Active Batch" 
+              value={profile?.batchId?.name || "Unassigned"} 
+            />
+            
+            <MinimalTile 
+              label="Operational Mentors" 
+              value={
+                profile?.batchId?.teachers?.length > 0 
+                  ? profile.batchId.teachers.map(t => t.name).join(", ") 
+                  : "No Mentors Linked"
+              } 
+            />
+          </div>
+
+          {/* Footer Redaction Note */}
+          <div className="mt-auto py-6 text-center">
+             <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.4em]">
+                Nexus Security Protocol v2.0 // Connection Encrypted
+             </p>
+          </div>
+
         </div>
-        <p className="text-center text-[10px] font-bold text-slate-400 uppercase leading-relaxed tracking-wider">
-          Profile Locked by Admin <br />
-          Official Student Record of Target Coaching Classes , Manchar
-        </p>
-      </div>
+      </main>
     </div>
   );
 }
 
-/* --- REUSABLE TILE --- */
-const InfoTile = ({ label, value, icon }) => (
-  <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-transparent active:border-indigo-100 transition-all">
-    <div className="p-2.5 bg-white rounded-xl shadow-sm">
-      {icon}
-    </div>
-    <div>
-      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
-        {label}
-      </p>
-      <p className="text-sm font-bold text-slate-700">
-        {value}
-      </p>
-    </div>
+const MinimalTile = ({ label, value }) => (
+  <div className="bg-white border border-slate-100 p-4 rounded-2xl flex flex-col gap-1 transition-all hover:border-indigo-200 group">
+    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest group-hover:text-indigo-500 transition-colors">{label}</span>
+    <span className="text-[11px] font-bold text-slate-900 truncate uppercase">{value}</span>
   </div>
 );

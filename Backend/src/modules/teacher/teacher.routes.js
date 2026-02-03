@@ -5,6 +5,7 @@ const router = express.Router();
 import * as controller from "./teacher.controller.js";
 import auth from "../../middlewares/auth.middleware.js";
 import role from "../../middlewares/role.middleware.js";
+import { uploadPDF } from "../../middlewares/upload.middleware.js";
 
 /* ---------------- GET TEACHER BATCHES ---------------- */
 router.get(
@@ -43,6 +44,14 @@ router.get(
   auth,
   role(["TEACHER"]),
   controller.getMyBatches
+);
+
+router.post(
+  "/upload-material",
+  auth,
+  role(["TEACHER"]),
+  uploadPDF.single("file"), 
+  controller.deployMaterial
 );
 
 
