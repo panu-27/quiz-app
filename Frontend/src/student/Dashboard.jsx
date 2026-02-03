@@ -48,21 +48,19 @@ export default function StudentDashboard() {
         </div>
       </nav>
 
-      <main className="max-w-4xl mx-auto px-6 pt-8">
+      <div className="px-2 pt-6">
+        <div className="relative aspect-video  overflow-hidden rounded-md mb-10 bg-slate-900 shadow-2xl shadow-indigo-100">
+          <img
+            src="https://images.unsplash.com/photo-1529070538774-1843cb3265df?auto=format&fit=crop&q=80&w=1600"
+            alt="Students studying in classroom"
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 hover:scale-105"
+          />
+          <div className="absolute inset-0 bg-indigo-900/5 pointer-events-none" />
+        </div>
+      </div>
 
-        {/* 2. CINEMATIC POSTER */}
-        {/* 2. CINEMATIC CLASSROOM POSTER (CLEAN) */}
-       <div className="relative w-full aspect-[21/9] rounded-[2rem] overflow-hidden mb-10 bg-slate-900 shadow-2xl shadow-indigo-100">
-  <img
-    src="https://images.unsplash.com/photo-1529070538774-1843cb3265df?auto=format&fit=crop&q=80&w=1600"
-    alt="Students studying in classroom"
-    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 hover:scale-105"
-  />
-  <div className="absolute inset-0 bg-indigo-900/5 pointer-events-none" />
-</div>
+      <main className="max-w-4xl mx-auto px-6">
 
-
-        {/* 3. CORE ACTION CARDS (TWO IN A ROW) */}
         <section className="grid grid-cols-2 gap-4 mb-12">
           <div
             onClick={() => navigate("/student/library")}
@@ -105,11 +103,11 @@ export default function StudentDashboard() {
                     </div>
                     <div>
                       <h4 className="text-sm font-bold text-slate-900 uppercase tracking-tight leading-none mb-2">{t.title}</h4>
-                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t.duration} Mins • Diagnostic</p>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t.duration} Mins </p>
                     </div>
                   </div>
                   <button onClick={() => navigate(`/student/test/${t._id}`)} className="px-8 py-3 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-indigo-600 transition-all shadow-lg shadow-slate-200">
-                    Launch
+                    Start
                   </button>
                 </div>
               ))
@@ -129,15 +127,15 @@ export default function StudentDashboard() {
           </div>
           <div
             onClick={() => navigate("/student/history")}
-            className="group flex items-center justify-between p-6 bg-white border border-slate-200 rounded-[2.5rem] cursor-pointer hover:border-violet-500 hover:shadow-2xl hover:shadow-violet-500/5 transition-all duration-500"
+            className="group flex items-center justify-between p-6 bg-white border border-slate-200 rounded-3xl cursor-pointer hover:border-violet-500 hover:shadow-2xl hover:shadow-violet-500/5 transition-all duration-500"
           >
             <div className="flex items-center gap-6">
-              <div className="w-16 h-16 bg-violet-50 text-violet-600 border border-violet-100 rounded-[1.5rem] flex items-center justify-center group-hover:bg-violet-600 group-hover:text-white transition-all shadow-sm">
-                <BarChart2 size={28} />
+              <div className="w-12 h-12 bg-violet-50 text-violet-600 border border-violet-100 rounded-xl flex items-center justify-center group-hover:bg-violet-600 group-hover:text-white transition-all shadow-sm">
+                <BarChart2 size={20} />
               </div>
               <div>
-                <h4 className="text-lg font-black text-slate-900 uppercase tracking-tight">Intelligence Logs</h4>
-                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Historical Diagnostic Data</p>
+                <h4 className="text-lg font-black text-slate-900 uppercase tracking-tight">Completed Tests</h4>
+                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Historical  Data</p>
               </div>
             </div>
             <ArrowRight className="text-slate-300 group-hover:text-violet-600 group-hover:translate-x-1 transition-all" />

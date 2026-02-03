@@ -18,6 +18,7 @@ export default function StudentLibrary() {
   const categories = ['All', 'Notes', 'PYQs', 'Formulas'];
   const subjects = ['All', 'Physics', 'Chemistry', 'Maths', 'Biology'];
   const baseURL = import.meta.env.VITE_API_BASE_URL;
+  const baseURL1 = import.meta.env.VITE_API_BASE_URL1;
   /* ---------- FETCH DATA ---------- */
   useEffect(() => {
     const fetchVaultData = async () => {
@@ -179,7 +180,7 @@ export default function StudentLibrary() {
                <h2 className="text-white font-bold text-sm truncate">{openingFile.title}</h2>
             </div>
             <div className="flex items-center gap-3 shrink-0">
-              <a href={`${baseURL}${openingFile.fileUrl}`} target="_blank" rel="noreferrer" className="p-2 text-slate-400 hover:text-white transition-colors"><ArrowDownTrayIcon className="w-6 h-6" /></a>
+              <a href={`${baseURL1}${openingFile.fileUrl}`} target="_blank" rel="noreferrer" className="p-2 text-slate-400 hover:text-white transition-colors"><ArrowDownTrayIcon className="w-6 h-6" /></a>
               <button onClick={() => setOpeningFile(null)} className="p-2 text-slate-400 hover:text-white transition-colors"><XMarkIcon className="w-6 h-6" /></button>
             </div>
           </div>
@@ -191,7 +192,7 @@ export default function StudentLibrary() {
               </div>
             ) : (
               <div className="w-full h-full bg-white">
-                <iframe src={`http://localhost:5000${openingFile.fileUrl}#toolbar=0`} className="w-full h-full border-none" title="Asset Viewer" />
+                <iframe src={`${baseURL1}${openingFile.fileUrl}#toolbar=0`} className="w-full h-full border-none" title="Asset Viewer" />
               </div>
             )}
           </div>
