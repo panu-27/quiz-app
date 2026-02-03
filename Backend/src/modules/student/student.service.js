@@ -6,25 +6,33 @@ import mongoose from "mongoose";
 
 
 /* ---------------- GET MY TESTS ---------------- */
-export const getMyTests = async (jwtUser) => {
-  // Use jwtUser.id or jwtUser._id depending on your token payload
-  const student = await User.findById(jwtUser.id || jwtUser._id);
 
-  // If student doesn't exist or has no batch, return empty list instead of throwing 400
+
+export const getMyTests = async (jwtUser) => {
+  const userId = jwtUser.id || jwtUser._id;
+  
+  // 1. Fetch student data
+  const student = await User.findById(userId);
+
   if (!student || !student.batchId) {
-    console.warn(`Student ${jwtUser.id} has no batch assigned.`);
+    console.warn(`Student ${userId} has no batch assigned.`);
     return []; 
   }
 
   const now = new Date();
 
+  // 2. The "Active Window" Query
+  // - Batch matches student's assigned batch
+  // - Current time is GREATER THAN OR EQUAL to Start Time
+  // - Current time is LESS THAN OR EQUAL to End Time
   return Test.find({
-    batches: student.batchId, // Matches 'batches' array in Test model
-    startTime: { $lte: now },
-    endTime: { $gte: now },
-  }).select("_id title startTime endTime mode");
+    batches: student.batchId,
+    startTime: { $lte: now }, // Test has already started
+    endTime: { $gte: now }    // Test has not yet ended
+  })
+  .select("_id title startTime endTime mode duration")
+  .sort({ endTime: 1 }); // Sort by what's ending soonest (Urgency)
 };
-
 
 
 
