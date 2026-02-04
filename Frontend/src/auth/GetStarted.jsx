@@ -6,9 +6,9 @@ const GetStarted = ({ setIsLogin, setShowForm }) => {
     <div className="relative min-h-[100dvh] flex flex-col overflow-hidden bg-white font-sans">
       
       {/* Background Layer - Cinematic Classroom */}
-      <div className="absolute inset-0 z-0">
+      <div className="absolute inset-0 z-0 ">
         <img 
-          src="https://images.unsplash.com/photo-1497633762265-9d179a990aa6?q=80&w=2073&auto=format&fit=crop" 
+          src="https://images.unsplash.com/photo-1558591710-4b4a1ae0f04d?auto=format&fit=crop&w=1080&q=80" 
           alt="Modern Study Space"
           className="w-full h-full object-cover"
         />
@@ -21,7 +21,7 @@ const GetStarted = ({ setIsLogin, setShowForm }) => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 1 }}
-        className="relative z-10 flex-1 flex flex-col justify-between px-8 pt-[max(4rem,env(safe-area-inset-top))] pb-[max(3rem,env(safe-area-inset-bottom))]"
+        className="relative z-10 flex-1 flex flex-col justify-between px-8 pt-[max(4rem,env(safe-area-inset-top))] pb-8"
       >
         {/* Top: Minimal Branding */}
         <div className="text-center">
@@ -45,7 +45,7 @@ const GetStarted = ({ setIsLogin, setShowForm }) => {
 
         {/* Bottom: Focused Action Area */}
         <div className="w-full max-w-sm mx-auto space-y-6">
-          <div className="text-center space-y-2 mb-8">
+          <div className="text-center space-y-2 mb-4">
             <motion.h2 
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -60,7 +60,7 @@ const GetStarted = ({ setIsLogin, setShowForm }) => {
               transition={{ delay: 0.5 }}
               className="text-slate-900 text-sm"
             >
-              Sign in to access your classroom and tools.
+              Learn Smarter , Teach Better , Score Better
             </motion.p>
           </div>
 
@@ -96,7 +96,7 @@ const GetStarted = ({ setIsLogin, setShowForm }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.8 }}
-            className="text-center text-indigo-900 text-[10px] font-bold uppercase tracking-widest pt-4"
+            className="text-center text-indigo-900 text-[10px] font-bold uppercase tracking-widest "
           >
             Join the Nexus Community
           </motion.p>

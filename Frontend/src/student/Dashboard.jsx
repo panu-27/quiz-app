@@ -87,37 +87,42 @@ export default function StudentDashboard() {
 
         {/* 4. SCHEDULED TESTS */}
         <section className="mb-12">
-          <div className="flex items-center gap-3 mb-6">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Scheduled Exams</h3>
-            <div className="h-[1px] flex-1 bg-slate-100" />
+  <div className="flex items-center gap-3 mb-6">
+    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Scheduled Exams</h3>
+    <div className="h-[1px] flex-1 bg-slate-100" />
+  </div>
+  <div className="space-y-3">
+    {loading ? (
+      <div className="py-10 flex justify-center"><Loader2 className="animate-spin text-indigo-200" /></div>
+    ) : tests.length > 0 ? (
+      tests.map((t) => (
+        <div key={t._id} className="flex items-center justify-between p-5 bg-white border border-slate-100 rounded-3xl hover:border-indigo-400 transition-all shadow-sm gap-4">
+          <div className="flex items-center gap-5 min-w-0 flex-1"> {/* min-w-0 is critical for truncation */}
+            <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex-shrink-0 flex items-center justify-center shadow-inner">
+              <Clock size={20} />
+            </div>
+            <div className="min-w-0 flex-1"> {/* Container must allow shrinking */}
+              <h4 className="text-sm font-bold text-slate-900 uppercase tracking-tight leading-none mb-2 truncate">
+                {t.title}
+              </h4>
+              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t.duration} Mins </p>
+            </div>
           </div>
-          <div className="space-y-3">
-            {loading ? (
-              <div className="py-10 flex justify-center"><Loader2 className="animate-spin text-indigo-200" /></div>
-            ) : tests.length > 0 ? (
-              tests.map((t) => (
-                <div key={t._id} className="flex items-center justify-between p-5 bg-white border border-slate-100 rounded-3xl hover:border-indigo-400 transition-all shadow-sm">
-                  <div className="flex items-center gap-5">
-                    <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center shadow-inner">
-                      <Clock size={20} />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-900 uppercase tracking-tight leading-none mb-2">{t.title}</h4>
-                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t.duration} Mins </p>
-                    </div>
-                  </div>
-                  <button onClick={() => navigate(`/student/test/${t._id}`)} className="px-8 py-3 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-indigo-600 transition-all shadow-lg shadow-slate-200">
-                    Start
-                  </button>
-                </div>
-              ))
-            ) : (
-              <div className="py-8 text-center border border-dashed border-slate-200 rounded-3xl">
-                <p className="text-[10px] font-black text-slate-300 uppercase">No active assessment streams</p>
-              </div>
-            )}
-          </div>
-        </section>
+          <button 
+            onClick={() => navigate(`/student/test/${t._id}`)} 
+            className="flex-shrink-0 px-8 py-3 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-indigo-600 transition-all shadow-lg shadow-slate-200"
+          >
+            Start
+          </button>
+        </div>
+      ))
+    ) : (
+      <div className="py-8 text-center border border-dashed border-slate-200 rounded-3xl">
+        <p className="text-[10px] font-black text-slate-300 uppercase">No active assessment streams</p>
+      </div>
+    )}
+  </div>
+</section>
 
         {/* 5. TEST ANALYTICS ARCHIVE */}
         <section className="mb-10">

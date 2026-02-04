@@ -21,19 +21,15 @@ export default function CreateTest() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f0ebf8] pb-20">
+    <div className="min-h-screen bg-[#f0ebf8]">
       {/* MAIN NAV HEADER */}
       <AdminHeader userName={user?.name} onLogout={logout} />
       
       
       {/* FORM CONTENT */}
-      <div className="max-w-4xl mx-auto pt-6 px-4">
+      <div className="max-w-4xl mx-auto">
         {mode === 'pdf' ? <PDFFormView /> : <CustomFormView />}
       </div>
-      
-      <p className="text-center text-slate-400 text-[10px] font-medium mt-10 uppercase tracking-widest">
-        Powered by AI Content Engine v2.0
-      </p>
     </div>
   );
 }

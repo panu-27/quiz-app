@@ -8,7 +8,7 @@ import instituteRoutes from "./modules/institute/institute.routes.js";
 import teacherRoutes from "./modules/teacher/teacher.routes.js";
 import studentRoutes from "./modules/student/student.routes.js";
 import pdfRoutes from "./modules/pdf/pdf.routes.js";
-
+import bankQuestionRoutes from "./modules/questionBank/bankQuestions.routes.js";
 
 const app = express();
 
@@ -32,6 +32,7 @@ app.use("/api/institute", instituteRoutes);
 app.use("/api/teacher", teacherRoutes);
 app.use("/api/student", studentRoutes);
 app.use("/api/pdf", pdfRoutes);
+app.use("/api/bankQuestion" , bankQuestionRoutes )
 
 // Global error handler (always last)
 app.use((err, req, res, next) => {

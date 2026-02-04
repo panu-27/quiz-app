@@ -62,14 +62,11 @@ export const getMyHistory = async (req, res) => {
   try {
     const studentId = req.user.id;
 
-    // 1. Fetch all attempts and populate the test metadata
     const attempts = await TestAttempt.find({ studentId })
-      .populate("testId", "title totalMarks")
+      .populate("testId", "title duration blocks examType")
       .sort({ createdAt: -1 });
 
-    // 2. Grouping logic
     const historyMap = attempts.reduce((acc, attempt) => {
-      // Safety check: skip if the test no longer exists in the DB
       if (!attempt.testId) return acc;
 
       const tId = attempt.testId._id.toString();
@@ -78,37 +75,32 @@ export const getMyHistory = async (req, res) => {
         acc[tId] = {
           _id: tId,
           testDetails: {
-            _id: attempt.testId._id,
-            title: attempt.testId.title?.trim() || "Untitled Test", // Trimming that extra space!
-            totalMarks: attempt.testId.totalMarks
+            title: attempt.testId.title?.trim() || "Untitled Test",
+            examType: attempt.testId.examType,
+            duration: attempt.testId.duration
           },
           attempts: [],
         };
       }
 
-      // Add the attempt to the grouped array
       acc[tId].attempts.push({
         _id: attempt._id,
         attemptNumber: attempt.attemptNumber,
         score: attempt.score,
-        timeTaken: attempt.timeTaken,
-        createdAt: attempt.createdAt
+        totalCorrect: attempt.totalCorrect,
+        totalWrong: attempt.totalWrong,
+        subjectWise: attempt.subjectWiseScore, // Now sends the detailed object Map
+        submittedAt: attempt.submittedAt || attempt.createdAt
       });
 
       return acc;
     }, {});
 
-    // 3. Log for debugging and send as a clean array
-    const result = Object.values(historyMap);
-    console.log("HISTORY_PAYLOAD_SIZE:", result.length);
-    
-    res.json(result);
+    res.json(Object.values(historyMap));
   } catch (err) {
-    console.error("GET_HISTORY_ERROR:", err);
     res.status(500).json({ message: "Server Error", error: err.message });
   }
 };
-
 // @desc    Get detailed analysis of a specific attempt
 // @desc    Get detailed analysis of a specific attempt
 // @route   GET /api/student/test-analysis/:testId/attempt/:attemptNumber
@@ -117,7 +109,6 @@ export const getAttemptAnalysis = async (req, res) => {
     const { testId, attemptNumber } = req.params;
     const userId = req.user.id;
 
-    // 1. Fetch Test and the specific Attempt
     const test = await Test.findById(testId);
     const attempt = await TestAttempt.findOne({ 
       testId, 
@@ -127,36 +118,40 @@ export const getAttemptAnalysis = async (req, res) => {
 
     if (!attempt) return res.status(404).json({ message: "Attempt not found" });
 
-    // 2. Identify the correct set of questions
-    let questions = [];
-    if (test.mode === "PDF") {
-      questions = test.questions;
-    } else {
-      // Logic for CUSTOM tests (Single Set vs 4 Sets)
-      questions = (test.sets instanceof Map && attempt.assignedSet) 
-        ? test.sets.get(attempt.assignedSet) 
-        : test.questions;
-    }
+    // 1. Get the correct block structure (Handling 4 Sets)
+    const sourceBlocks = (test.metadata?.distribution === "4 Sets" && attempt.assignedSet) 
+                          ? test.sets.get(attempt.assignedSet) 
+                          : test.blocks;
 
-    // 3. Map Questions to Student Answers
-    const analysisData = questions.map((q) => {
-      const studentAns = attempt.answers.find(
-        (a) => a.questionId.toString() === q._id.toString()
-      );
-      
-      return {
-        questionText: q.questionText,
-        options: q.options, // Array of strings
-        correctAnswer: q.correctAnswer, // Number index
-        selectedOption: studentAns ? studentAns.selectedOption : null,
-        isCorrect: studentAns ? studentAns.selectedOption === q.correctAnswer : false
-      };
+    // 2. Flatten and Merge Questions with Student Answers
+    const analysisData = [];
+    
+    sourceBlocks.forEach(block => {
+      block.sections.forEach(section => {
+        section.questions.forEach(q => {
+          const qId = q.questionId || q._id;
+          
+          // Find student's specific answer entry
+          const studentAns = attempt.answers.find(
+            (a) => a.questionId.toString() === qId.toString()
+          );
+
+          analysisData.push({
+            subjectName: section.subjectName,
+            questionText: q.questionText,
+            options: q.options,
+            correctAnswer: q.correctAnswer,
+            selectedOption: studentAns ? studentAns.selectedOption : -1,
+            isCorrect: studentAns ? studentAns.isCorrect : false,
+            marksObtained: studentAns ? studentAns.marksObtained : 0
+          });
+        });
+      });
     });
 
-    // 4. Rank Calculation (Only from Leaderboard - Attempt #1)
+    // 3. Rank Calculation
     let rank = null;
     const officialRecord = await Leaderboard.findOne({ testId, studentId: userId });
-    
     if (officialRecord) {
       const higherScores = await Leaderboard.countDocuments({
         testId,
@@ -168,14 +163,14 @@ export const getAttemptAnalysis = async (req, res) => {
       rank = higherScores + 1;
     }
 
-    // 5. Send Final Payload
     res.json({
       testTitle: test.title,
-      score: attempt.score,
-      rank: rank, 
-      totalQuestions: questions.length,
-      assignedSet: attempt.assignedSet || "Single",
-      analysis: analysisData 
+      examType: test.examType,
+      overallScore: attempt.score,
+      rank: rank,
+      totalQuestions: analysisData.length,
+      subjectWise: attempt.subjectWiseScore,
+      analysis: analysisData // Flat list of questions for Review UI
     });
   } catch (err) {
     console.error("ANALYSIS_ERROR:", err);

@@ -40,32 +40,23 @@ export const getMyTests = async (jwtUser) => {
 
 /* ---------------- START ATTEMPT SERVICE ---------------- */
 export const startAttempt = async (student, testId) => {
-    if (!mongoose.Types.ObjectId.isValid(testId)) throw new Error("Invalid test id");
-
-    const test = await Test.findById(testId);
+    // 1. Fetch Test and populate subject details just in case subjectName isn't stored
+    const test = await Test.findById(testId).populate('blocks.sections.subject');
     if (!test) throw new Error("Test not found");
 
-    // 1. Batch validation
+    // Authorization logic
     const studentBatchId = student.batchId?.toString();
-    const allowed = test.batches.some(b => b.toString() === studentBatchId);
-    if (!allowed) throw new Error("Not allowed to attempt this test.");
+    if (!test.batches.some(b => b.toString() === studentBatchId)) {
+        throw new Error("Not allowed to attempt this test.");
+    }
 
     const userId = student.id || student._id;
 
-    // 2. Find an existing "started" attempt (Prevents creating new ones if one is open)
-    let attempt = await TestAttempt.findOne({ 
-        testId, 
-        studentId: userId, 
-        status: "started" 
-    });
+    // 2. Prevent/Resume Attempt logic
+    let attempt = await TestAttempt.findOne({ testId, studentId: userId, status: "started" });
 
-    // 3. If no ongoing attempt, create a new one safely
     if (!attempt) {
-        // Get the highest current attempt number to determine next iteration
-        const lastAttempt = await TestAttempt.findOne({ testId, studentId: userId })
-            .sort({ attemptNumber: -1 })
-            .select("attemptNumber");
-
+        const lastAttempt = await TestAttempt.findOne({ testId, studentId: userId }).sort({ attemptNumber: -1 });
         const nextAttemptNumber = lastAttempt ? lastAttempt.attemptNumber + 1 : 1;
 
         try {
@@ -76,134 +67,155 @@ export const startAttempt = async (student, testId) => {
                 status: "started"
             });
 
-            // Handle Set Assignment for 4-Set tests
-            if (test.mode === "CUSTOM" && test.metadata?.distribution === "4 Sets" && test.sets) {
-                // Ensure we handle Mongoose Map keys
+            if (test.metadata?.distribution === "4 Sets" && test.sets) {
                 const setKeys = Array.from(test.sets.keys());
                 attempt.assignedSet = setKeys[Math.floor(Math.random() * setKeys.length)];
             }
-
             await attempt.save();
         } catch (err) {
-            // 4. THE FIX: Handle Race Condition (Error 11000 = Duplicate Key)
             if (err.code === 11000) {
-                // If another request created this attempt number first, just find and return it
-                attempt = await TestAttempt.findOne({ 
-                    testId, 
-                    studentId: userId, 
-                    attemptNumber: nextAttemptNumber 
-                });
-            } else {
-                throw err;
-            }
+                attempt = await TestAttempt.findOne({ testId, studentId: userId, attemptNumber: nextAttemptNumber });
+            } else throw err;
         }
     }
 
-    // 5. Question Retrieval
-    let rawQuestions = [];
-    if (test.mode === "CUSTOM" && test.metadata?.distribution === "4 Sets" && test.sets) {
-        rawQuestions = test.sets.get(attempt.assignedSet) || [];
-    } else {
-        rawQuestions = test.questions || [];
-    }
+    // 3. Retrieve Correct Source
+    let sourceBlocks = (test.metadata?.distribution === "4 Sets" && attempt.assignedSet) 
+                        ? test.sets.get(attempt.assignedSet) 
+                        : test.blocks;
 
-    // 6. Map Subject Names from Configuration to Questions
-    let cumulativeIndex = 0;
-    const configMap = test.configuration.map(c => ({
-        subject: c.subject,
-        start: cumulativeIndex,
-        end: (cumulativeIndex += c.questions)
+    // 4. Transform to "Safe" Structure with SUBJECT NAMES
+    const safeBlocks = sourceBlocks.map(block => ({
+        blockName: block.blockName,
+        duration: block.duration, 
+        sections: block.sections.map(section => ({
+            // If subjectName exists in schema, use it. Otherwise, use populated subjectName
+            subjectName: section.subjectName || section.subject?.subjectName || "Unknown Subject",
+            subjectId: section.subject._id || section.subject,
+            numQuestions: section.numQuestions,
+            questions: section.questions.map(q => ({
+                questionId: q.questionId,
+                questionText: q.questionText,
+                options: q.options,
+                subjectId: q.subjectId
+            }))
+        }))
     }));
 
-    const safeQuestions = rawQuestions.map((q, idx) => {
-        const config = configMap.find(c => idx >= c.start && idx < c.end);
-        return {
-            _id: q._id,
-            questionText: q.questionText,
-            options: q.options,
-            subjectId: { name: config ? config.subject : "Other" } 
-        };
-    });
-
-    // 7. Timing Logic
-    const totalSeconds = (test.duration || 180) * 60;
-    let b1s = 0, b2s = 0;
-    const hasB1 = test.configuration.some(c => ["physics", "chemistry"].includes(c.subject.toLowerCase()));
-    const hasB2 = test.configuration.some(c => !["physics", "chemistry"].includes(c.subject.toLowerCase()));
-
-    if (hasB1 && hasB2) {
-        b1s = Math.floor(totalSeconds / 2);
-        b2s = totalSeconds - b1s;
-    } else {
-        b1s = hasB1 ? totalSeconds : 0;
-        b2s = hasB2 ? totalSeconds : 0;
-    }
-
     return {
-        questions: safeQuestions,
+        testTitle: test.title,
+        blocks: safeBlocks,
         attemptNumber: attempt.attemptNumber,
-        sectionTimes: { block1: b1s, block2: b2s }
+        assignedSet: attempt.assignedSet,
+        examType: test.examType,
+        totalDuration: test.duration // Total test time for global countdown
     };
 };
 
 /* ---------------- SUBMIT TEST SERVICE ---------------- */
 export const submitTest = async (student, testId, data) => {
-    if (!data) throw new Error("No submission data received");
     const { answers = [], timeTaken = 0 } = data;
     const userId = student.id || student._id;
 
-    const attempt = await TestAttempt.findOne({
-        testId,
-        studentId: userId,
-        status: "started"
+    const attempt = await TestAttempt.findOne({ 
+        testId, studentId: userId, status: "started" 
     }).populate("testId");
 
-    if (!attempt) throw new Error("Active attempt session not found.");
+    if (!attempt) throw new Error("Active session not found.");
 
     const test = attempt.testId;
-    let questions = [];
+    const sourceBlocks = (test.metadata?.distribution === "4 Sets" && attempt.assignedSet) 
+                          ? test.sets.get(attempt.assignedSet) 
+                          : test.blocks;
 
-    if (test.mode === "PDF") {
-        questions = test.questions;
-    } else {
-        questions = (test.sets instanceof Map && attempt.assignedSet) 
-            ? test.sets.get(attempt.assignedSet) 
-            : test.questions;
-    }
+    let totalScore = 0;
+    let totalCorrect = 0;
+    let totalWrong = 0;
+    let totalUnattempted = 0;
+    
+    // We use a plain object to build the breakdown, then convert to Map
+    const subjectStats = {}; 
 
-    if (!questions || !Array.isArray(questions)) throw new Error("Questions not found.");
+    sourceBlocks.forEach(block => {
+        block.sections.forEach(section => {
+            const sId = section.subject.toString();
+            const sName = section.subjectName || "Unknown Subject";
 
-    // Score Calculation
-    let score = 0;
-    questions.forEach(q => {
-        if (!q?._id) return;
-        const ans = answers.find(a => a?.questionId === q._id.toString());
-        if (ans && String(ans.selectedOption) === String(q.correctAnswer)) {
-            score++;
-        }
+            // Initialize subject bucket if not exists
+            if (!subjectStats[sId]) {
+                subjectStats[sId] = { subjectName: sName, score: 0, correct: 0, wrong: 0, unattempted: 0 };
+            }
+
+            // Identify marking rule for this specific section/subject
+            const rule = test.markingScheme.subjectWise.find(s => s.subjectId.toString() === sId) || {
+                correctMarks: test.markingScheme.defaultCorrect,
+                negativeMarks: test.markingScheme.defaultNegative
+            };
+
+            section.questions.forEach(q => {
+                const currentQId = q.questionId || q._id;
+                const studentAns = answers.find(a => a.questionId === currentQId.toString());
+                const selected = studentAns ? studentAns.selectedOption : -1;
+                
+                let marksObtained = 0;
+                let isCorrect = false;
+
+                if (selected === -1) {
+                    subjectStats[sId].unattempted++;
+                    totalUnattempted++;
+                } else if (Number(selected) === Number(q.correctAnswer)) {
+                    isCorrect = true;
+                    marksObtained = rule.correctMarks;
+                    subjectStats[sId].correct++;
+                    subjectStats[sId].score += marksObtained;
+                    totalCorrect++;
+                    totalScore += marksObtained;
+                } else {
+                    marksObtained = -Math.abs(rule.negativeMarks);
+                    subjectStats[sId].wrong++;
+                    subjectStats[sId].score += marksObtained;
+                    totalWrong++;
+                    totalScore += marksObtained;
+                }
+
+                attempt.answers.push({
+                    questionId: currentQId,
+                    selectedOption: selected,
+                    isCorrect,
+                    subjectId: section.subject,
+                    marksObtained
+                });
+            });
+        });
     });
 
-    // Update Attempt
-    attempt.answers = answers;
-    attempt.score = score;
+    // Finalize Attempt
+    attempt.score = totalScore;
+    attempt.subjectWiseScore = subjectStats; // Mongoose Map handles object assignment
+    attempt.totalCorrect = totalCorrect;
+    attempt.totalWrong = totalWrong;
+    attempt.totalUnattempted = totalUnattempted;
+    attempt.status = "completed";
+    attempt.submittedAt = new Date();
     attempt.timeTaken = timeTaken;
-    attempt.status = "completed"; 
+    
     await attempt.save();
 
-    // Leaderboard (Only Attempt 1)
+    // Update Leaderboard (only for the first attempt)
     if (attempt.attemptNumber === 1) {
-        try {
-            await Leaderboard.findOneAndUpdate(
-                { testId: test._id, studentId: userId },
-                { score, timeTaken, batchId: student.batchId },
-                { upsert: true, new: true }
-            );
-        } catch (err) {
-            console.error("Leaderboard Sync Error:", err.message);
-        }
+        await Leaderboard.findOneAndUpdate(
+            { testId: test._id, studentId: userId },
+            { score: totalScore, timeTaken, batchId: student.batchId },
+            { upsert: true }
+        ).catch(err => console.error("Leaderboard Sync Error:", err.message));
     }
 
-    return { score, attemptNumber: attempt.attemptNumber };
+    return { 
+        score: totalScore, 
+        totalCorrect, 
+        totalWrong,
+        subjectWiseScore: subjectStats // Sent to frontend for immediate result display
+    };
 };
 
 

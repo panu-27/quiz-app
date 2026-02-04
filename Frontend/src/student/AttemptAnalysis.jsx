@@ -18,17 +18,19 @@ export default function AttemptAnalytics() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Added "explanation" field to fake data to show how it renders
   const fakeAnalysis = {
-    testTitle: "MHT-CET Full Mock Test #01",
+    testTitle: "MHT-CET Full Mock #01",
     score: 142,
     rank: 124,
     analysis: [
       {
         questionText: "Which of the following describes the behavior of an ideal gas?",
-        options: ["High pressure", "Low pressure", "Perfectly elastic collisions", "None"],
+        options: ["High pressure", "Low pressure", "Perfectly elastic collisions", "None of these"],
         correctAnswer: 2,
         selectedOption: 2,
-        isCorrect: true
+        isCorrect: true,
+        explanation: "Ideal gas particles undergo perfectly elastic collisions where no kinetic energy is lost."
       }
     ]
   };
@@ -38,18 +40,16 @@ export default function AttemptAnalytics() {
       setLoading(true);
       try {
         const token = localStorage.getItem("token");
-        // Ensure this matches your actual backend route exactly
         const res = await fetch(`${baseURL}/student/test-analysis/${testId}/attempt/${attemptNumber}`, {
           method: "GET",
           headers: { "Authorization": `Bearer ${token}` }
         });
         const result = await res.json();
-        
-        // If API fails or return empty, use fakeAnalysis
         if (!res.ok || !result.analysis) {
            setData(fakeAnalysis);
         } else {
            setData(result);
+           console.log(result);
         }
       } catch (err) {
         setData(fakeAnalysis);
@@ -62,34 +62,47 @@ export default function AttemptAnalytics() {
 
   const handleDownload = () => {
     if (!data || !data.analysis) return;
-    const fileName = `Nexus_Diagnostic_Report_ATT${attemptNumber}.doc`;
-    const header = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'></head><body style="font-family: Arial, sans-serif;">`;
+    const fileName = `Nexus_Analysis_ATT${attemptNumber}.doc`;
+    const header = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'></head><body style="font-family: 'Segoe UI', Arial; line-height:1.4;">`;
     const footer = `</body></html>`;
     
     let content = `
-      <div style="background-color:#1e1b4b; padding:20px; color:white; text-align:center;">
-        <h1 style="margin:0;">NEXUS SYSTEM LOGS</h1>
-        <p style="margin:5px 0 0 0; font-size:12px; letter-spacing:2px;">AUTHENTICATED DIAGNOSTIC REPORT</p>
+      <div style="background-color:#0f172a; padding:30px; color:white; text-align:center; border-radius:10px;">
+        <h1 style="margin:0; font-size:24px;">NEXUS INTELLIGENCE REPORT</h1>
+        <p style="margin:5px 0 0 0; font-size:10px; letter-spacing:4px; color:#94a3b8;">SECURE DIAGNOSTIC LOG</p>
       </div>
-      <div style="padding:20px; border:1px solid #e2e8f0;">
-        <p><b>TEST MODULE:</b> ${data.testTitle}</p>
-        <p><b>ATTEMPT ITERATION:</b> #${attemptNumber}</p>
-        <p><b>NET SCORE:</b> ${data.score}</p>
-        <p><b>GLOBAL RANK:</b> ${data.rank || 'N/A'}</p>
+      <div style="padding:15px; border-bottom:1px solid #e2e8f0; margin-bottom:20px;">
+        <p><b>MODULE:</b> ${data.testTitle} | <b>SCORE:</b> ${data.score} | <b>RANK:</b> ${data.rank || 'N/A'}</p>
       </div>
-      <h3 style="margin-top:30px; border-bottom:2px solid #4f46e5; padding-bottom:5px;">RESPONSE MATRIX</h3>
     `;
 
     data.analysis.forEach((q, i) => {
-      const studentAns = q.selectedOption !== null ? q.options[q.selectedOption] : 'NO RESPONSE';
-      const correctAns = q.options[q.correctAnswer];
+      let optionsHtml = "";
+      q.options.forEach((opt, idx) => {
+        let color = "#334155"; // Default text
+        let weight = "normal";
+        let icon = "○";
+
+        if (idx === q.correctAnswer) {
+          color = "#059669"; // Green for correct
+          weight = "bold";
+          icon = "● [CORRECT]";
+        } else if (idx === q.selectedOption && !q.isCorrect) {
+          color = "#dc2626"; // Red for wrong selection
+          weight = "bold";
+          icon = "● [YOUR CHOICE]";
+        }
+
+        optionsHtml += `<p style="color:${color}; font-weight:${weight}; margin:4px 0;">${icon} ${opt}</p>`;
+      });
+
       content += `
-        <div style="margin-bottom:25px; padding:15px; border-left:4px solid ${q.isCorrect ? '#10b981' : '#f43f5e'}; background-color:#f8fafc;">
-          <p style="margin:0 0 10px 0;"><b>[Q${i+1}] ${q.questionText}</b></p>
-          <p style="margin:10px 0 0 0; font-size:12px;">
-            <b>STUDENT CHOICE:</b> <span style="color:${q.isCorrect ? '#059669' : '#e11d48'};">${studentAns}</span><br/>
-            <b>SYSTEM TRUTH:</b> <span style="color:#059669;">${correctAns}</span>
-          </p>
+        <div style="margin-bottom:30px; border:1px solid #f1f5f9; padding:15px; border-radius:8px;">
+          <p style="font-size:14px; margin-bottom:10px;"><b>Q${i+1}. ${q.questionText}</b></p>
+          <div style="padding-left:15px; margin-bottom:10px;">${optionsHtml}</div>
+          <div style="background-color:#f8fafc; padding:10px; border-top:1px dashed #cbd5e1;">
+            <p style="font-size:11px; color:#475569; margin:0;"><b>EXPLANATION:</b> ${q.explanation || 'No explanation provided for this module.'}</p>
+          </div>
         </div>
       `;
     });
@@ -102,81 +115,79 @@ export default function AttemptAnalytics() {
   };
 
   if (loading) return (
-    <div className="flex flex-col items-center justify-center h-screen bg-white">
+    <div className="flex flex-col items-center justify-center h-screen bg-white overflow-hidden">
        <div className="w-10 h-10 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4" />
        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Syncing Intelligence...</p>
     </div>
   );
 
   return (
-    <div className="h-[88vh] flex flex-col bg-[#F8FAFF] font-sans text-slate-900 overflow-hidden">
-      <nav className="shrink-0 bg-white border-b border-slate-100 px-6 py-4 z-30">
-        <div className="max-w-4xl mx-auto flex justify-between items-center">
-          <button onClick={() => navigate(-1)} className="p-2 hover:bg-slate-900 hover:text-white rounded-xl transition-all border border-slate-100">
-            <ArrowLeftIcon size={16} />
-          </button>
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Diagnostic Offline</span>
-          </div>
-        </div>
+    <div className="h-[80vh] w-full flex flex-col bg-[#F8FAFF] overflow-hidden">
+      {/* Header - Compact */}
+      <nav className="shrink-0 bg-white/80 backdrop-blur-md px-6 py-3 border-b border-slate-100 flex justify-between items-center">
+        <button onClick={() => navigate(-1)} className="p-2 hover:bg-slate-100 rounded-full transition-all">
+          <ArrowLeftIcon size={18} />
+        </button>
+        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Attempt #{attemptNumber}</span>
       </nav>
 
-      <main className="flex-1 overflow-y-auto p-6 flex flex-col items-center justify-center relative">
-        <FingerprintIcon size={400} strokeWidth={0.1} className="absolute text-indigo-500/5 pointer-events-none" />
+      {/* Main Content - No Scroll Area */}
+      <main className="flex-1 flex flex-col items-center justify-center p-4 relative">
+        <FingerprintIcon size={300} strokeWidth={0.1} className="absolute text-indigo-500/5 pointer-events-none" />
 
-        <div className="max-w-md w-full relative z-10">
-          <div className="bg-white border border-slate-200 rounded-[3rem] p-10 shadow-xl text-center">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 rounded-full mb-6">
+        <div className="w-full max-w-sm flex flex-col gap-4">
+          {/* Card */}
+          <div className="bg-white border border-slate-200 rounded-[2.5rem] p-8 shadow-2xl text-center">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 rounded-full mb-4">
               <ShieldCheckIcon size={12} className="text-indigo-600" />
-              <span className="text-[9px] font-black text-indigo-600 uppercase tracking-tighter">Validated Result</span>
+              <span className="text-[9px] font-black text-indigo-600 uppercase">Analysis Ready</span>
             </div>
             
-            <h2 className="text-2xl font-black text-slate-900 uppercase italic tracking-tighter mb-12 leading-none">
+            <h2 className="text-xl font-black text-slate-900 uppercase italic tracking-tighter mb-8 leading-tight line-clamp-2">
               {data.testTitle}
             </h2>
             
-            <div className="flex justify-around items-center mb-12">
-               <div className="space-y-1">
-                  <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-2 shadow-inner">
-                    <Trophy size={20} className="text-amber-500" />
-                  </div>
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Global Rank</p>
-                  <p className="text-2xl font-black text-slate-900">#{data.rank || 'N/A'}</p>
+            <div className="flex justify-between items-center px-4 mb-8">
+               <div className="text-center">
+                  <Trophy size={20} className="text-amber-500 mx-auto mb-1" />
+                  <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Rank</p>
+                  <p className="text-xl font-black text-slate-900">#{data.rank || '--'}</p>
                </div>
                
-               <div className="h-10 w-[1px] bg-slate-100" />
+               <div className="h-8 w-[1px] bg-slate-100" />
 
-               <div className="space-y-1">
-                  <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-2 shadow-inner">
-                    <Activity size={20} className="text-indigo-600" />
-                  </div>
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Net Score</p>
-                  <p className="text-2xl font-black text-slate-900">{data.score}</p>
+               <div className="text-center">
+                  <Activity size={20} className="text-indigo-600 mx-auto mb-1" />
+                  <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Score</p>
+                  <p className="text-xl font-black text-slate-900">{data.score}</p>
                </div>
             </div>
 
             <button 
               onClick={handleDownload}
-              className="w-full bg-slate-900 text-white py-5 rounded-2xl flex items-center justify-center gap-3 hover:bg-indigo-600 transition-all shadow-xl group"
+              className="w-full bg-slate-900 text-white py-4 rounded-2xl flex items-center justify-center gap-3 active:scale-95 transition-all shadow-lg"
             >
-              <FileText size={18} className="group-hover:scale-110 transition-transform" />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em]">Generate Response Log</span>
+              <FileText size={16} />
+              <span className="text-[9px] font-black uppercase tracking-[0.2em]">Download Results</span>
               <Download size={14} className="animate-bounce" />
             </button>
           </div>
 
-          <div className="mt-8 space-y-3">
-            <button 
-               onClick={() => navigate(`/student/test/${testId}`)}
-               className="w-full bg-white border border-slate-200 text-slate-900 py-5 rounded-[2rem] text-[10px] font-black uppercase tracking-[0.3em] hover:bg-slate-950 hover:text-white transition-all flex items-center justify-center gap-2"
-             >
-               <RotateCcw size={14} />
-               Re-Attempt Module
-             </button>
-          </div>
+          {/* Action Button */}
+          <button 
+             onClick={() => navigate(`/student/test/${testId}`)}
+             className="w-full bg-white border border-slate-200 text-slate-900 py-4 rounded-2xl text-[9px] font-black uppercase tracking-[0.3em] active:bg-slate-100 transition-all flex items-center justify-center gap-2"
+           >
+             <RotateCcw size={14} />
+             Retake Module
+           </button>
         </div>
       </main>
+
+      {/* Subtle Footer */}
+      <footer className="shrink-0 p-4 text-center">
+         <p className="text-[8px] font-black text-slate-300 uppercase tracking-[0.5em]">Nexus Evolution System</p>
+      </footer>
     </div>
   );
 }
