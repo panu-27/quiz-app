@@ -24,6 +24,7 @@ const sectionSchema = new mongoose.Schema({
     questionText: String,
     options: [String],
     correctAnswer: Number,
+    explanation: String,
     subjectId: mongoose.Schema.Types.ObjectId
   }]
 }, { _id: false });

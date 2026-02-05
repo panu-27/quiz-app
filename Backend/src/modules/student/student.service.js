@@ -97,7 +97,8 @@ export const startAttempt = async (student, testId) => {
                 questionId: q.questionId,
                 questionText: q.questionText,
                 options: q.options,
-                subjectId: q.subjectId
+                subjectId: q.subjectId,
+                explanation : q.explanation,
             }))
         }))
     }));
@@ -133,20 +134,19 @@ export const submitTest = async (student, testId, data) => {
     let totalWrong = 0;
     let totalUnattempted = 0;
     
-    // We use a plain object to build the breakdown, then convert to Map
-    const subjectStats = {}; 
+    // Use Subject ID as the key for consistency
+    const subjectStats = new Map(); 
 
     sourceBlocks.forEach(block => {
         block.sections.forEach(section => {
             const sId = section.subject.toString();
             const sName = section.subjectName || "Unknown Subject";
 
-            // Initialize subject bucket if not exists
-            if (!subjectStats[sId]) {
-                subjectStats[sId] = { subjectName: sName, score: 0, correct: 0, wrong: 0, unattempted: 0 };
+            if (!subjectStats.has(sId)) {
+                subjectStats.set(sId, { subjectName: sName, score: 0, correct: 0, wrong: 0, unattempted: 0 });
             }
 
-            // Identify marking rule for this specific section/subject
+            const currentStats = subjectStats.get(sId);
             const rule = test.markingScheme.subjectWise.find(s => s.subjectId.toString() === sId) || {
                 correctMarks: test.markingScheme.defaultCorrect,
                 negativeMarks: test.markingScheme.defaultNegative
@@ -161,19 +161,19 @@ export const submitTest = async (student, testId, data) => {
                 let isCorrect = false;
 
                 if (selected === -1) {
-                    subjectStats[sId].unattempted++;
+                    currentStats.unattempted++;
                     totalUnattempted++;
                 } else if (Number(selected) === Number(q.correctAnswer)) {
                     isCorrect = true;
                     marksObtained = rule.correctMarks;
-                    subjectStats[sId].correct++;
-                    subjectStats[sId].score += marksObtained;
+                    currentStats.correct++;
+                    currentStats.score += marksObtained;
                     totalCorrect++;
                     totalScore += marksObtained;
                 } else {
                     marksObtained = -Math.abs(rule.negativeMarks);
-                    subjectStats[sId].wrong++;
-                    subjectStats[sId].score += marksObtained;
+                    currentStats.wrong++;
+                    currentStats.score += marksObtained;
                     totalWrong++;
                     totalScore += marksObtained;
                 }
@@ -183,15 +183,15 @@ export const submitTest = async (student, testId, data) => {
                     selectedOption: selected,
                     isCorrect,
                     subjectId: section.subject,
-                    marksObtained
+                    marksObtained,
+                    explanation: q.explanation
                 });
             });
         });
     });
 
-    // Finalize Attempt
     attempt.score = totalScore;
-    attempt.subjectWiseScore = subjectStats; // Mongoose Map handles object assignment
+    attempt.subjectWiseScore = subjectStats; 
     attempt.totalCorrect = totalCorrect;
     attempt.totalWrong = totalWrong;
     attempt.totalUnattempted = totalUnattempted;
@@ -201,21 +201,15 @@ export const submitTest = async (student, testId, data) => {
     
     await attempt.save();
 
-    // Update Leaderboard (only for the first attempt)
     if (attempt.attemptNumber === 1) {
         await Leaderboard.findOneAndUpdate(
             { testId: test._id, studentId: userId },
             { score: totalScore, timeTaken, batchId: student.batchId },
             { upsert: true }
-        ).catch(err => console.error("Leaderboard Sync Error:", err.message));
+        );
     }
 
-    return { 
-        score: totalScore, 
-        totalCorrect, 
-        totalWrong,
-        subjectWiseScore: subjectStats // Sent to frontend for immediate result display
-    };
+    return { score: totalScore, totalCorrect, totalWrong };
 };
 
 

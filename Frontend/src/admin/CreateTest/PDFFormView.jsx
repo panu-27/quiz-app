@@ -117,64 +117,119 @@ export default function PDFFormView() {
   };
 
   /* ---------- PUBLISH LOGIC ---------- */
-  const handleCreateTest = async () => {
-    if (!testData.title || testData.selectedBatchIds.length === 0) return alert("Missing Title/Batch");
-    setIsSubmitting(true);
+const handleCreateTest = async () => {
+  if (!testData.title || testData.selectedBatchIds.length === 0) return alert("Missing Title/Batch");
+  setIsSubmitting(true);
 
-    const typeMap = { "PCM": "PCM", "PCB": "PCB", "JEE MAINS": "JEE", "NEET": "NEET", "SINGLE": "OTHER" };
-    const isNegative = ["JEE MAINS", "NEET"].includes(testData.pattern);
+  const typeMap = { "PCM": "PCM", "PCB": "PCB", "JEE MAINS": "JEE", "NEET": "NEET", "SINGLE": "OTHER" };
+  const isNegative = ["JEE MAINS", "NEET"].includes(testData.pattern);
 
-    const now = new Date();
-    const startTime = testData.scheduleDate ? new Date(`${testData.scheduleDate}T${testData.scheduleTime || '00:00'}`) : now;
-    let endTime;
-    if (testData.endTimeDate) {
-        endTime = new Date(`${testData.endTimeDate}T${testData.endTimeTime || '23:59'}`);
-    } else {
-        endTime = new Date(startTime.getTime() + (Number(testData.duration) + 60) * 60000);
-    }
+  const now = new Date();
+  const startTime = testData.scheduleDate ? new Date(`${testData.scheduleDate}T${testData.scheduleTime || '00:00'}`) : now;
+  let endTime;
+  if (testData.endTimeDate) {
+      endTime = new Date(`${testData.endTimeDate}T${testData.endTimeTime || '23:59'}`);
+  } else {
+      endTime = new Date(startTime.getTime() + (Number(testData.duration) + 60) * 60000);
+  }
 
-    const payload = {
-      title: testData.title,
-      batchIds: testData.selectedBatchIds,
-      examType: typeMap[testData.pattern] || "OTHER",
-      duration: parseInt(testData.duration),
-      startTime: startTime.toISOString(),
-      endTime: endTime.toISOString(),
-      mode: "PDF",
-      markingScheme: { isNegativeMarking: isNegative, defaultCorrect: 1, defaultNegative: isNegative ? 1 : 0 },
-      metadata: { distribution: "Single Set" },
-      blocks: [{
-        blockName: "Session 1",
-        duration: parseInt(testData.duration),
-        sections: testData.subjects.map(sub => ({
-            subject: sub.id, // ✅ FIXED: Pass real MongoDB ID here
-            subjectName: sub.name,
-            numQuestions: sub.count,
-            questions: sub.questions.map((q, qidx) => ({ 
-                order: qidx + 1,
-                questionText: q.questionText || q.text, 
-                options: q.options, 
-                correctAnswer: q.correctAnswer 
-            }))
-        }))
-      }]
-    };
+  // Helper to transform subject to section format
+  const mapToSection = (sub) => ({
+    subject: sub.id,
+    subjectName: sub.name,
+    numQuestions: sub.count,
+    questions: sub.questions.map((q, qidx) => ({ 
+        order: qidx + 1,
+        questionText: q.questionText || q.text, 
+        options: q.options, 
+        correctAnswer: q.correctAnswer,
+        explanation: q.explanation
+    }))
+  });
 
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${baseURL}/teacher/create-test`, { 
-          method: "POST", 
-          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, 
-          body: JSON.stringify(payload) 
-      });
-      if (res.ok) alert("Assessment Published Successfully!");
-      else {
-          const err = await res.json();
-          alert(err.message || "Failed to Publish");
+  /* --- BLOCK SPLITTING LOGIC --- */
+  let finalBlocks = [];
+  const totalDuration = parseInt(testData.duration);
+
+  if (testData.pattern === "PCM") {
+    // Block 1: Physics & Chemistry (90 mins if 180 total)
+    // Block 2: Mathematics (90 mins if 180 total)
+    finalBlocks = [
+      {
+        blockName: "Physics & Chemistry",
+        duration: totalDuration / 2,
+        sections: testData.subjects
+          .filter(s => s.name.toLowerCase().includes("phys") || s.name.toLowerCase().includes("chem"))
+          .map(mapToSection)
+      },
+      {
+        blockName: "Mathematics",
+        duration: totalDuration / 2,
+        sections: testData.subjects
+          .filter(s => s.name.toLowerCase().includes("math"))
+          .map(mapToSection)
       }
-    } catch (err) { alert("Network Error"); } 
-    finally { setIsSubmitting(false); }
+    ];
+  } else if (testData.pattern === "PCB") {
+    // Block 1: Physics & Chemistry
+    // Block 2: Biology
+    finalBlocks = [
+      {
+        blockName: "Physics & Chemistry",
+        duration: totalDuration / 2,
+        sections: testData.subjects
+          .filter(s => s.name.toLowerCase().includes("phys") || s.name.toLowerCase().includes("chem"))
+          .map(mapToSection)
+      },
+      {
+        blockName: "Biology",
+        duration: totalDuration / 2,
+        sections: testData.subjects
+          .filter(s => s.name.toLowerCase().includes("biol"))
+          .map(mapToSection)
+      }
+    ];
+  } else {
+    // JEE, NEET, SINGLE: All sections in one single block
+    finalBlocks = [{
+      blockName: "Session 1",
+      duration: totalDuration,
+      sections: testData.subjects.map(mapToSection)
+    }];
+  }
+
+  const payload = {
+    title: testData.title,
+    batchIds: testData.selectedBatchIds,
+    examType: typeMap[testData.pattern] || "OTHER",
+    duration: totalDuration,
+    startTime: startTime.toISOString(),
+    endTime: endTime.toISOString(),
+    mode: "PDF",
+    markingScheme: { 
+      isNegativeMarking: isNegative, 
+      defaultCorrect: 1, 
+      defaultNegative: isNegative ? 1 : 0 
+    },
+    metadata: { distribution: "Single Set" },
+    blocks: finalBlocks
   };
+
+  try {
+    const token = localStorage.getItem("token");
+    const res = await fetch(`${baseURL}/teacher/create-test`, { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, 
+        body: JSON.stringify(payload) 
+    });
+    if (res.ok) alert("Assessment Published Successfully!");
+    else {
+        const err = await res.json();
+        alert(err.message || "Failed to Publish");
+    }
+  } catch (err) { alert("Network Error"); } 
+  finally { setIsSubmitting(false); }
+};
 
   return (
     <div className="min-h-[92vh] bg-[#FDFDFF] pb-26  font-sans w-full overflow-x-hidden">

@@ -42,7 +42,8 @@ SCHEMA:
   {
     "questionText": "string",
     "options": ["A", "B", "C", "D"],
-    "correctAnswer": 0
+    "correctAnswer": 0,
+    "explanation": "string"
   }
 ]
 

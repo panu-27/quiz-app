@@ -103,7 +103,6 @@ export const getMyHistory = async (req, res) => {
 };
 // @desc    Get detailed analysis of a specific attempt
 // @desc    Get detailed analysis of a specific attempt
-// @route   GET /api/student/test-analysis/:testId/attempt/:attemptNumber
 export const getAttemptAnalysis = async (req, res) => {
   try {
     const { testId, attemptNumber } = req.params;
@@ -118,66 +117,76 @@ export const getAttemptAnalysis = async (req, res) => {
 
     if (!attempt) return res.status(404).json({ message: "Attempt not found" });
 
-    // 1. Get the correct block structure (Handling 4 Sets)
+    const higherCount = await Leaderboard.countDocuments({
+        testId: testId,
+        $or: [
+            { score: { $gt: attempt.score } },
+            { score: attempt.score, timeTaken: { $lt: attempt.timeTaken } }
+        ]
+    });
+    const rank = higherCount + 1;
+
     const sourceBlocks = (test.metadata?.distribution === "4 Sets" && attempt.assignedSet) 
-                          ? test.sets.get(attempt.assignedSet) 
+                          ? (test.sets instanceof Map ? test.sets.get(attempt.assignedSet) : test.sets[attempt.assignedSet])
                           : test.blocks;
 
-    // 2. Flatten and Merge Questions with Student Answers
-    const analysisData = [];
-    
+    const subjectGroups = [];
+    let totalMaxScore = 0; // Track total possible marks
+
     sourceBlocks.forEach(block => {
       block.sections.forEach(section => {
-        section.questions.forEach(q => {
+        const sId = section.subject.toString();
+        const subjectStats = attempt.subjectWiseScore.get(sId) || { 
+            subjectName: section.subjectName, score: 0, correct: 0, wrong: 0, unattempted: 0 
+        };
+
+        // --- CALCULATE MAX SCORE FOR THIS SUBJECT ---
+        const subjectScheme = test.markingScheme.subjectWise.find(
+          sw => sw.subjectId.toString() === sId
+        );
+        const correctWeight = subjectScheme ? subjectScheme.correctMarks : test.markingScheme.defaultCorrect;
+        const maxSubjectScore = section.numQuestions * correctWeight;
+        totalMaxScore += maxSubjectScore;
+
+        const groupedQuestions = section.questions.map(q => {
           const qId = q.questionId || q._id;
-          
-          // Find student's specific answer entry
           const studentAns = attempt.answers.find(
-            (a) => a.questionId.toString() === qId.toString()
+            (a) => a.questionId?.toString() === qId?.toString()
           );
 
-          analysisData.push({
-            subjectName: section.subjectName,
+          return {
             questionText: q.questionText,
             options: q.options,
             correctAnswer: q.correctAnswer,
             selectedOption: studentAns ? studentAns.selectedOption : -1,
             isCorrect: studentAns ? studentAns.isCorrect : false,
-            marksObtained: studentAns ? studentAns.marksObtained : 0
-          });
+            explanation: studentAns?.explanation || q.explanation || "No solution provided."
+          };
+        });
+
+        subjectGroups.push({
+          subjectName: subjectStats.subjectName,
+          score: subjectStats.score,
+          maxScore: maxSubjectScore, // Sending this to frontend
+          correct: subjectStats.correct,
+          wrong: subjectStats.wrong,
+          unattempted: subjectStats.unattempted,
+          questions: groupedQuestions
         });
       });
     });
 
-    // 3. Rank Calculation
-    let rank = null;
-    const officialRecord = await Leaderboard.findOne({ testId, studentId: userId });
-    if (officialRecord) {
-      const higherScores = await Leaderboard.countDocuments({
-        testId,
-        $or: [
-          { score: { $gt: officialRecord.score } },
-          { score: officialRecord.score, timeTaken: { $lt: officialRecord.timeTaken } }
-        ]
-      });
-      rank = higherScores + 1;
-    }
-
     res.json({
       testTitle: test.title,
-      examType: test.examType,
       overallScore: attempt.score,
-      rank: rank,
-      totalQuestions: analysisData.length,
-      subjectWise: attempt.subjectWiseScore,
-      analysis: analysisData // Flat list of questions for Review UI
+      totalMaxScore: totalMaxScore, // Overall max (e.g., 300)
+      rank: rank, 
+      groupedAnalysis: subjectGroups
     });
   } catch (err) {
-    console.error("ANALYSIS_ERROR:", err);
     res.status(500).json({ message: "Server Error", error: err.message });
   }
 };
-
 
 import Resource from "../teacher/Resource.js"; // Adjust path as per your folder structure
 

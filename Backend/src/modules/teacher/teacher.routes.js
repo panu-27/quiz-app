@@ -54,5 +54,21 @@ router.post(
   controller.deployMaterial
 );
 
+/* ---------------- GET ALL CREATED TESTS ---------------- */
+router.get(
+  "/my-tests",
+  auth,
+  role(["TEACHER"]),
+  controller.getMyTests
+);
+
+/* ---------------- GET TEST ANALYTICS & LEADERBOARD ---------------- */
+router.get(
+  "/tests/:testId/analytics",
+  auth,
+  role(["TEACHER"]),
+  controller.getTestAnalytics
+);
+
 
 export default router;

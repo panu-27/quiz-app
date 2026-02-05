@@ -8,7 +8,6 @@ import BankQuestion from "../questionBank/BankQuestion.js";
 
 /* ---------------- GET TEACHER BATCHES ---------------- */
 
-/* ---------------- CREATE PDF TEST (UNCHANGED) ---------------- */
 /* ---------------- CREATE PDF TEST ---------------- */
 export const createTest = async (
   teacher,
@@ -16,8 +15,8 @@ export const createTest = async (
 ) => {
   // 1. Basic Validations
   if (!batchIds?.length) throw new Error("At least one batch must be selected");
-  if (!examType) throw new Error("Exam type pattern (JEE/NEET/MHT-CET) is required");
-  if (!blocks?.length) throw new Error("Blocks with questions are required for PDF tests");
+  if (!examType) throw new Error("Exam type pattern (JEE/NEET/PCM/PCB) is required");
+  if (!blocks?.length) throw new Error("Blocks with questions are required");
 
   // 2. SECURITY CHECK
   const teacherBatches = await Batch.find({ teachers: teacher.id || teacher._id }).select("_id");
@@ -26,18 +25,59 @@ export const createTest = async (
 
   if (invalidBatch) throw new Error("Operational Error: Unauthorized batch selection");
 
-  // 3. Create the Record
+  // 3. APPLY MARKING SCHEME LOGIC (Consistent with Custom Test)
+  let finalMarkingScheme = {
+    isNegativeMarking: false,
+    defaultCorrect: 2,
+    defaultNegative: 0,
+    subjectWise: []
+  };
+
+  if (examType === "JEE" || examType === "NEET") {
+    finalMarkingScheme.isNegativeMarking = true;
+    finalMarkingScheme.defaultCorrect = 4;
+    finalMarkingScheme.defaultNegative = 1;
+  } 
+  else if (examType === "PCM") {
+    finalMarkingScheme.isNegativeMarking = false;
+    finalMarkingScheme.defaultCorrect = 1; 
+    
+    blocks.forEach(block => {
+      block.sections.forEach(section => {
+        const sName = section.subjectName?.toLowerCase() || "";
+        // Logic: Math = 2, Physics/Chem = 1
+        const marks = sName.includes("math") ? 2 : 1;
+        
+        finalMarkingScheme.subjectWise.push({
+          subjectId: section.subject,
+          correctMarks: marks,
+          negativeMarks: 0
+        });
+      });
+    });
+  } 
+  else if (examType === "PCB") {
+    finalMarkingScheme.isNegativeMarking = false;
+    finalMarkingScheme.defaultCorrect = 1;
+    finalMarkingScheme.defaultNegative = 0;
+  } 
+  else {
+    finalMarkingScheme.defaultCorrect = 2;
+    finalMarkingScheme.defaultNegative = 0;
+  }
+
+  // 4. Create the Record
   return Test.create({
     title,
     mode: "PDF",
     examType,
-    markingScheme,
+    markingScheme: finalMarkingScheme, // Using the engine-generated scheme
     instituteId: teacher.instituteId,
     teacherId: teacher.id || teacher._id,
     batches: batchIds,
-    blocks, // Payload already contains sections with their respective questions
+    blocks, 
     metadata,
-    duration, // Global test duration
+    duration,
     startTime,
     endTime,
   });
@@ -114,7 +154,6 @@ export const createCustomTest = async (teacher, payload) => {
   });
 };
 
-
 export const generateCustomTest = async (teacher, testId) => {
   const test = await Test.findOne({ _id: testId, teacherId: teacher.id || teacher._id });
   if (!test) throw new Error("Test not found or unauthorized");
@@ -174,6 +213,7 @@ export const generateCustomTest = async (teacher, testId) => {
         questionText: q.text,
         options: q.options,
         correctAnswer: q.options.indexOf(q.answer),
+        explanation : q.explanation,
         subjectId: section.subject 
       }));
     }
@@ -183,26 +223,6 @@ export const generateCustomTest = async (teacher, testId) => {
   await test.save();
   return test;
 };
-/* ---------------- HELPERS ---------------- */
-// const mockGenerateQuestions = (configuration) => {
-//   let questions = [];
-//   let index = 1;
-
-//   configuration.forEach((cfg) => {
-//     for (let i = 0; i < cfg.questions; i++) {
-//       questions.push({
-//         questionText: `${cfg.subject} Question ${index}`,
-//         options: ["Option A", "Option B", "Option C", "Option D"],
-//         correctAnswer: Math.floor(Math.random() * 4),
-//       });
-//       index++;
-//     }
-//   });
-
-//   return questions;
-// };
-
-
 
 /* ---------------- GET TEACHER BATCHES ---------------- */
 export const getMyBatches = async (teacher) => {
@@ -230,8 +250,6 @@ const shuffle = (arr) => {
   }
   return arr;
 };
-
-
 
 export const deployMaterial = async (teacher, metadata, file) => {
   const teacherId = teacher._id || teacher.id;

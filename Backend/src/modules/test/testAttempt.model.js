@@ -32,7 +32,8 @@ const testAttemptSchema = new mongoose.Schema(
         selectedOption: { type: Number, default: -1 }, 
         isCorrect: { type: Boolean, default: false }, 
         subjectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Subject' },
-        marksObtained: { type: Number, default: 0 } 
+        marksObtained: { type: Number, default: 0 },
+        explanation: { type: String }
       },
     ],
 
