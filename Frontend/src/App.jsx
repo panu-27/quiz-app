@@ -17,13 +17,23 @@ import SuperAdmin from "./SuperAdmin";
 import InstituteAdmin from "./InstituteAdmin";
 import Performance from "./admin/Performance";
 import SeeTests from "./admin/SeeTests";
+import LoginPage from "./auth/LoginPage";
+import Register from "./auth/Register";
+import HelpCenter from "./auth/HelpCenter";
+import CreateInstitutePage from "./CreateInstitutePage";
+import CreateAdminPage from "./CreateAdminPage";
+import ViewInstitutes from "./ViewInstitutes";
+import ViewAdmins from "./ViewAdmins";
 
 export default function App() {
   return (
     <AuthProvider>
       <Routes>
         {/* Login */}
-        <Route path="/login" element={<Login />} />
+        <Route path="/" element={<Login />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/help" element={<HelpCenter />} />
 
         {/* STUDENT */}
         <Route
@@ -42,7 +52,7 @@ export default function App() {
           <Route path="personal" element={<StudentPersonalAnalytics />} />
           <Route path="test/:testId" element={<TestAttempt />} />
         </Route>
-       
+
 
         {/* ADMIN */}
         <Route
@@ -53,7 +63,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        
+
         <Route
           path="/admin/create-test"
           element={
@@ -86,6 +96,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        {/* Parent Layout Wrapper */}
         <Route
           path="/super"
           element={
@@ -93,6 +104,21 @@ export default function App() {
               <SuperAdmin />
             </ProtectedRoute>
           }
+        >
+          {/* Sub-routes that render inside SuperAdmin's <Outlet /> */}
+          <Route index element={<ViewInstitutes />} /> {/* Default view at /super */}
+          <Route path="institutes" element={<ViewInstitutes />} />
+          <Route path="admins" element={<ViewAdmins />} />
+        </Route>
+
+        {/* Creation Pages (Keep these separate as they are full-page forms) */}
+        <Route
+          path="/system/create-institute"
+          element={<ProtectedRoute role="SUPER_ADMIN"><CreateInstitutePage /></ProtectedRoute>}
+        />
+        <Route
+          path="/system/create-admin"
+          element={<ProtectedRoute role="SUPER_ADMIN"><CreateAdminPage /></ProtectedRoute>}
         />
 
         {/* DEFAULT */}

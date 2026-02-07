@@ -7,6 +7,7 @@ import {
   ArrowUpRight, MonitorPlay, ClipboardCheck,
   History, ArrowRight
 } from "lucide-react";
+import StudentHeader from "./StudentHeader";
 
 export default function StudentDashboard() {
   const { user } = useAuth();
@@ -34,30 +35,52 @@ export default function StudentDashboard() {
     <div className="bg-[#fcfcfc] pb-24 font-sans text-slate-900 min-h-screen">
 
       {/* 1. TOP NAV */}
-      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100 px-6 py-3">
-        <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <div className="bg-indigo-600 text-white p-1 rounded-lg shadow-sm">
-              <LayoutGrid size={16} />
-            </div>
-            <span className="font-black italic tracking-tighter text-lg text-slate-900 uppercase">Nexus</span>
-          </div>
-          <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-inner">
-            {user?.name?.charAt(0) || "S"}
-          </div>
-        </div>
-      </nav>
+      <StudentHeader/>
 
-      <div className="px-2 pt-6">
-        <div className="relative aspect-video  overflow-hidden rounded-md mb-10 bg-slate-900 shadow-2xl shadow-indigo-100">
-          <img
-            src="https://images.unsplash.com/photo-1529070538774-1843cb3265df?auto=format&fit=crop&q=80&w=1600"
-            alt="Students studying in classroom"
-            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 hover:scale-105"
-          />
-          <div className="absolute inset-0 bg-indigo-900/5 pointer-events-none" />
-        </div>
+      <div className="pt-6 px-3 sm:px-10 md:px-4 xl:px-48">
+  <div className="max-w-7xl mx-auto">
+    <div className="rounded-2xl p-6 bg-slate-50 border border-slate-200">
+
+      <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
+        Latest Update
+      </p>
+
+      <h3 className="mt-2 text-lg font-bold text-slate-800">
+        Weekly CET Test – Physics
+      </h3>
+
+      <p className="mt-1 text-sm text-slate-500">
+        Electrostatics · 50 Questions · 90 Minutes
+      </p>
+
+      <div className="mt-4 flex gap-3 flex-wrap">
+        <span
+          className="px-3 py-1 rounded-full text-[10px] font-bold
+                     bg-emerald-100 text-emerald-700 uppercase"
+        >
+          New
+        </span>
+
+        <span
+          className="px-3 py-1 rounded-full text-[10px] font-bold
+                     bg-slate-200 text-slate-700 uppercase"
+        >
+          Objective
+        </span>
       </div>
+
+      <button
+        className="mt-5 w-full py-3 rounded-xl
+                   bg-slate-900 text-white
+                   text-sm font-semibold
+                   hover:bg-black transition"
+      >
+        View Test
+      </button>
+    </div>
+  </div>
+</div>
+
 
       <main className="max-w-4xl mx-auto px-6">
 

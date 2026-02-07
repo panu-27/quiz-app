@@ -26,46 +26,72 @@ export const registerStudent = async ({ name, email, password, instituteId }) =>
 
 export const login = async ({ email, password }) => {
   const user = await User.findOne({ email });
-  // Security Tip: Keep error messages vague to prevent email harvesting
-  if (!user) throw new Error("Invalid email or password");
+
+  // Invalid credentials (generic message)
+  if (!user) {
+    return {
+      status: 403,
+      success: false,
+      message: "Invalid email or password",
+    };
+  }
 
   const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) throw new Error("Invalid email or password");
+  if (!isMatch) {
+    return {
+      status: 403,
+      success: false,
+      message: "Invalid email or password",
+    };
+  }
 
-  // Approval Check
+  // Approval check
   if (user.role === "STUDENT" && !user.approved) {
-    // This matches the "pending" status we discussed for the UI
-    throw new Error("Your account is pending approval from the institute.");
+    return {
+      status: 403,
+      success: false,
+      message: "Your account is pending approval from the institute.",
+    };
   }
 
   if (!process.env.JWT_SECRET) {
     console.error("JWT_SECRET is missing in .env file");
-    throw new Error("Server configuration error");
+    return {
+      status: 500,
+      success: false,
+      message: "Server configuration error",
+    };
   }
 
-  // Create Payload
+  // Payload
   const payload = {
     id: user._id,
     role: user.role,
     instituteId: user.instituteId,
   };
 
-  // Only add batchId if it actually exists
   if (user.role === "STUDENT" && user.batchId) {
     payload.batchId = user.batchId;
   }
 
-  const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "7d" });
+  const token = jwt.sign(payload, process.env.JWT_SECRET, {
+    expiresIn: "7d",
+  });
 
   return {
-    token,
-    user: {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      instituteId: user.instituteId,
-      batchId: user.batchId || null, // Ensure consistent structure
+    status: 200,
+    success: true,
+    message: "Login successful",
+    data: {
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        instituteId: user.instituteId,
+        batchId: user.batchId || null,
+      },
     },
   };
 };

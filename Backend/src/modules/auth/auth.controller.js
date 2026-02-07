@@ -1,3 +1,4 @@
+import { log } from "async";
 import * as authService from "./auth.service.js";
 
 export const registerStudent = async (req, res) => {
@@ -13,10 +14,9 @@ export const registerStudent = async (req, res) => {
 };
 
 export const login = async (req, res) => {
-  try {
-    const data = await authService.login(req.body);
-    res.json(data);
-  } catch (err) {
-    res.status(401).json({ message: err.message });
-  }
+  
+    const result = await authService.login(req.body);
+    console.log(result);
+    return res.status(result.status).json(result);
+  
 };
