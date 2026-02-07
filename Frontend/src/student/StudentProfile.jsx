@@ -34,49 +34,54 @@ export default function StudentProfile() {
     /* Background updated to Primary Purple #7A41F7 */
     <div className="min-h-screen flex flex-col bg-[#7A41F7] font-sans text-slate-900 selection:bg-indigo-100 overflow-x-hidden">
 
-<nav className="p-4 flex justify-between items-center text-white sticky top-0 z-50 overflow-hidden">
-  {/* Left Neural Rings - Centered Vertically */}
-  <div className="absolute left-[-20px] top-1/2 -translate-y-1/2 opacity-20 pointer-events-none">
-    <svg width="250" height="250" viewBox="0 0 150 150" fill="none">
-      <circle cx="75" cy="75" r="60" stroke="white" strokeWidth="2" />
-      <circle cx="75" cy="75" r="40" stroke="white" strokeWidth="2" />
-      <circle cx="75" cy="75" r="20" stroke="white" strokeWidth="1" strokeDasharray="4 4" />
-    </svg>
-  </div>
+      <nav className="p-4 flex justify-between items-center text-white sticky top-0 z-50 overflow-hidden">
+        {/* Left Neural Rings - Centered Vertically */}
+        <div
+          className="
+        absolute
+        right-[-5%]
+        top-24
+        -translate-y-1/2
+        w-44 h-44
+        rounded-full
+        bg-white/15
+        z-0
+      "
+        />
 
 
 
 
-  <button 
-    onClick={() => window.history.back()} 
-    className="relative z-10 p-2 bg-white/10 backdrop-blur-md rounded-xl border border-white/10 shadow-lg active:scale-95 transition-transform"
-  >
-    <ArrowLeft size={18} strokeWidth={3} />
-  </button>
+        <button
+          onClick={() => window.history.back()}
+          className="relative z-10 p-2 bg-white/10 backdrop-blur-md rounded-xl border border-white/10 shadow-lg active:scale-95 transition-transform"
+        >
+          <ArrowLeft size={18} strokeWidth={3} />
+        </button>
 
-  <h1 className="relative z-10 text-[8px] font-black uppercase tracking-[0.3em] opacity-60">
-    Nexus Passport
-  </h1>
+        <h1 className="relative z-10 text-[8px] font-black uppercase tracking-[0.3em] opacity-60">
+          Nexus Passport
+        </h1>
 
-  <button 
-    className="relative z-10 p-2 bg-white/10 backdrop-blur-md rounded-xl border border-white/10 shadow-lg active:scale-95 transition-transform"
-  >
-    <Settings size={18} strokeWidth={3} />
-  </button>
+        <button
+          className="relative z-10 p-2 bg-white/10 backdrop-blur-md rounded-xl border border-white/10 shadow-lg active:scale-95 transition-transform"
+        >
+          <Settings size={18} strokeWidth={3} />
+        </button>
 
-  {/* Right Neural Rings - Centered Vertically */}
-  <div className="absolute right-[-120px] top-1/2 -translate-y-1/2 opacity-20 pointer-events-none">
-    <svg width="250" height="250" viewBox="0 0 150 150" fill="none">
-      <circle cx="75" cy="75" r="60" stroke="white" strokeWidth="2" />
-      <circle cx="75" cy="75" r="40" stroke="white" strokeWidth="2" />
-      <circle cx="75" cy="75" r="20" stroke="white" strokeWidth="1" strokeDasharray="4 4" />
-    </svg>
-  </div>
-</nav>
+        {/* Right Neural Rings - Centered Vertically */}
+        <div className="absolute left-[-40px] top-1/2 -translate-y-1/2 opacity-20 pointer-events-none">
+          <svg width="250" height="250" viewBox="0 0 150 150" fill="none">
+            <circle cx="75" cy="75" r="60" stroke="white" strokeWidth="2" />
+            <circle cx="75" cy="75" r="40" stroke="white" strokeWidth="2" />
+            <circle cx="75" cy="75" r="20" stroke="white" strokeWidth="1" strokeDasharray="4 4" />
+          </svg>
+        </div>
+      </nav>
 
       {/* 2. CONTENT SHEET - Updated to Dashboard Background #F6F8FC */}
       <div className="relative flex-1 bg-[#F6F8FC] mt-16 rounded-t-[3rem] px-5 pb-10 shadow-[0_-20px_60px_rgba(0,0,0,0.15)]">
-        
+
         {/* Avatar Section */}
         <div className="absolute -top-12 left-1/2 -translate-x-1/2">
           <div className="relative group">
@@ -112,65 +117,89 @@ export default function StudentProfile() {
         {/* 3. CORE STATS - Background updated to #7A41F7 */}
         <div className="bg-[#7A41F7] rounded-[2.2rem] p-6 flex justify-between items-center text-white shadow-2xl shadow-purple-200 mb-8 relative overflow-hidden group border border-white/5">
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 blur-[40px] rounded-full -mr-16 -mt-16 group-hover:bg-white/20 transition-colors duration-700" />
-            <div className="absolute left-[-20px] top-1/2 -translate-y-1/2 opacity-20 pointer-events-none">
-    <svg width="250" height="250" viewBox="0 0 150 150" fill="none">
-      <circle cx="75" cy="75" r="60" stroke="white" strokeWidth="2" />
-      <circle cx="75" cy="75" r="40" stroke="white" strokeWidth="2" />
-      <circle cx="75" cy="75" r="20" stroke="white" strokeWidth="1" strokeDasharray="4 4" />
-    </svg>
-  </div>
-    <div className="absolute right-[-90px] top-1/2 -translate-y-1/2 opacity-20 pointer-events-none">
-    <svg width="250" height="250" viewBox="0 0 150 150" fill="none">
-      <circle cx="75" cy="75" r="60" stroke="white" strokeWidth="2" />
-      <circle cx="75" cy="75" r="40" stroke="white" strokeWidth="2" />
-      <circle cx="75" cy="75" r="20" stroke="white" strokeWidth="1" strokeDasharray="4 4" />
-    </svg>
-  </div>
-          <StatItem 
-            icon={<Globe size={18} className="text-white/70" />} 
-            label="INSTITUTE" 
-            value={`#${profile?.instRank || "1,438"}`} 
+           <div
+      className="
+        absolute
+        right-[-5%]
+        top-24
+        -translate-y-1/2
+        w-44 h-44
+        rounded-full
+        bg-white/15
+        z-0
+      "
+    />
+     <div
+      className="
+        absolute
+        left-[-5%]
+        top-24
+        -translate-y-1/2
+        w-44 h-44
+        rounded-full
+        bg-white/15
+        z-0
+      "
+    />
+          <div className="absolute left-[-20px] top-1/2 -translate-y-1/2 opacity-20 pointer-events-none">
+            <svg width="250" height="250" viewBox="0 0 150 150" fill="none">
+              <circle cx="75" cy="75" r="60" stroke="white" strokeWidth="2" />
+              <circle cx="75" cy="75" r="40" stroke="white" strokeWidth="2" />
+              <circle cx="75" cy="75" r="20" stroke="white" strokeWidth="1" strokeDasharray="4 4" />
+            </svg>
+          </div>
+          <div className="absolute right-[-90px] top-1/2 -translate-y-1/2 opacity-20 pointer-events-none">
+            <svg width="250" height="250" viewBox="0 0 150 150" fill="none">
+              <circle cx="75" cy="75" r="60" stroke="white" strokeWidth="2" />
+              <circle cx="75" cy="75" r="40" stroke="white" strokeWidth="2" />
+              <circle cx="75" cy="75" r="20" stroke="white" strokeWidth="1" strokeDasharray="4 4" />
+            </svg>
+          </div>
+          <StatItem
+            icon={<Globe size={18} className="text-white/70" />}
+            label="INSTITUTE"
+            value={`#${profile?.instRank || "1,438"}`}
           />
-          
+
           <div className="w-[1px] h-10 bg-gradient-to-b from-transparent via-white/30 to-transparent" />
-          
-          <StatItem 
-            icon={<MapPin size={18} className="text-white/70" />} 
-            label="CLASS" 
-            value={`#${profile?.classRank || "56"}`} 
+
+          <StatItem
+            icon={<MapPin size={18} className="text-white/70" />}
+            label="CLASS"
+            value={`#${profile?.classRank || "56"}`}
           />
-          
+
           <div className="w-[1px] h-10 bg-gradient-to-b from-transparent via-white/30 to-transparent" />
-          
-          <StatItem 
-            icon={<Star size={18} className="text-white/70" />} 
-            label="STATE" 
-            value={`#${profile?.worldRank || "12,940"}`} 
+
+          <StatItem
+            icon={<Star size={18} className="text-white/70" />}
+            label="STATE"
+            value={`#${profile?.worldRank || "12,940"}`}
           />
         </div>
 
         {/* 4. PERFORMANCE TRACKERS - Colors matched to Dashboard Quiz Cards */}
         <div className="grid grid-cols-2 gap-4 mb-8 px-2">
-          <MetricProgress 
-            label="Progress" 
-            value="94" 
-            color="text-[#7A41F7]" 
+          <MetricProgress
+            label="Progress"
+            value="94"
+            color="text-[#7A41F7]"
             bgColor="bg-[#F3EBFF]" /* Math Quiz Purple Theme */
-            icon={<Calendar size={14} />} 
+            icon={<Calendar size={14} />}
           />
-          <MetricProgress 
-            label="Accuracy" 
-            value="78" 
-            color="text-emerald-600" 
+          <MetricProgress
+            label="Accuracy"
+            value="78"
+            color="text-emerald-600"
             bgColor="bg-[#EBFDEB]" /* Bio Quiz Green Theme */
-            icon={<Target size={14} />} 
+            icon={<Target size={14} />}
           />
         </div>
 
         {/* 5. ACADEMIC INFO */}
         <div className="space-y-4">
           <h4 className="text-[16px] font-bold text-slate-800 px-2">Academic Details</h4>
-          
+
           <div className="grid gap-3">
             <InfoRow
               icon={<Globe className="text-[#7A41F7]" size={20} />}
@@ -179,7 +208,7 @@ export default function StudentProfile() {
               status="Verified"
               theme="indigo"
             />
-            
+
             <InfoRow
               icon={<Zap className="text-amber-600" size={20} />}
               label="Batch"
@@ -206,10 +235,10 @@ export default function StudentProfile() {
 const StatItem = ({ icon, label, value }) => (
   <div className="flex flex-col items-center gap-1.5 relative z-10 transition-transform duration-300 hover:scale-105">
     <div className="flex flex-col items-center gap-1 opacity-80">
-        <div className="mb-0.5">{icon}</div>
-        <span className="text-[10px] font-black uppercase tracking-[0.1em] leading-none text-white/80">
-          {label}
-        </span>
+      <div className="mb-0.5">{icon}</div>
+      <span className="text-[10px] font-black uppercase tracking-[0.1em] leading-none text-white/80">
+        {label}
+      </span>
     </div>
     <span className="text-xl font-black tracking-tighter italic leading-none text-white">
       {value}
@@ -232,15 +261,15 @@ const MetricProgress = ({ label, value, color, bgColor, icon }) => (
       <div className="relative w-12 h-12 flex items-center justify-center shrink-0">
         <svg className="w-full h-full transform -rotate-90 filter drop-shadow-sm">
           <circle cx="24" cy="24" r="20" stroke="rgba(0,0,0,0.05)" strokeWidth="5" fill="transparent" />
-          <circle 
-            cx="24" cy="24" r="20" 
-            stroke="currentColor" 
-            strokeWidth="5" 
+          <circle
+            cx="24" cy="24" r="20"
+            stroke="currentColor"
+            strokeWidth="5"
             fill="transparent"
-            strokeDasharray={126} 
+            strokeDasharray={126}
             strokeDashoffset={126 - (126 * value) / 100}
-            strokeLinecap="round" 
-            className={`${color} transition-all duration-1000`} 
+            strokeLinecap="round"
+            className={`${color} transition-all duration-1000`}
           />
         </svg>
         <span className={`absolute text-[9px] font-black ${color}`}>{value}%</span>
@@ -269,19 +298,19 @@ const InfoRow = ({ label, value, status, icon, theme, isMentorList, mentors }) =
         <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center border border-slate-100 shrink-0 shadow-inner group-hover:bg-white transition-colors mt-1">
           {icon}
         </div>
-        
+
         <div className="min-w-0 flex-1">
           <p className="text-[8px] font-black text-slate-300 uppercase tracking-[0.2em] leading-none mb-2.5">
             {label}
           </p>
-          
+
           {isMentorList ? (
             <div className="flex flex-col gap-2">
               {mentors?.length > 0 ? (
                 mentors.map((mentor, i) => (
                   <div key={i} className="flex items-center gap-2.5 bg-slate-50/80 px-3 py-2 rounded-xl border border-slate-100/50">
                     <div className="w-6 h-6 rounded-lg bg-white flex items-center justify-center shrink-0 border border-slate-100">
-                       <User size={12} className="text-[#7A41F7]" />
+                      <User size={12} className="text-[#7A41F7]" />
                     </div>
                     <span className="text-[11px] font-bold text-slate-700 uppercase italic tracking-tighter">
                       {mentor.name || mentor}
