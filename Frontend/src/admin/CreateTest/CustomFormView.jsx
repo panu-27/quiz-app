@@ -371,22 +371,70 @@ export default function CustomCreateTest() {
             )}
 
             {/* STICKY FOOTER */}
-            <div className="fixed bottom-0 left-0 w-full z-40 px-4 pb-8">
-                <div className="max-w-2xl mx-auto bg-white/90 backdrop-blur-2xl border border-slate-200/60 rounded-[3rem] p-1.5 shadow-[0_40px_80px_rgba(0,0,0,0.15)] flex gap-2">
-                    <button onClick={handleSave} disabled={isSubmitting || !!createdTestId}
-                        className={`flex-1 flex items-center justify-center gap-3 py-5 rounded-[2.8rem] font-black uppercase text-[11px] tracking-widest transition-all active:scale-95 shadow-xl ${createdTestId ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-orange-200 hover:brightness-110'}`}
-                    >
-                        {createdTestId ? <CheckCircle2 size={18} /> : isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <Layout size={18} />}
-                        {createdTestId ? "blueprint saved" : "1. save blueprint"}
-                    </button>
-                    <button onClick={handleGenerate} disabled={isSubmitting || !createdTestId}
-                        className={`flex-1 flex items-center justify-center gap-3 py-5 rounded-[2.8rem] font-black uppercase text-[11px] tracking-widest transition-all active:scale-95 text-white ${!createdTestId ? 'bg-slate-100 text-slate-300 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-violet-600 shadow-blue-200 hover:brightness-110'}`}
-                    >
-                        {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <Zap size={18} />}
-                        2. generate test
-                    </button>
-                </div>
-            </div>
+            <div className="fixed bottom-0 left-0 w-full px-4 pb-6 z-40">
+  <div
+    className="
+      max-w-2xl mx-auto
+      bg-white/80 backdrop-blur-xl
+      border border-slate-200/60
+      rounded-[2rem]
+      p-1.5
+      shadow-[0_20px_50px_rgba(0,0,0,0.1)]
+      flex gap-2
+    "
+  >
+    {/* SAVE BLUEPRINT */}
+    <button
+      onClick={handleSave}
+      disabled={isSubmitting || !!createdTestId}
+      className={`
+        flex-1 flex items-center justify-center gap-2
+        py-3 rounded-[1.6rem]
+        font-black uppercase text-[10px] tracking-widest
+        transition-all active:scale-95
+        ${
+          createdTestId
+            ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+            : "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg shadow-orange-200 hover:brightness-105"
+        }
+      `}
+    >
+      {createdTestId ? (
+        <CheckCircle2 size={16} />
+      ) : isSubmitting ? (
+        <Loader2 className="animate-spin" size={16} />
+      ) : (
+        <Layout size={16} />
+      )}
+      {createdTestId ? "Blueprint Saved" : "Save Blueprint"}
+    </button>
+
+    {/* GENERATE TEST */}
+    <button
+      onClick={handleGenerate}
+      disabled={isSubmitting || !createdTestId}
+      className={`
+        flex-1 flex items-center justify-center gap-2
+        py-3 rounded-[1.6rem]
+        font-black uppercase text-[10px] tracking-widest
+        transition-all active:scale-95
+        ${
+          !createdTestId
+            ? "bg-slate-100 text-slate-300 cursor-not-allowed"
+            : "bg-gradient-to-r from-blue-600 to-violet-600 text-white shadow-lg shadow-blue-200 hover:brightness-105"
+        }
+      `}
+    >
+      {isSubmitting ? (
+        <Loader2 className="animate-spin" size={16} />
+      ) : (
+        <Zap size={16} />
+      )}
+      Generate Test
+    </button>
+  </div>
+</div>
+
 
             <style dangerouslySetInnerHTML={{ __html: `
                 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@800&display=swap');
