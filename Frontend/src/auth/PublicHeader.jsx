@@ -50,7 +50,7 @@ export default function PublicHeader() {
         <div className="flex items-center gap-1.5 sm:gap-4">
           <button
             onClick={() => navigate("/login")}
-            className="h-[32px] sm:h-[40px] w-[96px] sm:w-[104px]
+            className="h-[32px] sm:h-[40px] w-[96px] sm:w-[104px] hidden sm:block
                  flex items-center justify-center cursor-pointer
                  border border-slate-900 rounded-lg
                  text-sm font-medium text-slate-700
