@@ -36,7 +36,7 @@ export default function App() {
           path="/"
           element={
             <PublicRoute>
-              <Navigate to="/login" replace />
+              <Login/>
             </PublicRoute>
           }
         />
@@ -147,7 +147,7 @@ export default function App() {
         />
 
         {/* DEFAULT */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AuthProvider>
   );
