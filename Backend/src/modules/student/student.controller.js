@@ -62,11 +62,16 @@ export const getMyHistory = async (req, res) => {
   try {
     const studentId = req.user.id;
 
-    const attempts = await TestAttempt.find({ studentId })
+    // 1. Only fetch attempts that are 'completed'
+    const attempts = await TestAttempt.find({ 
+      studentId, 
+      status: "completed" // 👈 Exclude "started" attempts
+    })
       .populate("testId", "title duration blocks examType")
       .sort({ createdAt: -1 });
 
     const historyMap = attempts.reduce((acc, attempt) => {
+      // If the associated test was deleted, skip it
       if (!attempt.testId) return acc;
 
       const tId = attempt.testId._id.toString();
@@ -89,15 +94,19 @@ export const getMyHistory = async (req, res) => {
         score: attempt.score,
         totalCorrect: attempt.totalCorrect,
         totalWrong: attempt.totalWrong,
-        subjectWise: attempt.subjectWiseScore, // Now sends the detailed object Map
+        // Since subjectWiseScore is a Map, Mongoose will automatically 
+        // convert it to a plain object when sending as JSON.
+        subjectWise: attempt.subjectWiseScore, 
         submittedAt: attempt.submittedAt || attempt.createdAt
       });
 
       return acc;
     }, {});
 
+    // Convert the object map back to an array for the frontend
     res.json(Object.values(historyMap));
   } catch (err) {
+    console.error("HISTORY_FETCH_ERROR:", err);
     res.status(500).json({ message: "Server Error", error: err.message });
   }
 };
@@ -108,55 +117,81 @@ export const getAttemptAnalysis = async (req, res) => {
     const { testId, attemptNumber } = req.params;
     const userId = req.user.id;
 
+    // 1. Fetch the test with populated questions
     const test = await Test.findById(testId);
+    if (!test) return res.status(404).json({ message: "Test not found" });
+
+    // 2. ONLY find completed attempts
     const attempt = await TestAttempt.findOne({ 
       testId, 
       studentId: userId, 
-      attemptNumber: parseInt(attemptNumber) 
+      attemptNumber: parseInt(attemptNumber),
+      status: "completed" // 👈 Filtering incomplete attempts
     });
 
-    if (!attempt) return res.status(404).json({ message: "Attempt not found" });
+    if (!attempt) {
+      return res.status(404).json({ 
+        message: "Analysis is only available for completed attempts." 
+      });
+    }
 
+    // 3. Rank Logic
     const higherCount = await Leaderboard.countDocuments({
         testId: testId,
         $or: [
             { score: { $gt: attempt.score } },
             { score: attempt.score, timeTaken: { $lt: attempt.timeTaken } }
         ]
-    });
+    }) || 0;
     const rank = higherCount + 1;
 
-    const sourceBlocks = (test.metadata?.distribution === "4 Sets" && attempt.assignedSet) 
-                          ? (test.sets instanceof Map ? test.sets.get(attempt.assignedSet) : test.sets[attempt.assignedSet])
-                          : test.blocks;
+    // 4. Determine Source Blocks (Sets vs Blocks)
+    let sourceBlocks = test.blocks;
+    if (test.metadata?.distribution === "4 Sets" && attempt.assignedSet) {
+       // Mongoose Maps use .get()
+       sourceBlocks = test.sets instanceof Map 
+         ? test.sets.get(attempt.assignedSet) 
+         : test.sets[attempt.assignedSet];
+    }
+
+    if (!sourceBlocks) {
+        return res.status(500).json({ message: "Test structure configuration error." });
+    }
 
     const subjectGroups = [];
-    let totalMaxScore = 0; // Track total possible marks
+    let totalMaxScore = 0;
 
     sourceBlocks.forEach(block => {
       block.sections.forEach(section => {
-        const sId = section.subject.toString();
+        // Ensure sId is a string for Map lookup
+        const sId = section.subject?.toString();
+        
+        // Lookup in the Map
         const subjectStats = attempt.subjectWiseScore.get(sId) || { 
-            subjectName: section.subjectName, score: 0, correct: 0, wrong: 0, unattempted: 0 
+          subjectName: section.subjectName, 
+          score: 0, correct: 0, wrong: 0, unattempted: 0 
         };
 
-        // --- CALCULATE MAX SCORE FOR THIS SUBJECT ---
-        const subjectScheme = test.markingScheme.subjectWise.find(
-          sw => sw.subjectId.toString() === sId
+        // Calculate Max Score
+        const subjectScheme = test.markingScheme?.subjectWise?.find(
+          sw => sw.subjectId?.toString() === sId
         );
-        const correctWeight = subjectScheme ? subjectScheme.correctMarks : test.markingScheme.defaultCorrect;
-        const maxSubjectScore = section.numQuestions * correctWeight;
+        
+        const correctWeight = subjectScheme ? subjectScheme.correctMarks : (test.markingScheme?.defaultCorrect || 4);
+        const maxSubjectScore = (section.numQuestions || 0) * correctWeight;
         totalMaxScore += maxSubjectScore;
 
-        const groupedQuestions = section.questions.map(q => {
+        const groupedQuestions = (section.questions || []).map(q => {
+          // IMPORTANT: If your test.blocks contains ObjectIds, you must populate them 
+          // or this mapping will return empty texts.
           const qId = q.questionId || q._id;
-          const studentAns = attempt.answers.find(
+          const studentAns = attempt.answers?.find(
             (a) => a.questionId?.toString() === qId?.toString()
           );
 
           return {
-            questionText: q.questionText,
-            options: q.options,
+            questionText: q.questionText || "Question data not available",
+            options: q.options || [],
             correctAnswer: q.correctAnswer,
             selectedOption: studentAns ? studentAns.selectedOption : -1,
             isCorrect: studentAns ? studentAns.isCorrect : false,
@@ -165,9 +200,9 @@ export const getAttemptAnalysis = async (req, res) => {
         });
 
         subjectGroups.push({
-          subjectName: subjectStats.subjectName,
+          subjectName: subjectStats.subjectName || section.subjectName,
           score: subjectStats.score,
-          maxScore: maxSubjectScore, // Sending this to frontend
+          maxScore: maxSubjectScore,
           correct: subjectStats.correct,
           wrong: subjectStats.wrong,
           unattempted: subjectStats.unattempted,
@@ -179,11 +214,12 @@ export const getAttemptAnalysis = async (req, res) => {
     res.json({
       testTitle: test.title,
       overallScore: attempt.score,
-      totalMaxScore: totalMaxScore, // Overall max (e.g., 300)
+      totalMaxScore: totalMaxScore,
       rank: rank, 
       groupedAnalysis: subjectGroups
     });
   } catch (err) {
+    console.error("ANALYSIS_ERROR:", err);
     res.status(500).json({ message: "Server Error", error: err.message });
   }
 };

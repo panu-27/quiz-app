@@ -245,6 +245,8 @@ export const getMyLibrary = async (jwtUser) => {
   }, {});
 
   // Returning categorized object makes building the UI tabs much easier
+  console.log(categorized);
+  
   return categorized;
 };
 

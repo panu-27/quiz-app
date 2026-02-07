@@ -1,0 +1,910 @@
+﻿<html><body style="font-family: sans-serif; padding: 40px;"><h1>Mock Test 1 - Analysis</h1>
+        <h2 style="color: #7A41F7;">Physics</h2>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q1:</strong> In a cyclotron, the time period of a charged particle's circular motion is:</p>
+            <p>Your Answer: Inversely proportional to velocity</p>
+            <p>Correct Answer: Independent of velocity</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q2:</strong> When a wire loop is rotated in a uniform magnetic field, the induced EMF is:</p>
+            <p>Your Answer: AC</p>
+            <p>Correct Answer: AC</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q3:</strong> A 10µF capacitor is charged to 10V. If the plates are pulled apart to double the distance (battery connected), the work done by the external agent is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 250µJ</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q4:</strong> The Lorentz force (F) on a charge 'q' moving with velocity 'v' in both electric (E) and magnetic (B) fields is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: q(E + v × B)</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q5:</strong> The mean free path (λ) of gas molecules is inversely proportional to:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: The square of the molecular diameter (d²)</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q6:</strong> An electric dipole is kept in a uniform electric field. It will experience a net force only if:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: The field is non-uniform</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q7:</strong> According to the Law of Equipartition of Energy, the energy associated with each degree of freedom per molecule is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 1/2 kT</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q8:</strong> When light is incident at the polarizing angle, the reflected and refracted rays are:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Perpendicular</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q9:</strong> The angle between the axial electric field and the equatorial electric field for the same dipole is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 180°</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q10:</strong> The phase difference for destructive interference (dark fringe) must be:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: (2n+1)π</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q11:</strong> The angle of repose is equal to the angle of friction when the body is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Just about to slide</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q12:</strong> The output of an XOR gate is HIGH if and only if:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Inputs are different</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q13:</strong> Five capacitors are connected such that they form a bridge. If C1/C2 = C3/C4, the equivalent capacitance is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: (C1+C3) in parallel with (C2+C4)</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q14:</strong> The critical angle (C) for a medium of refractive index μ relative to air is given by:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: sin C = 1/μ</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q15:</strong> Two thin lenses of power +5D and -2D are placed in contact. The focal length of the combination is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 33.3 cm</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q16:</strong> Fading of a signal in short-wave radio is caused by:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Interference between multiple paths</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q17:</strong> The ionization potential of the hydrogen atom is 13.6 V. The excitation potential for the first excited state is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 10.2 V</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q18:</strong> The formula for the Quality factor (Q) in terms of L, C, and R is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: (1/R) * √(L/C)</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q19:</strong> Maximum Usable Frequency (MUF) for an angle of incidence θ is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: f_c secθ</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q20:</strong> The work done by the net force on a particle is equal to the change in its:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Kinetic Energy</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q21:</strong> The binding energy per nucleon for Uranium (~7.6 MeV) is lower than Iron. This explains why Uranium is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Unstable/Radioactive</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q22:</strong> For a single slit of width 'a', the first minimum in the diffraction pattern occurs at an angle θ such that:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: a sin θ = λ</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q23:</strong> If a dielectric constant K is inserted in a capacitor while battery is connected, the energy increases by factor:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: K</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q24:</strong> The motional EMF induced in a conductor of length 'l' moving with velocity 'v' perpendicular to a magnetic field 'B' is given by:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Blv</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q25:</strong> Refractive index of glass is 1.5. The Brewster angle for glass is approximately:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 56.3°</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q26:</strong> The refractive index of a prism is n. For a ray to pass through, the angle of the prism A must be:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: A < 2C</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q27:</strong> The area under a Force-Time (F-t) graph represents:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Impulse</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q28:</strong> The wavelength of the first line of the Lyman series is approximately:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 1216 Å</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q29:</strong> If the RMS current of a FWR is I_m / √2, and the DC current is 2I_m / π, the efficiency calculation involves:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: (I_dc / I_rms)²</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q30:</strong> The negative sign in the expression e = -dΦ/dt represents:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Lenz's Law</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q31:</strong> A metallic rod of length 1m is rotated with an angular velocity of 10 rad/s in a perpendicular magnetic field of 0.1 T. The EMF induced between the center and the end is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 0.5 V</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q32:</strong> If the binding energy per nucleon for A=50 is 8.5 MeV, the total binding energy is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 425 MeV</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q33:</strong> The activity of a radioactive source is 0.1 Curie. In SI units (Bq), this is approximately:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 3.7 x 10⁹ Bq</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q34:</strong> Two identical balls A and B collide elastically. If A was moving with 5 m/s and B was at rest, after collision:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: A stops, B moves with 5 m/s</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q35:</strong> If the half-life of a radioactive element is 5 years, its mean life is approximately:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 7.2 years</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q36:</strong> The velocity-time graph of a body moving with uniform acceleration is a:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Straight line inclined to time axis</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q37:</strong> Which layer of the atmosphere is responsible for reflecting sky waves back to earth?</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Ionosphere</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q38:</strong> If the charge density of an infinite cylinder of radius R is ρ, the electric field at r > R is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: ρR² / 2ε₀r</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q39:</strong> The time of flight of a projectile is 10 seconds. Its maximum height reached is (g = 10 m/s²):</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 125 m</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q40:</strong> The skip distance is the minimum distance from the transmitter at which:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Sky waves are received</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q41:</strong> If Z = A⁴B^(1/3) / (CD^(3/2)), the relative error ΔZ/Z is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 4(ΔA/A) + 1/3(ΔB/B) + ΔC/C + 3/2(ΔD/D)</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q42:</strong> The breakdown that occurs in a p-n junction due to a high electric field pulling electrons out of covalent bonds is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Zener breakdown</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q43:</strong> Angular momentum is conserved when the ___ acting on the system is zero.</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Net Torque</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q44:</strong> A body is rolling without slipping. The ratio of its translational KE to rotational KE for a solid sphere is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 5:2</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q45:</strong> To get a HIGH output from a NOR gate, the inputs must be:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 0, 0</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q46:</strong> The direction of induced current in a straight conductor moving in a magnetic field is determined by:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Fleming's Right Hand Rule</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q47:</strong> Which pair has the same dimensions?</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Momentum and Impulse</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q48:</strong> The potential energy of a magnetic dipole is zero when it is at an angle of ___ with the field.</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 90°</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q49:</strong> Three capacitors of 2µF, 3µF and 6µF are connected in series to a 10V battery. The charge on the 3µF capacitor is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 10µC</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q50:</strong> The banking angle (θ) required for a curve of radius 40m and speed 20m/s is (g=10):</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 45°</p>
+          </div>
+        
+    
+        <h2 style="color: #7A41F7;">Chemistry</h2>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q1:</strong> The boiling point of a 0.1 M glucose solution is ___ than that of 0.1 M NaCl solution.</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Lower</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q2:</strong> The IUPAC name of K3[Fe(CN)6] is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Potassium hexacyanoferrate(III)</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q3:</strong> Which metal is refined using the Mond Process?</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Nickel</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q4:</strong> Brownian motion is due to:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Unbalanced bombardment of particles by solvent molecules</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q5:</strong> The electronic configuration of Chromium (Z=24) is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: [Ar] 4s¹ 3d⁵</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q6:</strong> The process of 'Zone Refining' is based on the principle that:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Impurities are more soluble in the melt than in solid state</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q7:</strong> The van’t Hoff factor (i) for a completely dissociated BaCl2 solution is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 3</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q8:</strong> Clark’s method involves the addition of ___ to hard water.</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Slaked lime</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q9:</strong> How many moles of an alkene can react with one mole of Diborane (B2H6)?</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 6</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q10:</strong> Complete the reaction: XeF6 + 3H2O -> ?</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: XeO3 + 6HF</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q11:</strong> The reagent used for the conversion of Benzenediazonium chloride to Fluorobenzene is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: HBF4 / heat</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q12:</strong> The UV radiations reaching the earth's surface cause:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: All of these</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q13:</strong> Clean water should have a BOD value less than:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 5 ppm</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q14:</strong> Which of the following groups shows a -I (negative inductive) effect?</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: -NO2</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q15:</strong> Which of the following alkanes cannot be prepared in good yield by Wurtz reaction?</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: n-Heptane</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q16:</strong> Root Mean Square (RMS) velocity is given by:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: √(3RT/M)</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q17:</strong> The addition of Grignard reagent to Formaldehyde followed by hydrolysis gives:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Primary alcohol</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q18:</strong> The instrument used to measure the optical rotation of a substance is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Polarimeter</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q19:</strong> At infinite dilution, the degree of dissociation (α) for a weak electrolyte is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 1</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q20:</strong> The most common storage polysaccharide in animals is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Glycogen</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q21:</strong> Enantiomers differ in which of the following properties?</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Direction of rotation of plane-polarized light</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q22:</strong> Tertiary alkyl halides are practically inert to SN2 reactions due to:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Steric hindrance</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q23:</strong> Which of the following alkyl halides is most reactive towards the SN1 mechanism?</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: tert-Butyl chloride</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q24:</strong> Faraday's second law states that masses of different substances liberated by the same quantity of electricity are proportional to their:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Equivalent masses</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q25:</strong> In an Ellingham diagram, the line for the reaction C + O2 → CO2 is almost:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Horizontal</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q26:</strong> Which gas is evolved when copper reacts with dilute HNO3?</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: NO</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q27:</strong> For an isothermal expansion of an ideal gas into a vacuum (free expansion), the work done is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Zero</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q28:</strong> Doping of Silicon with Boron leads to the formation of a/an:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: p-type semiconductor</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q29:</strong> The energy difference between staggered and eclipsed conformations of propane is approximately:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 14 kJ/mol</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q30:</strong> Which crystal defect is observed in AgBr?</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Both Schottky and Frenkel</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q31:</strong> BOD (Biochemical Oxygen Demand) is a measure of:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Organic pollution in water</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q32:</strong> According to IUPAC convention, 'electrode potential' refers to:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Reduction potential</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q33:</strong> A 'Sol' is a colloidal system consisting of:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Solid dispersed in Liquid</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q34:</strong> The intermediate formed during the nucleophilic substitution of aryl halides via the addition-elimination mechanism is a:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Meisenheimer complex</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q35:</strong> 500 mL of 2M HCl is diluted with water to 2L. The new molarity is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 0.5 M</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q36:</strong> Which transition metal ion is used as a catalyst in the Contact Process?</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: V2O5</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q37:</strong> The rate of a first-order reaction is 0.4 mol L⁻¹ s⁻¹ when [A] = 0.1 M. The rate constant is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 4 s⁻¹</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q38:</strong> Which of the following has the highest boiling point?</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: CH3COOH</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q39:</strong> Van Arkel method is used for refining Zirconium and Titanium. What reagent does it use?</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Iodine</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q40:</strong> If an alkene on ozonolysis gives only formaldehyde (methanal), the alkene is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Ethene</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q41:</strong> The reactivity of alcohols with Lucas reagent follows the order:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 3° > 2° > 1°</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q42:</strong> Which of the following liquid pairs shows a positive deviation from Raoult's law?</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Benzene + Methanol</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q43:</strong> Which of the following is most reactive towards aqueous NaOH?</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 2,4,6-Trinitrochlorobenzene</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q44:</strong> The mixture of CO and H2 is known as:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Water gas</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q45:</strong> Electronegativity values help in determining:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: All of these</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q46:</strong> If a sample of unknown alcohol does not show turbidity at room temperature even after 10 minutes but shows it on heating, it is a:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Primary alcohol</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q47:</strong> A reaction that proceeds with partial racemization and predominant inversion is usually:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: SN1</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q48:</strong> The net reaction in the Hall-Heroult process is: 2Al2O3 + 3C -> ?</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 4Al + 3CO2</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q49:</strong> If a solute undergoes association in a solvent, the van't Hoff factor (i) will be:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Less than 1</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q50:</strong> Schottky defect is observed in crystals where:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Cation and anion sizes are similar</p>
+          </div>
+        
+    
+        <h2 style="color: #7A41F7;">Mathematics</h2>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q1:</strong> The minimum value of $a \sec \theta + b \csc \theta$ for $0 < \theta < \pi/2$ is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: $(a^{2/3} + b^{2/3})^{3/2}$</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q2:</strong> Which formula is used to find A⁻¹ for the inversion method?</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: (1/|A|) * adj(A)</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q3:</strong> Find the number of ways 4 red, 3 blue and 2 green discs can be arranged in a row if they are otherwise identical.</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 1260</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q4:</strong> The principal value of $$\tan^{-1}(1)$$ is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: $$\pi/4$$</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q5:</strong> The function f(x) = x^x is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Transcendental</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q6:</strong> Inverse of [[2, 0, -1], [5, 1, 0], [0, 1, 3]] is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: [[3, -1, 1], [-15, 6, -5], [5, -2, 2]]</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q7:</strong> The number of 3-digit numbers in which no two digits are the same is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 648</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q8:</strong> Find the value of x for which f(x) = sin²x cos x has a maximum in (0, π/2).</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: tan⁻¹(√2)</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q9:</strong> Evaluate ∫ e^(sin x) (x cos x - sec x) dx.</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: e^(sin x) (x - sec x) + C</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q10:</strong> Find dy/dx if x = a(cos t + t sin t) and y = a(sin t - t cos t).</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: tan t</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q11:</strong> Find ∫ (5x-2)/(x²+2x+10) dx.</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 5/2 log|x²+2x+10| - 7/3 tan⁻¹((x+1)/3) + C</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q12:</strong> The value of $\cos 1^{\circ} + \cos 2^{\circ} + \dots + \cos 179^{\circ} + \cos 180^{\circ}$ is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: -1</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q13:</strong> Find the slope of a line passing through $(2, 3)$ and $(4, 7)$.</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 2</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q14:</strong> Calculate the value of $\cos 20^{\circ} \cos 40^{\circ} \cos 80^{\circ}$.</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 1/8</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q15:</strong> If the sides of a triangle are $x^2+x+1, 2x+1$ and $x^2-1$, the greatest angle is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: $120^{\circ}$</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q16:</strong> If h(x) = (2x - 5)³, find functions f and g such that h(x) = (f ∘ g)(x).</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: f(x)=x³, g(x)=2x-5</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q17:</strong> A box contains 2 white, 3 black and 4 red balls. Number of ways 3 balls can be drawn if at least one is black?</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 64</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q18:</strong> The population of a city grows at a rate proportional to the population itself. This is modeled by:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: $\frac{dP}{dt} = kP$</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q19:</strong> In the equation $$\frac{dx}{dy} + R x = S$$, where $R$ and $S$ are functions of $y$, the $I.F.$ is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: $$e^{\int R \, dy}$$</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q20:</strong> If f(x) = x² + 1 and g(x) = √x, find (f ∘ g)(x) for x ≥ 0.</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: x + 1</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q21:</strong> The function f(x) = x³ has a critical point at x = 0. This point is a:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Point of Inflection</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q22:</strong> Condition for the general equation of second degree $ax^2 + 2hxy + by^2 + 2gx + 2fy + c = 0$ to be a circle is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: $a = b$ and $h = 0$</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q23:</strong> Find ∫₀ⁿ [x] dx where n is a natural number.</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: n(n-1)/2</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q24:</strong> If f(x) = 2x + 3 and (f ∘ g)(x) = 2x^2 + 5, find g(x).</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: x^2 + 1</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q25:</strong> Find the coordinates of the harmonic conjugate of $P(2, 3)$ with respect to $A(1, 1)$ and $B(4, 7)$.</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: $(2/5, -1/5)$</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q26:</strong> Find lim (x → ∞) ln(x) / x.</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 0</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q27:</strong> If $$\sin(\sin^{-1}(1/5) + \cos^{-1} x) = 1$$, then $$x$$ is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 1/5</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q28:</strong> Find ∫₀² [2x] dx.</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 3</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q29:</strong> Order of the DE representing $$y = c_1 \cos(x+c_2) + c_3 e^{x+c_4}$$ is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 3</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q30:</strong> Find the area bounded by x = √y and y-axis from y = 1 to y = 4.</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 14/3</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q31:</strong> Is the sum of an algebraic function and a transcendental function (e.g., x + sin(x)) algebraic or transcendental?</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: Transcendental</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q32:</strong> Find inverse of [[2, 1, -1], [0, 2, 1], [5, 2, -3]].</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: [[8, -1, -3], [-5, 1, 2], [10, -1, -4]] / -1</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q33:</strong> Find the solution of $$\frac{dy}{dx} + \sqrt{\frac{1-y^2}{1-x^2}} = 0$$</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: $$\sin^{-1} y + \sin^{-1} x = C$$</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q34:</strong> What is the parameter of the Poisson distribution?</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: λ (Lambda)</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q35:</strong> How is the fraction 1 / [(x - a)(x - b)] decomposed where a ≠ b?</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: A/(x - a) + B/(x - b)</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q36:</strong> Evaluate lim (x → 0) (e^x - 1 - x) / x².</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 1/2</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q37:</strong> Evaluate lim (x → ∞) (x + 1) / x.</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 1</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q38:</strong> The value of $$\sin^{-1}(\cos 33\pi/5)$$ is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: $$-\pi/10$$</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q39:</strong> If f(x) is a one-to-one function with f(3) = 7 and f(7) = 10, find f⁻¹(f⁻¹(10)).</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 3</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q40:</strong> Evaluate ∫ dx / (x(x⁴-1)).</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 1/4 log|(x⁴-1)/x⁴| + C</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q41:</strong> What is the angle between the x-axis and the plane x + y + z = 10?</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: sin⁻¹(1/√3)</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q42:</strong> Determine 'c' for f(x) = e^x sin x on [0, π] for Rolle's Theorem.</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 3π/4</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q43:</strong> If the system 2x - y + z = 0, 3x + 2y + z = 0, x + y + z = 0 has a unique solution, what is it?</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: (0, 0, 0)</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q44:</strong> What is lim (x → -∞) (√(x² + 1)) / x?</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: -1</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q45:</strong> The variance of a constant 'k' is:</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 0</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q46:</strong> Evaluate lim (n → ∞) [ (n+1)(n+2)...(n+n) / nⁿ ]^(1/n).</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 4/e</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q47:</strong> Differentiate sin²y + cos xy = k.</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: (y sin xy) / (sin 2y - x sin xy)</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q48:</strong> Evaluate lim (x → ∞) 5x / e^x.</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: 0</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q49:</strong> Find the parametric equations of the circle $x^2 + y^2 - 4x - 6y - 12 = 0$.</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: $x = 2 + 5\cos\theta, y = 3 + 5\sin\theta$</p>
+          </div>
+        
+          <div style="margin-bottom: 20px;">
+            <p><strong>Q50:</strong> Which transformation will result in an upper triangular matrix for [[2, 1], [4, 3]]?</p>
+            <p>Your Answer: Skipped</p>
+            <p>Correct Answer: R2 -> R2 - 2R1</p>
+          </div>
+        
+    </body></html>

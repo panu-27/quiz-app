@@ -1,0 +1,929 @@
+﻿
+      <html>
+        <body style="font-family: sans-serif; padding: 40px; color: #1E1E2D;">
+          <div style="text-align: center; margin-bottom: 40px;">
+            <img src="http://localhost:5173/icon-512.png" style="width: 80px; height: 80px; margin-bottom: 10px;" />
+            <h1 style="color: #7A41F7; margin: 0;">Performance Transcript</h1>
+            <p style="color: #64748B;">Mock Test 1 • Attempt #2</p>
+          </div>
+          <div style="background: #F1EBFE; padding: 20px; border-radius: 20px; text-align: center; margin-bottom: 30px;">
+             <h2 style="margin: 0; color: #7A41F7;">Score: 1/200</h2>
+          </div>
+          
+        <div style="margin-top: 30px; border-top: 1px solid #DDCEFD; padding-top: 20px;">
+          <h2 style="color: #7A41F7; font-family: sans-serif;">Physics</h2>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q1: In a cyclotron, the time period of a charged particle's circular motion is:</p>
+              <p style="color: #EF4444">Your Answer: Inversely proportional to velocity</p>
+              <p style="color: #10B981">Correct Answer: Independent of velocity</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q2: When a wire loop is rotated in a uniform magnetic field, the induced EMF is:</p>
+              <p style="color: #10B981">Your Answer: AC</p>
+              
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q3: A 10µF capacitor is charged to 10V. If the plates are pulled apart to double the distance (battery connected), the work done by the external agent is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 250µJ</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q4: The Lorentz force (F) on a charge 'q' moving with velocity 'v' in both electric (E) and magnetic (B) fields is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: q(E + v × B)</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q5: The mean free path (λ) of gas molecules is inversely proportional to:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: The square of the molecular diameter (d²)</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q6: An electric dipole is kept in a uniform electric field. It will experience a net force only if:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: The field is non-uniform</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q7: According to the Law of Equipartition of Energy, the energy associated with each degree of freedom per molecule is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 1/2 kT</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q8: When light is incident at the polarizing angle, the reflected and refracted rays are:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Perpendicular</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q9: The angle between the axial electric field and the equatorial electric field for the same dipole is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 180°</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q10: The phase difference for destructive interference (dark fringe) must be:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: (2n+1)π</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q11: The angle of repose is equal to the angle of friction when the body is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Just about to slide</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q12: The output of an XOR gate is HIGH if and only if:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Inputs are different</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q13: Five capacitors are connected such that they form a bridge. If C1/C2 = C3/C4, the equivalent capacitance is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: (C1+C3) in parallel with (C2+C4)</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q14: The critical angle (C) for a medium of refractive index μ relative to air is given by:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: sin C = 1/μ</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q15: Two thin lenses of power +5D and -2D are placed in contact. The focal length of the combination is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 33.3 cm</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q16: Fading of a signal in short-wave radio is caused by:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Interference between multiple paths</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q17: The ionization potential of the hydrogen atom is 13.6 V. The excitation potential for the first excited state is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 10.2 V</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q18: The formula for the Quality factor (Q) in terms of L, C, and R is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: (1/R) * √(L/C)</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q19: Maximum Usable Frequency (MUF) for an angle of incidence θ is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: f_c secθ</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q20: The work done by the net force on a particle is equal to the change in its:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Kinetic Energy</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q21: The binding energy per nucleon for Uranium (~7.6 MeV) is lower than Iron. This explains why Uranium is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Unstable/Radioactive</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q22: For a single slit of width 'a', the first minimum in the diffraction pattern occurs at an angle θ such that:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: a sin θ = λ</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q23: If a dielectric constant K is inserted in a capacitor while battery is connected, the energy increases by factor:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: K</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q24: The motional EMF induced in a conductor of length 'l' moving with velocity 'v' perpendicular to a magnetic field 'B' is given by:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Blv</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q25: Refractive index of glass is 1.5. The Brewster angle for glass is approximately:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 56.3°</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q26: The refractive index of a prism is n. For a ray to pass through, the angle of the prism A must be:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: A < 2C</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q27: The area under a Force-Time (F-t) graph represents:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Impulse</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q28: The wavelength of the first line of the Lyman series is approximately:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 1216 Å</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q29: If the RMS current of a FWR is I_m / √2, and the DC current is 2I_m / π, the efficiency calculation involves:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: (I_dc / I_rms)²</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q30: The negative sign in the expression e = -dΦ/dt represents:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Lenz's Law</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q31: A metallic rod of length 1m is rotated with an angular velocity of 10 rad/s in a perpendicular magnetic field of 0.1 T. The EMF induced between the center and the end is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 0.5 V</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q32: If the binding energy per nucleon for A=50 is 8.5 MeV, the total binding energy is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 425 MeV</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q33: The activity of a radioactive source is 0.1 Curie. In SI units (Bq), this is approximately:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 3.7 x 10⁹ Bq</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q34: Two identical balls A and B collide elastically. If A was moving with 5 m/s and B was at rest, after collision:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: A stops, B moves with 5 m/s</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q35: If the half-life of a radioactive element is 5 years, its mean life is approximately:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 7.2 years</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q36: The velocity-time graph of a body moving with uniform acceleration is a:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Straight line inclined to time axis</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q37: Which layer of the atmosphere is responsible for reflecting sky waves back to earth?</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Ionosphere</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q38: If the charge density of an infinite cylinder of radius R is ρ, the electric field at r > R is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: ρR² / 2ε₀r</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q39: The time of flight of a projectile is 10 seconds. Its maximum height reached is (g = 10 m/s²):</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 125 m</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q40: The skip distance is the minimum distance from the transmitter at which:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Sky waves are received</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q41: If Z = A⁴B^(1/3) / (CD^(3/2)), the relative error ΔZ/Z is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 4(ΔA/A) + 1/3(ΔB/B) + ΔC/C + 3/2(ΔD/D)</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q42: The breakdown that occurs in a p-n junction due to a high electric field pulling electrons out of covalent bonds is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Zener breakdown</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q43: Angular momentum is conserved when the ___ acting on the system is zero.</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Net Torque</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q44: A body is rolling without slipping. The ratio of its translational KE to rotational KE for a solid sphere is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 5:2</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q45: To get a HIGH output from a NOR gate, the inputs must be:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 0, 0</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q46: The direction of induced current in a straight conductor moving in a magnetic field is determined by:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Fleming's Right Hand Rule</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q47: Which pair has the same dimensions?</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Momentum and Impulse</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q48: The potential energy of a magnetic dipole is zero when it is at an angle of ___ with the field.</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 90°</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q49: Three capacitors of 2µF, 3µF and 6µF are connected in series to a 10V battery. The charge on the 3µF capacitor is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 10µC</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q50: The banking angle (θ) required for a curve of radius 40m and speed 20m/s is (g=10):</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 45°</p>
+            </div>
+          
+        </div>
+    
+        <div style="margin-top: 30px; border-top: 1px solid #DDCEFD; padding-top: 20px;">
+          <h2 style="color: #7A41F7; font-family: sans-serif;">Chemistry</h2>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q1: The boiling point of a 0.1 M glucose solution is ___ than that of 0.1 M NaCl solution.</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Lower</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q2: The IUPAC name of K3[Fe(CN)6] is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Potassium hexacyanoferrate(III)</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q3: Which metal is refined using the Mond Process?</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Nickel</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q4: Brownian motion is due to:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Unbalanced bombardment of particles by solvent molecules</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q5: The electronic configuration of Chromium (Z=24) is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: [Ar] 4s¹ 3d⁵</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q6: The process of 'Zone Refining' is based on the principle that:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Impurities are more soluble in the melt than in solid state</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q7: The van’t Hoff factor (i) for a completely dissociated BaCl2 solution is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 3</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q8: Clark’s method involves the addition of ___ to hard water.</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Slaked lime</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q9: How many moles of an alkene can react with one mole of Diborane (B2H6)?</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 6</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q10: Complete the reaction: XeF6 + 3H2O -> ?</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: XeO3 + 6HF</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q11: The reagent used for the conversion of Benzenediazonium chloride to Fluorobenzene is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: HBF4 / heat</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q12: The UV radiations reaching the earth's surface cause:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: All of these</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q13: Clean water should have a BOD value less than:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 5 ppm</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q14: Which of the following groups shows a -I (negative inductive) effect?</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: -NO2</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q15: Which of the following alkanes cannot be prepared in good yield by Wurtz reaction?</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: n-Heptane</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q16: Root Mean Square (RMS) velocity is given by:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: √(3RT/M)</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q17: The addition of Grignard reagent to Formaldehyde followed by hydrolysis gives:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Primary alcohol</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q18: The instrument used to measure the optical rotation of a substance is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Polarimeter</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q19: At infinite dilution, the degree of dissociation (α) for a weak electrolyte is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 1</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q20: The most common storage polysaccharide in animals is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Glycogen</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q21: Enantiomers differ in which of the following properties?</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Direction of rotation of plane-polarized light</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q22: Tertiary alkyl halides are practically inert to SN2 reactions due to:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Steric hindrance</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q23: Which of the following alkyl halides is most reactive towards the SN1 mechanism?</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: tert-Butyl chloride</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q24: Faraday's second law states that masses of different substances liberated by the same quantity of electricity are proportional to their:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Equivalent masses</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q25: In an Ellingham diagram, the line for the reaction C + O2 → CO2 is almost:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Horizontal</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q26: Which gas is evolved when copper reacts with dilute HNO3?</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: NO</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q27: For an isothermal expansion of an ideal gas into a vacuum (free expansion), the work done is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Zero</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q28: Doping of Silicon with Boron leads to the formation of a/an:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: p-type semiconductor</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q29: The energy difference between staggered and eclipsed conformations of propane is approximately:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 14 kJ/mol</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q30: Which crystal defect is observed in AgBr?</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Both Schottky and Frenkel</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q31: BOD (Biochemical Oxygen Demand) is a measure of:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Organic pollution in water</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q32: According to IUPAC convention, 'electrode potential' refers to:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Reduction potential</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q33: A 'Sol' is a colloidal system consisting of:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Solid dispersed in Liquid</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q34: The intermediate formed during the nucleophilic substitution of aryl halides via the addition-elimination mechanism is a:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Meisenheimer complex</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q35: 500 mL of 2M HCl is diluted with water to 2L. The new molarity is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 0.5 M</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q36: Which transition metal ion is used as a catalyst in the Contact Process?</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: V2O5</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q37: The rate of a first-order reaction is 0.4 mol L⁻¹ s⁻¹ when [A] = 0.1 M. The rate constant is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 4 s⁻¹</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q38: Which of the following has the highest boiling point?</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: CH3COOH</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q39: Van Arkel method is used for refining Zirconium and Titanium. What reagent does it use?</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Iodine</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q40: If an alkene on ozonolysis gives only formaldehyde (methanal), the alkene is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Ethene</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q41: The reactivity of alcohols with Lucas reagent follows the order:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 3° > 2° > 1°</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q42: Which of the following liquid pairs shows a positive deviation from Raoult's law?</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Benzene + Methanol</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q43: Which of the following is most reactive towards aqueous NaOH?</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 2,4,6-Trinitrochlorobenzene</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q44: The mixture of CO and H2 is known as:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Water gas</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q45: Electronegativity values help in determining:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: All of these</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q46: If a sample of unknown alcohol does not show turbidity at room temperature even after 10 minutes but shows it on heating, it is a:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Primary alcohol</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q47: A reaction that proceeds with partial racemization and predominant inversion is usually:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: SN1</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q48: The net reaction in the Hall-Heroult process is: 2Al2O3 + 3C -> ?</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 4Al + 3CO2</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q49: If a solute undergoes association in a solvent, the van't Hoff factor (i) will be:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Less than 1</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q50: Schottky defect is observed in crystals where:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Cation and anion sizes are similar</p>
+            </div>
+          
+        </div>
+    
+        <div style="margin-top: 30px; border-top: 1px solid #DDCEFD; padding-top: 20px;">
+          <h2 style="color: #7A41F7; font-family: sans-serif;">Mathematics</h2>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q1: The minimum value of $a \sec \theta + b \csc \theta$ for $0 < \theta < \pi/2$ is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: $(a^{2/3} + b^{2/3})^{3/2}$</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q2: Which formula is used to find A⁻¹ for the inversion method?</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: (1/|A|) * adj(A)</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q3: Find the number of ways 4 red, 3 blue and 2 green discs can be arranged in a row if they are otherwise identical.</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 1260</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q4: The principal value of $$\tan^{-1}(1)$$ is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: $$\pi/4$$</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q5: The function f(x) = x^x is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Transcendental</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q6: Inverse of [[2, 0, -1], [5, 1, 0], [0, 1, 3]] is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: [[3, -1, 1], [-15, 6, -5], [5, -2, 2]]</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q7: The number of 3-digit numbers in which no two digits are the same is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 648</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q8: Find the value of x for which f(x) = sin²x cos x has a maximum in (0, π/2).</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: tan⁻¹(√2)</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q9: Evaluate ∫ e^(sin x) (x cos x - sec x) dx.</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: e^(sin x) (x - sec x) + C</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q10: Find dy/dx if x = a(cos t + t sin t) and y = a(sin t - t cos t).</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: tan t</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q11: Find ∫ (5x-2)/(x²+2x+10) dx.</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 5/2 log|x²+2x+10| - 7/3 tan⁻¹((x+1)/3) + C</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q12: The value of $\cos 1^{\circ} + \cos 2^{\circ} + \dots + \cos 179^{\circ} + \cos 180^{\circ}$ is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: -1</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q13: Find the slope of a line passing through $(2, 3)$ and $(4, 7)$.</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 2</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q14: Calculate the value of $\cos 20^{\circ} \cos 40^{\circ} \cos 80^{\circ}$.</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 1/8</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q15: If the sides of a triangle are $x^2+x+1, 2x+1$ and $x^2-1$, the greatest angle is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: $120^{\circ}$</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q16: If h(x) = (2x - 5)³, find functions f and g such that h(x) = (f ∘ g)(x).</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: f(x)=x³, g(x)=2x-5</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q17: A box contains 2 white, 3 black and 4 red balls. Number of ways 3 balls can be drawn if at least one is black?</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 64</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q18: The population of a city grows at a rate proportional to the population itself. This is modeled by:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: $\frac{dP}{dt} = kP$</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q19: In the equation $$\frac{dx}{dy} + R x = S$$, where $R$ and $S$ are functions of $y$, the $I.F.$ is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: $$e^{\int R \, dy}$$</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q20: If f(x) = x² + 1 and g(x) = √x, find (f ∘ g)(x) for x ≥ 0.</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: x + 1</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q21: The function f(x) = x³ has a critical point at x = 0. This point is a:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Point of Inflection</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q22: Condition for the general equation of second degree $ax^2 + 2hxy + by^2 + 2gx + 2fy + c = 0$ to be a circle is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: $a = b$ and $h = 0$</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q23: Find ∫₀ⁿ [x] dx where n is a natural number.</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: n(n-1)/2</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q24: If f(x) = 2x + 3 and (f ∘ g)(x) = 2x^2 + 5, find g(x).</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: x^2 + 1</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q25: Find the coordinates of the harmonic conjugate of $P(2, 3)$ with respect to $A(1, 1)$ and $B(4, 7)$.</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: $(2/5, -1/5)$</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q26: Find lim (x → ∞) ln(x) / x.</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 0</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q27: If $$\sin(\sin^{-1}(1/5) + \cos^{-1} x) = 1$$, then $$x$$ is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 1/5</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q28: Find ∫₀² [2x] dx.</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 3</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q29: Order of the DE representing $$y = c_1 \cos(x+c_2) + c_3 e^{x+c_4}$$ is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 3</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q30: Find the area bounded by x = √y and y-axis from y = 1 to y = 4.</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 14/3</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q31: Is the sum of an algebraic function and a transcendental function (e.g., x + sin(x)) algebraic or transcendental?</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: Transcendental</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q32: Find inverse of [[2, 1, -1], [0, 2, 1], [5, 2, -3]].</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: [[8, -1, -3], [-5, 1, 2], [10, -1, -4]] / -1</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q33: Find the solution of $$\frac{dy}{dx} + \sqrt{\frac{1-y^2}{1-x^2}} = 0$$</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: $$\sin^{-1} y + \sin^{-1} x = C$$</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q34: What is the parameter of the Poisson distribution?</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: λ (Lambda)</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q35: How is the fraction 1 / [(x - a)(x - b)] decomposed where a ≠ b?</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: A/(x - a) + B/(x - b)</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q36: Evaluate lim (x → 0) (e^x - 1 - x) / x².</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 1/2</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q37: Evaluate lim (x → ∞) (x + 1) / x.</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 1</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q38: The value of $$\sin^{-1}(\cos 33\pi/5)$$ is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: $$-\pi/10$$</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q39: If f(x) is a one-to-one function with f(3) = 7 and f(7) = 10, find f⁻¹(f⁻¹(10)).</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 3</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q40: Evaluate ∫ dx / (x(x⁴-1)).</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 1/4 log|(x⁴-1)/x⁴| + C</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q41: What is the angle between the x-axis and the plane x + y + z = 10?</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: sin⁻¹(1/√3)</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q42: Determine 'c' for f(x) = e^x sin x on [0, π] for Rolle's Theorem.</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 3π/4</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q43: If the system 2x - y + z = 0, 3x + 2y + z = 0, x + y + z = 0 has a unique solution, what is it?</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: (0, 0, 0)</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q44: What is lim (x → -∞) (√(x² + 1)) / x?</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: -1</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q45: The variance of a constant 'k' is:</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 0</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q46: Evaluate lim (n → ∞) [ (n+1)(n+2)...(n+n) / nⁿ ]^(1/n).</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 4/e</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q47: Differentiate sin²y + cos xy = k.</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: (y sin xy) / (sin 2y - x sin xy)</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q48: Evaluate lim (x → ∞) 5x / e^x.</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: 0</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q49: Find the parametric equations of the circle $x^2 + y^2 - 4x - 6y - 12 = 0$.</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: $x = 2 + 5\cos\theta, y = 3 + 5\sin\theta$</p>
+            </div>
+          
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #F9F9FB; border-radius: 10px;">
+              <p style="font-weight: bold;">Q50: Which transformation will result in an upper triangular matrix for [[2, 1], [4, 3]]?</p>
+              <p style="color: #EF4444">Your Answer: Skipped</p>
+              <p style="color: #10B981">Correct Answer: R2 -> R2 - 2R1</p>
+            </div>
+          
+        </div>
+    
+        </body>
+      </html>

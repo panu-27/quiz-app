@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useLocation } from "react-router-dom";
-import { LayoutGrid, BookOpen, Heart, User as UserIcon, Plus, Home, Search, BarChart2 } from "lucide-react";
+import { LayoutGrid, BookOpen,Library, Heart, User as UserIcon, Plus, Home, Search, BarChart2, Book } from "lucide-react";
 
 const navItem =
   "p-2 rounded-2xl transition-colors flex items-center justify-center";
@@ -14,17 +14,19 @@ export default function StudentLayout() {
   const location = useLocation();
 
   // Logic: Check if the current URL contains "/test/"
-  const isTestPage = location.pathname.includes("/test/");
-
+const isTestPage = location.pathname.includes("/test/") ;
+const isAnalysisPage = location.pathname.includes("/analytics");
+  // 2. We want to SHOW the navbar on all pages EXCEPT the test page
+  const showNavbar = isTestPage || isAnalysisPage ;
   return (
     <div className="min-h-screen flex flex-col bg-[#F8FAFF]">
       {/* PAGE CONTENT - Remove padding-bottom if on test page */}
-      <main className={`flex-1 z-50 ${isTestPage ? "pb-0" : "pb-24"}`}>
+      <main className={`bg-white flex-1 z-50 ${isTestPage ? "pb-0" : "pb-24"}`}>
         <Outlet />
       </main>
 
       {/* BOTTOM NAV - Only render if NOT on test page */}
-      {!isTestPage && (
+      {(!showNavbar) && (
         <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50">
           {/* 1. The Floating Plus Button */}
           <button
@@ -40,7 +42,7 @@ export default function StudentLayout() {
           <div className="relative">
             <svg
               viewBox="0 0 400 80"
-              className="w-full h-[75px] drop-shadow-[0_-15px_30px_rgba(122,65,247,0.06)]"
+              className="w-full h-[70px] drop-shadow-[0_-15px_30px_rgba(122,65,247,0.06)]"
               preserveAspectRatio="none"
               fill="white"
             >
@@ -59,23 +61,23 @@ export default function StudentLayout() {
             </svg>
 
             {/* 3. The Navigation Icons */}
-            <nav className="absolute inset-0 flex items-center justify-between px-10 pb-4">
+            <nav className="absolute inset-0 flex items-center justify-between px-10 pb-2">
               <NavLink to="/student" end className={({ isActive }) => `p-2 ${isActive ? 'text-[#1E1E2D]' : 'text-slate-300'}`}>
                 <Home className="w-6 h-6 fill-current" />
               </NavLink>
 
-              <NavLink to="/student/library" className={({ isActive }) => `p-2 ${isActive ? 'text-[#7A41F7]' : 'text-slate-300'}`}>
-                <Search className="w-6 h-6 stroke-[2.5]" />
+              <NavLink to="/student/library" className={({ isActive }) => `p-2 ${isActive ? 'text-[#1E1E2D]' : 'text-slate-300'}`}>
+                <BookOpen className="w-6 h-6 stroke-[2.5]" />
               </NavLink>
 
               {/* Empty space for the notch */}
               <div className="w-14" />
 
-              <NavLink to="/student/personal" className={({ isActive }) => `p-2 ${isActive ? 'text-[#7A41F7]' : 'text-slate-300'}`}>
+              <NavLink to="/student/personal" className={({ isActive }) => `p-2 ${isActive ? 'text-[#1E1E2D]' : 'text-slate-300'}`}>
                 <BarChart2 className="w-6 h-6 stroke-[2.5]" />
               </NavLink>
 
-              <NavLink to="/student/profile" className={({ isActive }) => `p-2 ${isActive ? 'text-[#7A41F7]' : 'text-slate-300'}`}>
+              <NavLink to="/student/profile" className={({ isActive }) => `p-2 ${isActive ? 'text-[#1E1E2D]' : 'text-slate-300'}`}>
                 <UserIcon className="w-6 h-6 stroke-[2.5]" />
               </NavLink>
             </nav>
