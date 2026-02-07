@@ -1,4 +1,3 @@
-import { log } from "async";
 import * as authService from "./auth.service.js";
 
 export const registerStudent = async (req, res) => {
