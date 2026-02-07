@@ -80,7 +80,7 @@ export default function AuthPage() {
               {/* Mobile illustration (Unacademy behavior) */}
               <div className="mt-8 md:hidden flex justify-center">
                 <img
-                  src="https://static.uacdn.net/production/_next/static/images/home-illustration.svg"
+                  src="/home-illustration.svg"
                   alt="Learning"
                   className="w-[300px]"
                 />
@@ -123,7 +123,7 @@ export default function AuthPage() {
             {/* RIGHT : DESKTOP ILLUSTRATION */}
             <div className="hidden md:flex justify-end">
               <img
-                src="https://static.uacdn.net/production/_next/static/images/home-illustration.svg"
+                src="/home-illustration.svg"
                 alt="Learning"
                 className="w-[520px]"
                 
