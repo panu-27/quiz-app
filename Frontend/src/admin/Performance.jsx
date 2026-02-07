@@ -33,28 +33,11 @@ export default function Performance() {
   return (
     <div className="min-h-screen bg-[#fcfcfc] flex flex-col font-sans text-slate-900 selection:bg-indigo-100">
       {/* <AdminHeader userName={user?.name} onLogout={logout} /> */}
-
+      <AdminHeader userName={user?.name} onLogout={logout} />
       <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-8 flex flex-col gap-8">
         
         {/* HEADER AREA */}
-        <div className="flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={() => navigate(-1)} 
-              className="p-2.5 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-indigo-600 transition-all active:scale-90"
-            >
-              <ArrowLeft size={18} />
-            </button>
-            <div>
-              <h1 className="text-2xl font-black text-slate-900 tracking-tight">Class Pulse</h1>
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Academic Analytics</p>
-            </div>
-          </div>
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-emerald-50 rounded-lg border border-emerald-100">
-             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-             <span className="text-[9px] font-black uppercase text-emerald-700 tracking-widest">Live Sync</span>
-          </div>
-        </div>
+        
 
         {/* 1. SUBJECT PROFICIENCY - SCROLLABLE ON MOBILE, GRID ON DESKTOP */}
         <section>
