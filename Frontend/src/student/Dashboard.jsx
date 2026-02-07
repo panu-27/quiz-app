@@ -3,9 +3,22 @@ import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import {
-  LayoutGrid, BarChart2, Loader2, Clock,
-  ArrowUpRight, MonitorPlay, ClipboardCheck,
-  History, ArrowRight
+  // Navigation & UI Elements
+  Search,
+  Bell,
+  ChevronRight,
+  ArrowRight,
+  // Feature & Status Icons
+  ClipboardCheck,
+  History,
+  Clock,
+  Loader2,
+  // Subject & Category Icons
+  Atom,
+  FlaskConical,
+  Calculator,
+  Dna,
+  BarChart2 // Added for the 'Hard' difficulty badge
 } from "lucide-react";
 import StudentHeader from "./StudentHeader";
 
@@ -20,10 +33,9 @@ export default function StudentDashboard() {
       try {
         setLoading(true);
         const res = await api.get("/student/my-tests");
-        const testData = Array.isArray(res.data) ? res.data : (res.data.tests || []);
-        setTests(testData);
+        setTests(res.data?.tests || res.data || []);
       } catch (err) {
-        console.error("Failed to fetch student tests:", err);
+        console.error(err);
       } finally {
         setLoading(false);
       }
@@ -32,145 +44,367 @@ export default function StudentDashboard() {
   }, []);
 
   return (
-    <div className="bg-[#fcfcfc] pb-24 font-sans text-slate-900 min-h-screen">
+    <div className="min-h-screen bg-[#F6F8FC] pb-24">
 
-      {/* 1. TOP NAV */}
-      <StudentHeader/>
-
-      <div className="pt-6 px-3 sm:px-10 md:px-4 xl:px-48">
-  <div className="max-w-7xl mx-auto">
-    <div className="rounded-2xl p-6 bg-slate-50 border border-slate-200">
-
-      <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
-        Latest Update
-      </p>
-
-      <h3 className="mt-2 text-lg font-bold text-slate-800">
-        Weekly CET Test – Physics
-      </h3>
-
-      <p className="mt-1 text-sm text-slate-500">
-        Electrostatics · 50 Questions · 90 Minutes
-      </p>
-
-      <div className="mt-4 flex gap-3 flex-wrap">
-        <span
-          className="px-3 py-1 rounded-full text-[10px] font-bold
-                     bg-emerald-100 text-emerald-700 uppercase"
-        >
-          New
-        </span>
-
-        <span
-          className="px-3 py-1 rounded-full text-[10px] font-bold
-                     bg-slate-200 text-slate-700 uppercase"
-        >
-          Objective
-        </span>
+      {/* ===== DESKTOP HEADER ===== */}
+      <div className="hidden md:block">
+        <StudentHeader />
       </div>
 
-      <button
-        className="mt-5 w-full py-3 rounded-xl
-                   bg-slate-900 text-white
-                   text-sm font-semibold
-                   hover:bg-black transition"
-      >
-        View Test
+      {/* ===== MOBILE / TABLET HEADER ===== */}
+<div className="md:hidden px-4 pt-6">
+  <div className="flex items-center justify-between">
+    {/* Left Side: Avatar and Welcome Text */}
+    <div className="flex items-center gap-3">
+      {/* Profile Avatar */}
+      <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-100 flex items-center justify-center">
+        {user?.profilePic ? (
+          <img 
+            src={user.profilePic} 
+            alt="Profile" 
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="text-[#7A41F7] font-bold text-lg">
+            {user?.name?.charAt(0)?.toUpperCase() || "S"}
+          </div>
+        )}
+      </div>
+
+      {/* Welcome Message */}
+      <div>
+        <p className="text-[13px] text-slate-500 font-medium leading-tight">Welcome</p>
+        <h2 className="text-[16px] font-bold text-slate-900 leading-tight">
+          {user?.name || "Student"}
+        </h2>
+      </div>
+    </div>
+
+    {/* Right Side: Action Icons */}
+    <div className="flex items-center gap-2">
+      <button className="p-2.5 bg-slate-50 rounded-full text-slate-600 active:bg-slate-200 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
+          <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+        </svg>
+      </button>
+
+      <button className="p-2.5 bg-slate-50 rounded-full text-slate-600 active:bg-slate-200 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
+        </svg>
       </button>
     </div>
   </div>
 </div>
 
 
-      <main className="max-w-4xl mx-auto px-6">
 
-        <section className="grid grid-cols-2 gap-4 mb-12">
-          <div
-            onClick={() => navigate("/student/library")}
-            className="group bg-white border border-slate-100 p-6 rounded-3xl hover:border-indigo-600 transition-all cursor-pointer shadow-sm hover:shadow-xl hover:shadow-indigo-500/5"
-          >
-            <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-10 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-inner">
-              <ClipboardCheck size={24} />
-            </div>
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest leading-none mb-2">Initialize Quiz</h3>
-            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">Enter Courseware</p>
-          </div>
+<div className="px-4 mt-8">
+  <h4 className="text-[16px] font-bold text-slate-800 mb-3">Top rank of the week</h4>
+  
+  <div 
+    className="relative bg-[#7A41F7] rounded-[2rem] p-5 flex items-center justify-between overflow-hidden cursor-pointer active:scale-[0.98] transition-transform"
+    onClick={() => navigate("/student/leaderboard")}
+  >
+    {/* Decorative Background Swirls */}
+    <div className="absolute right-0 bottom-0 opacity-20 pointer-events-none">
+       <svg width="150" height="100" viewBox="0 0 150 100" fill="none">
+          <circle cx="120" cy="80" r="60" stroke="white" strokeWidth="2" />
+          <circle cx="120" cy="80" r="40" stroke="white" strokeWidth="2" />
+       </svg>
+    </div>
 
-          <div
-            onClick={() => navigate("/student/history")}
-            className="group bg-white border border-slate-100 p-6 rounded-3xl hover:border-violet-600 transition-all cursor-pointer shadow-sm hover:shadow-xl hover:shadow-violet-500/5"
-          >
-            <div className="w-12 h-12 bg-violet-50 text-violet-600 rounded-2xl flex items-center justify-center mb-10 group-hover:bg-violet-600 group-hover:text-white transition-all shadow-inner">
-              <History size={24} />
-            </div>
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest leading-none mb-2">Quiz History</h3>
-            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">Access Records</p>
-          </div>
-        </section>
-
-        {/* 4. SCHEDULED TESTS */}
-        <section className="mb-12">
-  <div className="flex items-center gap-3 mb-6">
-    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Scheduled Exams</h3>
-    <div className="h-[1px] flex-1 bg-slate-100" />
-  </div>
-  <div className="space-y-3">
-    {loading ? (
-      <div className="py-10 flex justify-center"><Loader2 className="animate-spin text-indigo-200" /></div>
-    ) : tests.length > 0 ? (
-      tests.map((t) => (
-        <div key={t._id} className="flex items-center justify-between p-5 bg-white border border-slate-100 rounded-3xl hover:border-indigo-400 transition-all shadow-sm gap-4">
-          <div className="flex items-center gap-5 min-w-0 flex-1"> {/* min-w-0 is critical for truncation */}
-            <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex-shrink-0 flex items-center justify-center shadow-inner">
-              <Clock size={20} />
-            </div>
-            <div className="min-w-0 flex-1"> {/* Container must allow shrinking */}
-              <h4 className="text-sm font-bold text-slate-900 uppercase tracking-tight leading-none mb-2 truncate">
-                {t.title}
-              </h4>
-              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t.duration} Mins </p>
-            </div>
-          </div>
-          <button 
-            onClick={() => navigate(`/student/test/${t._id}`)} 
-            className="flex-shrink-0 px-8 py-3 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-indigo-600 transition-all shadow-lg shadow-slate-200"
-          >
-            Start
-          </button>
-        </div>
-      ))
-    ) : (
-      <div className="py-8 text-center border border-dashed border-slate-200 rounded-3xl">
-        <p className="text-[10px] font-black text-slate-300 uppercase">No active assessment streams</p>
+    <div className="flex items-center gap-4 relative z-10">
+      {/* Rank Number Ring */}
+      <div className="w-8 h-8 rounded-full border-2 border-white/40 flex items-center justify-center text-white text-xs font-bold">
+        1
       </div>
+
+      {/* Avatar with Flag Badge */}
+      <div className="relative">
+        <div className="w-14 h-14 rounded-full bg-pink-200 border-2 border-white/20 overflow-hidden">
+          <img 
+            src="https://api.dicebear.com/7.x/avataaars/svg?seed=Brandon" 
+            alt="Top student" 
+            className="w-full h-full object-cover"
+          />
+        </div>
+        {/* Small Flag Indicator (matching the image) */}
+        <div className="absolute -right-1 -bottom-1 w-6 h-4 bg-white rounded-sm overflow-hidden border border-white shadow-sm">
+           <div className="h-1/2 bg-[#D91E18]" /> {/* Red part for simple flag placeholder */}
+        </div>
+      </div>
+
+      {/* Student Info */}
+      <div className="text-white">
+        <p className="text-[15px] font-bold">Brandon Matrovs</p>
+        <p className="text-[12px] opacity-80 font-medium">124 points</p>
+      </div>
+    </div>
+
+    {/* Gold Crown Hexagon Badge */}
+    <div className="relative z-10 flex items-center justify-center w-10 h-10">
+      <div className="absolute inset-0 bg-[#FFD700] clip-path-hexagon shadow-lg" 
+           style={{ clipPath: 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)' }} 
+      />
+      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white relative z-20" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M5 16L3 5L8.5 10L12 4L15.5 10L21 5L19 16H5M19 19C19 19.6 18.6 20 18 20H6C5.4 20 5 19.6 5 19V18H19V19Z" />
+      </svg>
+    </div>
+  </div>
+</div>
+
+
+<div className="px-4 mt-6">
+  <div
+    className="
+      relative
+      bg-[#7A41F7]
+      rounded-3xl
+      p-8
+      flex items-center
+      min-h-[160px]
+      overflow-hidden
+    "
+  >
+    {/* ===== LEFT CONTENT ===== */}
+    <div className="relative z-20 max-w-[60%]">
+      <h3 className="text-white text-lg font-bold leading-tight">
+        Test your knowledge <br />
+        and learn new things.
+      </h3>
+
+      <button
+        onClick={() => navigate("/student/library")}
+        className="
+          mt-5
+          px-7 py-2.5
+          bg-white
+          text-[#7A41F7]
+          rounded-full
+          text-sm
+          font-bold
+          shadow-md
+          active:scale-95 transition-transform
+        "
+      >
+        Start Quiz
+      </button>
+    </div>
+
+    {/* ===== RIGHT CIRCLE BACKGROUND ===== */}
+    {/* Positioned to act as a frame for the illustration */}
+    <div
+      className="
+        absolute
+        right-[-5%]
+        top-28
+        -translate-y-1/2
+        w-44 h-44
+        rounded-full
+        bg-white/15
+        z-0
+      "
+    />
+
+    {/* ===== ILLUSTRATION ===== */}
+    <img
+      src="/student/tests.svg"
+      alt="Quiz illustration"
+      className="
+        absolute
+        right-2
+        bottom-2
+        w-32
+        z-10
+        object-contain
+      "
+    />
+  </div>
+</div>
+
+
+      {/* ===== QUICK ACTIONS ===== */}
+<div className="px-4 mt-8">
+  {/* Header with "See all" */}
+  <div className="flex items-center justify-between mb-4">
+    <h4 className="text-[16px] font-bold text-slate-800">Discover Quiz</h4>
+    <button 
+      onClick={() => navigate("/student/library")}
+      className="text-xs font-semibold text-[#7A41F7] flex items-center gap-1"
+    >
+      See all <ChevronRight size={14} />
+    </button>
+  </div>
+
+  {/* Horizontal Scroller */}
+  <div className="flex overflow-x-auto gap-4 pb-4 no-scrollbar">
+    {[
+      { name: "Physics Quiz", color: "bg-[#EBF3FF]", badge: "bg-[#D1E5FF]", tag: "Physics", icon: <Atom size={18} />, questions: 10, players: "20k+" },
+      { name: "Chemistry Quiz", color: "bg-[#FFF4EB]", badge: "bg-[#FFE9D6]", tag: "Chemistry", icon: <FlaskConical size={18} />, questions: 15, players: "12k+" },
+      { name: "Math Quiz", color: "bg-[#F3EBFF]", badge: "bg-[#E6D6FF]", tag: "Math", icon: <Calculator size={18} />, questions: 20, players: "15k+" },
+      { name: "Biology Quiz", color: "bg-[#EBFDEB]", badge: "bg-[#D6F7D6]", tag: "Biology", icon: <Dna size={18} />, questions: 12, players: "8k+" },
+    ].map((quiz, index) => (
+      <div
+        key={index}
+        onClick={() => navigate(`/student/quiz/${quiz.tag.toLowerCase()}`)}
+        className={`${quiz.color} min-w-[260px] rounded-[2.5rem] p-7 flex-shrink-0 cursor-pointer transition-transform active:scale-95`}
+      >
+        {/* Badges Section - Matching image colors */}
+        <div className="flex gap-2 mb-8">
+          <div className={`${quiz.badge} px-4 py-2 rounded-full flex items-center gap-2 text-[12px] font-bold text-slate-500/80`}>
+            {quiz.icon}
+            {quiz.tag}
+          </div>
+          <div className={`${quiz.badge} px-4 py-2 rounded-full text-[12px] font-bold text-slate-500/80 flex items-center gap-1`}>
+            <BarChart2 size={16} />
+            Hard
+          </div>
+        </div>
+
+        {/* Title - Larger and bolder */}
+        <h5 className="text-[22px] font-black text-slate-900 mb-8 tracking-tight">
+          {quiz.name}
+        </h5>
+
+        {/* Stats - Neutral color with specific spacing */}
+        <div className="flex items-center gap-8 text-[13px] font-bold text-slate-400">
+          <span>{quiz.questions} Questions</span>
+          <span>{quiz.players} Players</span>
+        </div>
+      </div>
+    ))}
+  </div>
+</div>
+
+      {/* ===== SCHEDULED TESTS ===== */}
+<div className="px-4 mt-10 pb-10">
+  <div className="flex items-center justify-between mb-4">
+    <h4 className="text-[16px] font-bold text-slate-800">Scheduled Tests</h4>
+    {tests.length > 0 && (
+      <span className="text-[11px] font-bold px-2.5 py-1 bg-orange-100 text-orange-600 rounded-lg">
+        {tests.length} Test Live Now
+      </span>
     )}
   </div>
-</section>
 
-        {/* 5. TEST ANALYTICS ARCHIVE */}
-        <section className="mb-10">
-          <div className="flex items-center gap-3 mb-6">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Analysis Hub</h3>
-            <div className="h-[1px] flex-1 bg-slate-100" />
-          </div>
-          <div
-            onClick={() => navigate("/student/history")}
-            className="group flex items-center justify-between p-6 bg-white border border-slate-200 rounded-3xl cursor-pointer hover:border-violet-500 hover:shadow-2xl hover:shadow-violet-500/5 transition-all duration-500"
-          >
-            <div className="flex items-center gap-6">
-              <div className="w-12 h-12 bg-violet-50 text-violet-600 border border-violet-100 rounded-xl flex items-center justify-center group-hover:bg-violet-600 group-hover:text-white transition-all shadow-sm">
-                <BarChart2 size={20} />
-              </div>
-              <div>
-                <h4 className="text-lg font-black text-slate-900 uppercase tracking-tight">Completed Tests</h4>
-                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Historical  Data</p>
+  {loading ? (
+    <div className="py-10 flex justify-center">
+      <Loader2 className="animate-spin text-[#7A41F7]" />
+    </div>
+  ) : tests.length > 0 ? (
+    <div className="space-y-4">
+      {tests.map((t) => (
+        <div
+          key={t._id}
+          className="flex items-center justify-between bg-white p-5 rounded-[2rem] border border-slate-50 shadow-sm hover:shadow-md transition-shadow"
+        >
+          <div className="flex items-center gap-4 min-w-0">
+            {/* Subject-based Icon Container */}
+            <div className="w-12 h-12 rounded-2xl bg-[#F8F7FF] flex items-center justify-center flex-shrink-0 border border-slate-100">
+              <Clock className="text-[#7A41F7]" size={20} />
+            </div>
+
+            <div className="min-w-0">
+              <h5 className="text-[15px] font-bold text-slate-900 truncate">
+                {t.title}
+              </h5>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-[11px] font-bold text-slate-400">
+                  {t.duration} Mins
+                </span>
+                <span className="w-1 h-1 bg-slate-200 rounded-full" />
+                <span className="text-[11px] font-bold text-[#7A41F7]">
+                  Online Exam
+                </span>
               </div>
             </div>
-            <ArrowRight className="text-slate-300 group-hover:text-violet-600 group-hover:translate-x-1 transition-all" />
           </div>
-        </section>
 
-      </main>
+          <button
+            onClick={() => navigate(`/student/test/${t._id}`)}
+            className="group flex items-center gap-2 px-6 py-3 bg-[#7A41F7] hover:bg-[#6832E3] text-white rounded-2xl text-[13px] font-bold transition-all active:scale-95 shadow-lg shadow-purple-100"
+          >
+            Start
+            <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+          </button>
+        </div>
+      ))}
+    </div>
+  ) : (
+    <div className="flex flex-col items-center justify-center py-12 bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200">
+      <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-3 shadow-sm">
+        <ClipboardCheck className="text-slate-300" size={24} />
+      </div>
+      <p className="text-sm font-bold text-slate-400">No active tests scheduled</p>
+      <p className="text-[11px] text-slate-300">Check back later for updates</p>
+    </div>
+  )}
+</div>
+
+      {/* ===== ANALYTICS CTA ===== */}
+<div className="px-4  -mb-20">
+  {/* Section Header with exact font sizing */}
+  <div className="flex items-center justify-between mb-4">
+    <h4 className="text-[16px] font-semibold text-[#1E1E2D]">Completed Tests</h4>
+    <button 
+      onClick={() => navigate("/student/history")}
+      className="text-[14px] font-semibold text-[#7A41F7]"
+    >
+      See all
+    </button>
+  </div>
+
+  {/* Analytics CTA Card */}
+  <div
+    onClick={() => navigate("/student/history")}
+    className="
+      group
+      relative
+      bg-[#DDCEFD] 
+      p-4 
+      rounded-[1.8rem] 
+      border border-[#F0F0F5]
+      shadow-sm
+      flex items-center justify-between
+      cursor-pointer
+      active:scale-[0.98] transition-all
+      overflow-hidden
+    "
+  >
+    {/* Decorative background flare using Primary / 50 (#F1EBFE) */}
+    <div className="absolute -right-6 -top-6 w-24 h-24 bg-[#F1EBFE] rounded-full opacity-40" />
+
+    <div className="flex items-center gap-4">
+      {/* Subject-style Icon Container using Primary / main (#7A41F7) */}
+      <div className="w-16 h-16 rounded-[1.2rem] bg-[#7A41F7] flex items-center justify-center flex-shrink-0 shadow-md shadow-purple-200">
+        <div className="relative">
+          <History className="text-white" size={24} />
+          {/* Subtle status indicator */}
+          <div className="absolute -right-1 -top-1 w-3.5 h-3.5 bg-green-400 rounded-full border-2 border-[#7A41F7]" />
+        </div>
+      </div>
+
+      <div>
+        {/* Exact typography hierarchy from reference */}
+        <h5 className="text-[16px] font-bold text-[#1E1E2D] leading-tight">
+          Test History
+        </h5>
+        <p className="text-[13px] font-medium text-[#7A41F7]/70 mt-1">
+          View detailed analysis • Performance
+        </p>
+      </div>
+    </div>
+
+    {/* Integrated Chevron Navigation */}
+    <div className="pr-2">
+      <ChevronRight 
+        className="text-[#7A41F7]  group-hover:translate-x-1 transition-transform" 
+        size={20} 
+      />
+    </div>
+  </div>
+</div>
     </div>
   );
 }
