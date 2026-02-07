@@ -24,15 +24,40 @@ import CreateInstitutePage from "./CreateInstitutePage";
 import CreateAdminPage from "./CreateAdminPage";
 import ViewInstitutes from "./ViewInstitutes";
 import ViewAdmins from "./ViewAdmins";
+import PublicRoute from "./auth/PublicRoute";
+
 
 export default function App() {
   return (
     <AuthProvider>
       <Routes>
         {/* Login */}
-        <Route path="/" element={<Login />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<Register />} />
+        <Route
+          path="/"
+          element={
+            <PublicRoute>
+              <Navigate to="/login" replace />
+            </PublicRoute>
+          }
+        />
+
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <LoginPage />
+            </PublicRoute>
+          }
+        />
+
+        <Route
+          path="/register"
+          element={
+            <PublicRoute>
+              <Register />
+            </PublicRoute>
+          }
+        />
         <Route path="/help" element={<HelpCenter />} />
 
         {/* STUDENT */}
@@ -122,7 +147,6 @@ export default function App() {
         />
 
         {/* DEFAULT */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </AuthProvider>
