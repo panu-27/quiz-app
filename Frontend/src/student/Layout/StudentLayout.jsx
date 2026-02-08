@@ -21,7 +21,7 @@ const isAnalysisPage = location.pathname.includes("/analytics");
   return (
     <div className="min-h-screen flex flex-col bg-[#F8FAFF]">
       {/* PAGE CONTENT - Remove padding-bottom if on test page */}
-      <main className={`bg-white flex-1 z-50 ${isTestPage ? "pb-0" : "pb-24"}`}>
+      <main className={`bg-white flex-1 z-50 ${isTestPage ? "pb-0" : "pb-0"}`}>
         <Outlet />
       </main>
 

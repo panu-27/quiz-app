@@ -32,7 +32,7 @@ export default function StudentProfile() {
 
   return (
     /* Background updated to Primary Purple #7A41F7 */
-    <div className="min-h-screen flex flex-col bg-[#7A41F7] font-sans text-slate-900 selection:bg-indigo-100 overflow-x-hidden">
+    <div className="min-h-screen pb-20 flex flex-col bg-[#7A41F7] font-sans text-slate-900 selection:bg-indigo-100 overflow-x-hidden">
 
       <nav className="p-4 flex justify-between items-center text-white sticky top-0 z-50 overflow-hidden">
         {/* Left Neural Rings - Centered Vertically */}

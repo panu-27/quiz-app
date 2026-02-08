@@ -51,28 +51,28 @@ export default function StudentLibrary() {
     fetchVaultData();
   }, [baseURL]);
 
-const [showViewer, setShowViewer] = useState(false);
+  const [showViewer, setShowViewer] = useState(false);
 
-const handleOpenFile = (item) => {
-  setOpeningFile(item);
-  setIsDecrypting(true);
-  
-  // Fake decryption delay for "Security" feel
-  setTimeout(() => {
-    setIsDecrypting(false);
-    setShowViewer(true);
-  }, 1200);
-};
+  const handleOpenFile = (item) => {
+    setOpeningFile(item);
+    setIsDecrypting(true);
 
-const handleDownload = (e, url, filename) => {
-  e.stopPropagation();
-  const link = document.createElement('a');
-  link.href = `${baseURL}${url}`;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-};
+    // Fake decryption delay for "Security" feel
+    setTimeout(() => {
+      setIsDecrypting(false);
+      setShowViewer(true);
+    }, 1200);
+  };
+
+  const handleDownload = (e, url, filename) => {
+    e.stopPropagation();
+    const link = document.createElement('a');
+    link.href = `${baseURL}${url}`;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
 
 
@@ -84,11 +84,11 @@ const handleDownload = (e, url, filename) => {
   });
 
   const categoryIcons = {
-  'Notes': '/student/notes.svg',
-  'PYQs': '/student/pdf.svg',      // Ensure these files exist in your public folder
-  'Formulas': '/student/formulas.svg',
-  'Default': '/student/notes.svg'
-};
+    'Notes': '/student/notes.svg',
+    'PYQs': '/student/pdf.svg',      // Ensure these files exist in your public folder
+    'Formulas': '/student/formulas.svg',
+    'Default': '/student/notes.svg'
+  };
   return (
     <div className="min-h-[88vh] bg-[#7A41F7] flex flex-col font-sans relative">
 
@@ -102,13 +102,13 @@ const handleDownload = (e, url, filename) => {
         <div className="max-w-lg mx-auto flex justify-between items-center relative z-10">
           <div className='flex items-center justify-start gap-4'>
             <button onClick={() => navigate("/student")} className="p-2 bg-white/20 hover:bg-white/30 rounded-xl transition-all text-white backdrop-blur-md">
-            <ArrowLeftIcon className="w-5 h-5" />
-          </button>
+              <ArrowLeftIcon className="w-5 h-5" />
+            </button>
 
-          <div className="text-center">
-            <h2 className="text-lg font-black text-white tracking-tight">Nexus Library</h2>
-            <p className="text-[9px] font-bold text-white/60 uppercase tracking-widest mt-0.5">Secure Repository</p>
-          </div>
+            <div className="text-center">
+              <h2 className="text-lg font-black text-white tracking-tight">Nexus Library</h2>
+              <p className="text-[9px] font-bold text-white/60 uppercase tracking-widest mt-0.5">Secure Repository</p>
+            </div>
           </div>
 
           <button
@@ -142,8 +142,8 @@ const handleDownload = (e, url, filename) => {
                     setIsSidebarOpen(false);
                   }}
                   className={`w-full text-left px-4 py-2 rounded-xl text-[11px] font-bold transition-all ${selectedSubject === sub
-                      ? "bg-indigo-50 text-indigo-700"
-                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                    ? "bg-indigo-50 text-indigo-700"
+                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                     }`}
                 >
                   {sub}
@@ -176,8 +176,8 @@ const handleDownload = (e, url, filename) => {
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
                   className={`px-5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border shrink-0 ${activeCategory === cat
-                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-100'
-                      : 'bg-slate-50 text-slate-400 border-transparent hover:border-slate-200'
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-100'
+                    : 'bg-slate-50 text-slate-400 border-transparent hover:border-slate-200'
                     }`}
                 >
                   {cat}
@@ -189,113 +189,113 @@ const handleDownload = (e, url, filename) => {
           {/* 4. ASSET GRID */}
           {/* 4. ASSET GRID */}
           <div className="flex-1 overflow-y-auto no-scrollbar pt-4 pb-32 space-y-3">
-  {loading ? (
-    <div className="flex flex-col items-center justify-center py-20 text-slate-400">
-      <Loader2 className="w-8 h-8 animate-spin mb-2" />
-      <p className="text-[10px] font-black uppercase tracking-widest">Accessing Vault...</p>
-    </div>
-  ) : filteredAssets.length > 0 ? (
-    filteredAssets.map((item) => (
-      <div 
-        key={item._id}
-        onClick={() => handleOpenFile(item)}
-        className="group bg-white border border-slate-100 p-4 rounded-2xl flex items-center gap-4 hover:border-indigo-200 hover:shadow-md transition-all cursor-pointer active:scale-[0.98]"
-      >
-        {/* --- CUSTOM SVG ICON --- */}
-        <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center shrink-0 group-hover:bg-indigo-50 transition-colors">
-          <img 
-            src={categoryIcons[item.category] || categoryIcons.Default} 
-            alt={item.category}
-            className="w-7 h-7 object-contain"
-            onError={(e) => { e.target.src = categoryIcons.Default; }} // Fallback if path is wrong
-          />
-        </div>
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+                <Loader2 className="w-8 h-8 animate-spin mb-2" />
+                <p className="text-[10px] font-black uppercase tracking-widest">Accessing Vault...</p>
+              </div>
+            ) : filteredAssets.length > 0 ? (
+              filteredAssets.map((item) => (
+                <div
+                  key={item._id}
+                  onClick={() => handleOpenFile(item)}
+                  className="group bg-white border border-slate-100 p-4 rounded-2xl flex items-center gap-4 hover:border-indigo-200 hover:shadow-md transition-all cursor-pointer active:scale-[0.98]"
+                >
+                  {/* --- CUSTOM SVG ICON --- */}
+                  <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center shrink-0 group-hover:bg-indigo-50 transition-colors">
+                    <img
+                      src={categoryIcons[item.category] || categoryIcons.Default}
+                      alt={item.category}
+                      className="w-7 h-7 object-contain"
+                      onError={(e) => { e.target.src = categoryIcons.Default; }} // Fallback if path is wrong
+                    />
+                  </div>
 
-        {/* --- TEXT CONTENT --- */}
-        <div className="flex-1 min-w-0">
-          <h4 className="text-[13px] font-bold text-slate-800 truncate leading-tight">
-            {item.title}
-          </h4>
-          <div className="flex items-center gap-2 mt-1">
-            <span className="text-[9px] font-black text-indigo-600 uppercase tracking-tighter">
-              {item.subject}
-            </span>
-            <span className="w-1 h-1 bg-slate-300 rounded-full" />
-            <span className="text-[9px] font-bold text-slate-400 uppercase">
-              {item.fileSize}
-            </span>
+                  {/* --- TEXT CONTENT --- */}
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-[13px] font-bold text-slate-800 truncate leading-tight">
+                      {item.title}
+                    </h4>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[9px] font-black text-indigo-600 uppercase tracking-tighter">
+                        {item.subject}
+                      </span>
+                      <span className="w-1 h-1 bg-slate-300 rounded-full" />
+                      <span className="text-[9px] font-bold text-slate-400 uppercase">
+                        {item.fileSize}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* --- ACTION ARROW (STYLIZED) --- */}
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-sm">
+                    <ChevronRightIcon className="w-5 h-5 stroke-[2.5]" />
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="flex flex-col items-center justify-center py-20 text-slate-300">
+                <InboxIcon className="w-12 h-12 mb-4 opacity-20" />
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">No assets found</p>
+              </div>
+            )}
           </div>
-        </div>
-
-        {/* --- ACTION ARROW (STYLIZED) --- */}
-        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-sm">
-          <ChevronRightIcon className="w-5 h-5 stroke-[2.5]" />
-        </div>
-      </div>
-    ))
-  ) : (
-    <div className="flex flex-col items-center justify-center py-20 text-slate-300">
-      <InboxIcon className="w-12 h-12 mb-4 opacity-20" />
-      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">No assets found</p>
-    </div>
-  )}
-</div>
         </main>
       </div>
 
       {/* --- FULL SCREEN PDF VIEWER MODAL --- */}
-{showViewer && openingFile && (
-  <div className="fixed inset-0 z-[3000] bg-white flex flex-col animate-in fade-in duration-200">
-    
-    {/* SIMPLE TOP BAR */}
-    <div className="h-14 border-b border-slate-200 flex items-center justify-between px-4 shrink-0">
-      <div className="flex items-center gap-3 min-w-0">
-        <button 
-          onClick={() => setShowViewer(false)}
-          className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-        >
-          <XMarkIcon className="w-5 h-5 text-slate-500" />
-        </button>
-        <div className="truncate">
-          <h3 className="text-[13px] font-bold text-slate-900 truncate">
-            {openingFile.title}
-          </h3>
-          <p className="text-[10px] text-slate-500 font-medium uppercase tracking-tight">
-            {openingFile.subject} • {openingFile.fileSize}
-          </p>
-        </div>
-      </div>
+      {showViewer && openingFile && (
+        <div className="fixed inset-0 z-[3000] bg-white flex flex-col animate-in fade-in duration-200">
 
-      <button 
-        onClick={(e) => handleDownload(e, openingFile.fileUrl, openingFile.title)}
-        className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-medium hover:bg-slate-800 transition-all active:scale-95"
-      >
-        <ArrowDownTrayIcon className="w-4 h-4" />
-        <span>Download</span>
-      </button>
-    </div>
+          {/* SIMPLE TOP BAR */}
+          <div className="h-14 border-b border-slate-200 flex items-center justify-between px-4 shrink-0">
+            <div className="flex items-center gap-3 min-w-0">
+              <button
+                onClick={() => setShowViewer(false)}
+                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                <XMarkIcon className="w-5 h-5 text-slate-500" />
+              </button>
+              <div className="truncate">
+                <h3 className="text-[13px] font-bold text-slate-900 truncate">
+                  {openingFile.title}
+                </h3>
+                <p className="text-[10px] text-slate-500 font-medium uppercase tracking-tight">
+                  {openingFile.subject} • {openingFile.fileSize}
+                </p>
+              </div>
+            </div>
 
-    {/* CLEAN VIEWPORT */}
-    <div className="flex-1 bg-slate-100">
-      {openingFile.fileUrl ? (
-        <iframe
-          src={`${baseURL}${openingFile.fileUrl}#toolbar=0&navpanes=0`}
-          className="w-full h-full border-none"
-          title="Document Viewer"
-        />
-      ) : (
-        /* FILE NOT FOUND STATE */
-        <div className="w-full h-full flex flex-col items-center justify-center bg-white">
-          <div className="p-4 bg-slate-50 rounded-full mb-3">
-             <InboxIcon className="w-8 h-8 text-slate-300" />
+            <button
+              onClick={(e) => handleDownload(e, openingFile.fileUrl, openingFile.title)}
+              className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-medium hover:bg-slate-800 transition-all active:scale-95"
+            >
+              <ArrowDownTrayIcon className="w-4 h-4" />
+              <span>Download</span>
+            </button>
           </div>
-          <p className="text-sm font-bold text-slate-900">Document not found</p>
-          <p className="text-xs text-slate-500 mt-1">The file may have been moved or deleted.</p>
+
+          {/* CLEAN VIEWPORT */}
+          <div className="flex-1 bg-slate-100">
+            {openingFile.fileUrl ? (
+              <iframe
+                src={`${baseURL}${openingFile.fileUrl}#toolbar=0&navpanes=0`}
+                className="w-full h-full border-none"
+                title="Document Viewer"
+              />
+            ) : (
+              /* FILE NOT FOUND STATE */
+              <div className="w-full h-full flex flex-col items-center justify-center bg-white">
+                <div className="p-4 bg-slate-50 rounded-full mb-3">
+                  <InboxIcon className="w-8 h-8 text-slate-300" />
+                </div>
+                <p className="text-sm font-bold text-slate-900">Document not found</p>
+                <p className="text-xs text-slate-500 mt-1">The file may have been moved or deleted.</p>
+              </div>
+            )}
+          </div>
         </div>
       )}
-    </div>
-  </div>
-)}
     </div>
   );
 }
