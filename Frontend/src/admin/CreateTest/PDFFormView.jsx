@@ -1,23 +1,25 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { 
   FileText, CheckCircle2, Eye, Loader2, Calendar, Clock, Zap, 
-  Globe, Trash2, Users, X, Timer, Hash, Settings2, Plus, Layout, Target, BookOpen
+  Trash2, X, Timer, Target, BookOpen, ChevronDown
 } from "lucide-react";
 
 export default function PDFFormView() {
   const baseURL = import.meta.env.VITE_API_BASE_URL;
   const [availableBatches, setAvailableBatches] = useState([]);
-  const [configTree, setConfigTree] = useState([]); // Store subjects list for IDs
+  const [configTree, setConfigTree] = useState([]);
   const [batchesLoading, setBatchesLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [showSchedule, setShowSchedule] = useState(false);
   const [previewData, setPreviewData] = useState({ subject: "", questions: [] });
+  const [activeDropdownId, setActiveDropdownId] = useState(null);
 
   const [testData, setTestData] = useState({
     title: "", pattern: "PCM", duration: 180, selectedBatchIds: [], 
     scheduleDate: "", scheduleTime: "", endTimeDate: "", endTimeTime: "",
-    subjects: [], // Initialized in useEffect
+    selectedSingleSubject: "",
+    subjects: [],
   });
 
   const today = useMemo(() => new Date().toISOString().split('T')[0], []);
@@ -37,7 +39,6 @@ export default function PDFFormView() {
         setAvailableBatches(Array.isArray(batchData) ? batchData : batchData.batches || []);
         setConfigTree(treeData);
         
-        // Initialize subjects with real IDs from treeData
         if (treeData.length > 0) {
             initSubjects("PCM", treeData);
         }
@@ -48,13 +49,13 @@ export default function PDFFormView() {
   }, [baseURL]);
 
   /* ---------- SUBJECT INITIALIZER ---------- */
-  const initSubjects = (pattern, currentTree = configTree) => {
+  const initSubjects = (pattern, currentTree = configTree, singleSubName = null) => {
     const map = { 
         PCM: ["Physics", "Chemistry", "Mathematics"], 
         PCB: ["Physics", "Chemistry", "Biology"], 
         "JEE MAINS": ["Physics", "Chemistry", "Mathematics"],
         NEET: ["Physics", "Chemistry", "Biology"],
-        SINGLE: ["Physics"] 
+        SINGLE: [singleSubName || testData.selectedSingleSubject || currentTree[0]?.subjectName]
     };
 
     const targetNames = map[pattern] || ["Physics"];
@@ -64,16 +65,28 @@ export default function PDFFormView() {
             s.subjectName.toLowerCase().includes(name.toLowerCase())
         );
         return { 
-            id: matched?._id || Math.random(), // Real DB ID
+            id: matched?._id || Math.random(),
             name: matched?.subjectName || name, 
             file: null, synced: false, questions: [], loading: false, count: 0 
         };
     });
-    setTestData(prev => ({ ...prev, pattern, subjects: newSubjects }));
+    setTestData(prev => ({ 
+      ...prev, 
+      pattern, 
+      subjects: newSubjects,
+      selectedSingleSubject: pattern === "SINGLE" ? (singleSubName || prev.selectedSingleSubject || currentTree[0]?.subjectName) : prev.selectedSingleSubject
+    }));
   };
 
   const handlePatternChange = (pattern) => {
     initSubjects(pattern);
+    setActiveDropdownId(null);
+  };
+
+  const handleSingleSubjectChange = (subjectName) => {
+    setTestData(prev => ({ ...prev, selectedSingleSubject: subjectName }));
+    initSubjects("SINGLE", configTree, subjectName);
+    setActiveDropdownId(null);
   };
 
   const updateSubjectName = (idx, newName) => {
@@ -116,123 +129,123 @@ export default function PDFFormView() {
     }
   };
 
-  /* ---------- PUBLISH LOGIC ---------- */
-const handleCreateTest = async () => {
-  if (!testData.title || testData.selectedBatchIds.length === 0) return alert("Missing Title/Batch");
-  setIsSubmitting(true);
-
-  const typeMap = { "PCM": "PCM", "PCB": "PCB", "JEE MAINS": "JEE", "NEET": "NEET", "SINGLE": "OTHER" };
-  const isNegative = ["JEE MAINS", "NEET"].includes(testData.pattern);
-
-  const now = new Date();
-  const startTime = testData.scheduleDate ? new Date(`${testData.scheduleDate}T${testData.scheduleTime || '00:00'}`) : now;
-  let endTime;
-  if (testData.endTimeDate) {
-      endTime = new Date(`${testData.endTimeDate}T${testData.endTimeTime || '23:59'}`);
-  } else {
-      endTime = new Date(startTime.getTime() + (Number(testData.duration) + 60) * 60000);
-  }
-
-  // Helper to transform subject to section format
+  /* ---------- SECTION MAPPER ---------- */
+  // ✅ Converts Gemini's plain string options → schema format {text, image, isImageOption}
   const mapToSection = (sub) => ({
     subject: sub.id,
     subjectName: sub.name,
     numQuestions: sub.count,
-    questions: sub.questions.map((q, qidx) => ({ 
-        order: qidx + 1,
-        questionText: q.questionText || q.text, 
-        options: q.options, 
-        correctAnswer: q.correctAnswer,
-        explanation: q.explanation
+    questions: sub.questions.map((q) => ({
+      questionText: q.questionText || q.text,
+      options: q.options.map(opt =>
+        typeof opt === "string"
+          ? { text: opt, image: null, isImageOption: false }
+          : opt
+      ),
+      correctAnswer: q.correctAnswer,
+      explanation: q.explanation || ""
     }))
   });
 
-  /* --- BLOCK SPLITTING LOGIC --- */
-  let finalBlocks = [];
-  const totalDuration = parseInt(testData.duration);
+  /* ---------- PUBLISH LOGIC ---------- */
+  const handleCreateTest = async () => {
+    if (!testData.title || testData.selectedBatchIds.length === 0) return alert("Missing Title/Batch");
+    setIsSubmitting(true);
 
-  if (testData.pattern === "PCM") {
-    // Block 1: Physics & Chemistry (90 mins if 180 total)
-    // Block 2: Mathematics (90 mins if 180 total)
-    finalBlocks = [
-      {
-        blockName: "Physics & Chemistry",
-        duration: totalDuration / 2,
-        sections: testData.subjects
-          .filter(s => s.name.toLowerCase().includes("phys") || s.name.toLowerCase().includes("chem"))
-          .map(mapToSection)
-      },
-      {
-        blockName: "Mathematics",
-        duration: totalDuration / 2,
-        sections: testData.subjects
-          .filter(s => s.name.toLowerCase().includes("math"))
-          .map(mapToSection)
-      }
-    ];
-  } else if (testData.pattern === "PCB") {
-    // Block 1: Physics & Chemistry
-    // Block 2: Biology
-    finalBlocks = [
-      {
-        blockName: "Physics & Chemistry",
-        duration: totalDuration / 2,
-        sections: testData.subjects
-          .filter(s => s.name.toLowerCase().includes("phys") || s.name.toLowerCase().includes("chem"))
-          .map(mapToSection)
-      },
-      {
-        blockName: "Biology",
-        duration: totalDuration / 2,
-        sections: testData.subjects
-          .filter(s => s.name.toLowerCase().includes("biol"))
-          .map(mapToSection)
-      }
-    ];
-  } else {
-    // JEE, NEET, SINGLE: All sections in one single block
-    finalBlocks = [{
-      blockName: "Session 1",
+    const typeMap = { "PCM": "PCM", "PCB": "PCB", "JEE MAINS": "JEE", "NEET": "NEET", "SINGLE": "OTHER" };
+
+    const now = new Date();
+    const startTime = testData.scheduleDate ? new Date(`${testData.scheduleDate}T${testData.scheduleTime || '00:00'}`) : now;
+    let endTime;
+    if (testData.endTimeDate) {
+        endTime = new Date(`${testData.endTimeDate}T${testData.endTimeTime || '23:59'}`);
+    } else {
+        endTime = new Date(startTime.getTime() + (Number(testData.duration) + 60) * 60000);
+    }
+
+    let finalBlocks = [];
+    const totalDuration = parseInt(testData.duration);
+
+    if (testData.pattern === "PCM") {
+      finalBlocks = [
+        {
+          blockName: "Physics & Chemistry",
+          duration: totalDuration / 2,
+          sections: testData.subjects
+            .filter(s => s.name.toLowerCase().includes("phys") || s.name.toLowerCase().includes("chem"))
+            .map(mapToSection)
+        },
+        {
+          blockName: "Mathematics",
+          duration: totalDuration / 2,
+          sections: testData.subjects
+            .filter(s => s.name.toLowerCase().includes("math"))
+            .map(mapToSection)
+        }
+      ];
+    } else if (testData.pattern === "PCB") {
+      finalBlocks = [
+        {
+          blockName: "Physics & Chemistry",
+          duration: totalDuration / 2,
+          sections: testData.subjects
+            .filter(s => s.name.toLowerCase().includes("phys") || s.name.toLowerCase().includes("chem"))
+            .map(mapToSection)
+        },
+        {
+          blockName: "Biology",
+          duration: totalDuration / 2,
+          sections: testData.subjects
+            .filter(s => s.name.toLowerCase().includes("biol"))
+            .map(mapToSection)
+        }
+      ];
+    } else {
+      finalBlocks = [{
+        blockName: "Session 1",
+        duration: totalDuration,
+        sections: testData.subjects.map(mapToSection)
+      }];
+    }
+
+    const payload = {
+      title: testData.title,
+      batchIds: testData.selectedBatchIds,
+      examType: typeMap[testData.pattern] || "OTHER",
       duration: totalDuration,
-      sections: testData.subjects.map(mapToSection)
-    }];
-  }
+      startTime: startTime.toISOString(),
+      endTime: endTime.toISOString(),
+      metadata: { distribution: "Single Set" },
+      blocks: finalBlocks
+      // ✅ No markingScheme — backend builds it from examType
+    };
 
-  const payload = {
-    title: testData.title,
-    batchIds: testData.selectedBatchIds,
-    examType: typeMap[testData.pattern] || "OTHER",
-    duration: totalDuration,
-    startTime: startTime.toISOString(),
-    endTime: endTime.toISOString(),
-    mode: "PDF",
-    markingScheme: { 
-      isNegativeMarking: isNegative, 
-      defaultCorrect: 1, 
-      defaultNegative: isNegative ? 1 : 0 
-    },
-    metadata: { distribution: "Single Set" },
-    blocks: finalBlocks
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${baseURL}/teacher/create-test`, { 
+          method: "POST", 
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, 
+          body: JSON.stringify(payload) 
+      });
+      if (res.ok) alert("Assessment Published Successfully!");
+      else {
+          const err = await res.json();
+          alert(err.message || "Failed to Publish");
+      }
+    } catch (err) { alert("Network Error"); } 
+    finally { setIsSubmitting(false); }
   };
 
-  try {
-    const token = localStorage.getItem("token");
-    const res = await fetch(`${baseURL}/teacher/create-test`, { 
-        method: "POST", 
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, 
-        body: JSON.stringify(payload) 
-    });
-    if (res.ok) alert("Assessment Published Successfully!");
-    else {
-        const err = await res.json();
-        alert(err.message || "Failed to Publish");
-    }
-  } catch (err) { alert("Network Error"); } 
-  finally { setIsSubmitting(false); }
-};
+  const PATTERNS = [
+    { val: "PCM", label: "PCM (CET)" },
+    { val: "PCB", label: "PCB (CET)" },
+    { val: "JEE MAINS", label: "JEE MAINS" },
+    { val: "NEET", label: "NEET" },
+    { val: "SINGLE", label: "Single Subject" },
+  ];
 
   return (
-    <div className="min-h-[92vh] bg-[#FDFDFF] pb-26  font-sans w-full overflow-x-hidden">
+    <div className="min-h-[92vh] bg-[#FDFDFF] pb-26 font-sans w-full overflow-x-hidden">
       
       {/* HEADER SECTION */}
       <div className="bg-white/80 backdrop-blur-xl border-b border-slate-200 sticky top-0 z-30 px-4 py-4 md:py-6 w-full">
@@ -244,46 +257,188 @@ const handleCreateTest = async () => {
           />
           
           <div className="flex flex-wrap items-center gap-3">
+
+            {/* Duration */}
             <div className="bg-white shadow-sm px-3 py-2 rounded-2xl flex items-center gap-2 border border-slate-100 min-w-[100px]">
               <Timer size={16} className="text-orange-500" />
-              <input type="number" value={testData.duration} onWheel={e => e.target.blur()} onChange={e => setTestData({...testData, duration: e.target.value})} className="bg-transparent font-black w-8 outline-none text-xs text-slate-800 no-spinner"/>
+              <input 
+                type="number" 
+                value={testData.duration} 
+                onWheel={e => e.target.blur()} 
+                onChange={e => setTestData({...testData, duration: e.target.value})} 
+                className="bg-transparent font-black w-8 outline-none text-xs text-slate-800 no-spinner"
+              />
               <span className="text-[10px] font-black text-slate-400">MIN</span>
             </div>
 
-            <div className="bg-white shadow-sm px-3 py-2 rounded-2xl flex items-center gap-2 border border-slate-100 min-w-[120px]">
-              <Target size={16} className="text-violet-500" />
-              <div className="flex flex-col flex-1">
-                <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest leading-none mb-0.5">Pattern</span>
-                <select className="bg-transparent font-black outline-none text-[10px] uppercase cursor-pointer text-slate-800" value={testData.pattern} onChange={e => handlePatternChange(e.target.value)}>
-                    <option value="PCM">PCM (CET)</option>
-                    <option value="PCB">PCB (CET)</option>
-                    <option value="JEE MAINS">JEE MAINS</option>
-                    <option value="NEET">NEET</option>
-                    <option value="SINGLE">SINGLE</option>
-                </select>
-              </div>
+            {/* Pattern Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setActiveDropdownId(activeDropdownId === 'pattern' ? null : 'pattern')}
+                className="bg-white shadow-sm px-3 py-2 rounded-2xl flex items-center gap-2 border border-slate-100 min-w-[130px] hover:border-violet-200 transition-all"
+              >
+                <Target size={16} className="text-violet-500 shrink-0" />
+                <div className="flex flex-col flex-1 text-left">
+                  <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest leading-none mb-0.5">Pattern</span>
+                  <span className="text-[10px] font-black text-slate-800 uppercase">
+                    {PATTERNS.find(p => p.val === testData.pattern)?.label || testData.pattern}
+                  </span>
+                </div>
+                <ChevronDown 
+                  size={12} strokeWidth={3}
+                  className={`text-slate-400 transition-transform duration-300 ${activeDropdownId === 'pattern' ? 'rotate-180 text-violet-500' : ''}`} 
+                />
+              </button>
+
+              {activeDropdownId === 'pattern' && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setActiveDropdownId(null)} />
+                  <div className="absolute left-0 top-full mt-2 w-52 bg-white border border-slate-100 rounded-2xl shadow-2xl z-20 overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-left">
+                    <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.15em]">Exam Pattern</span>
+                    </div>
+                    <div className="p-1">
+                      {PATTERNS.map(opt => {
+                        const isSelected = testData.pattern === opt.val;
+                        return (
+                          <button
+                            key={opt.val}
+                            onClick={() => handlePatternChange(opt.val)}
+                            className={`w-full text-left px-3.5 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all flex items-center justify-between
+                              ${isSelected ? 'bg-violet-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-50 hover:text-violet-600'}`}
+                          >
+                            {opt.label}
+                            {isSelected && <CheckCircle2 size={12} strokeWidth={3} />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
-            <button onClick={() => setShowSchedule(!showSchedule)} className={`px-3 py-2 rounded-2xl flex items-center gap-2 border transition-all shadow-sm ${showSchedule ? 'bg-orange-50 border-orange-200 text-orange-600' : 'bg-white border-slate-100 text-slate-400 hover:bg-slate-50'}`}>
-                <Calendar size={16} /><span className="text-[10px] font-black uppercase">{showSchedule ? 'Close' : 'Schedule'}</span>
+            {/* Single Subject Picker — only shown when SINGLE */}
+            {testData.pattern === "SINGLE" && (
+              <div className="relative animate-in fade-in zoom-in-95 duration-300">
+                <button
+                  onClick={() => setActiveDropdownId(activeDropdownId === 'subject' ? null : 'subject')}
+                  className="bg-violet-50 border border-violet-200 shadow-sm px-3 py-2 rounded-2xl flex items-center gap-2 min-w-[140px] hover:border-violet-400 transition-all"
+                >
+                  <BookOpen size={16} className="text-violet-500 shrink-0" />
+                  <div className="flex flex-col flex-1 text-left">
+                    <span className="text-[7px] font-black text-violet-400 uppercase tracking-widest leading-none mb-0.5">Subject</span>
+                    <span className="text-[10px] font-black text-violet-800 uppercase truncate max-w-[90px]">
+                      {testData.selectedSingleSubject || "Select"}
+                    </span>
+                  </div>
+                  <ChevronDown 
+                    size={12} strokeWidth={3}
+                    className={`text-violet-400 transition-transform duration-300 ${activeDropdownId === 'subject' ? 'rotate-180' : ''}`} 
+                  />
+                </button>
+
+                {activeDropdownId === 'subject' && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setActiveDropdownId(null)} />
+                    <div className="absolute left-0 top-full mt-2 w-56 bg-white border border-slate-100 rounded-2xl shadow-2xl z-20 overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-left">
+                      <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Choose Subject</span>
+                      </div>
+                      <div className="max-h-60 overflow-y-auto custom-scrollbar p-1">
+                        {configTree.map(s => {
+                          const isSelected = testData.selectedSingleSubject === s.subjectName;
+                          return (
+                            <button
+                              key={s._id}
+                              onClick={() => handleSingleSubjectChange(s.subjectName)}
+                              className={`w-full text-left px-3.5 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all flex items-center justify-between
+                                ${isSelected ? 'bg-violet-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-50 hover:text-violet-600'}`}
+                            >
+                              <span className="truncate">{s.subjectName}</span>
+                              {isSelected && <CheckCircle2 size={12} strokeWidth={3} />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Schedule Toggle */}
+            <button 
+              onClick={() => setShowSchedule(!showSchedule)} 
+              className={`px-3 py-2 rounded-2xl flex items-center gap-2 border transition-all shadow-sm ${showSchedule ? 'bg-orange-50 border-orange-200 text-orange-600' : 'bg-white border-slate-100 text-slate-400 hover:bg-slate-50'}`}
+            >
+                <Calendar size={16} />
+                <span className="text-[10px] font-black uppercase">{showSchedule ? 'Close' : 'Schedule'}</span>
             </button>
             
+            {/* Batch Selector */}
             <div className="flex flex-wrap gap-1.5 items-center md:ml-auto">
               {availableBatches.map(batch => {
                 const isSelected = testData.selectedBatchIds.includes(batch._id);
                 return (
-                  <button key={batch._id} onClick={() => setTestData({...testData, selectedBatchIds: isSelected ? testData.selectedBatchIds.filter(id => id !== batch._id) : [...testData.selectedBatchIds, batch._id]})}
+                  <button 
+                    key={batch._id} 
+                    onClick={() => setTestData({...testData, selectedBatchIds: isSelected ? testData.selectedBatchIds.filter(id => id !== batch._id) : [...testData.selectedBatchIds, batch._id]})}
                     className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase transition-all border ${isSelected ? 'bg-gradient-to-r from-violet-600 to-indigo-600 border-transparent text-white shadow-lg' : 'bg-white text-slate-400 border-slate-100 hover:border-violet-200'}`}
-                  >{batch.name}</button>
+                  >
+                    {batch.name}
+                  </button>
                 );
               })}
             </div>
           </div>
 
+          {/* Schedule Section — Two column layout matching CustomCreateTest */}
           {showSchedule && (
-            <div className="flex flex-wrap gap-4 p-4 bg-slate-50/50 rounded-2xl border border-slate-100 animate-in slide-in-from-top-2">
-                <div className="flex items-center gap-2 bg-white p-2 rounded-xl border border-slate-200"><Calendar size={14} className="text-violet-500"/><input type="date" min={today} className="text-[10px] font-black outline-none px-2" onChange={e => setTestData({...testData, scheduleDate: e.target.value})} /> <input type="time" className="text-[10px] font-black outline-none border-l pl-2" onChange={e => setTestData({...testData, scheduleTime: e.target.value})} /></div>
-                <div className="flex items-center gap-2 bg-white p-2 rounded-xl border border-slate-200"><Clock size={14} className="text-rose-500"/><input type="date" min={testData.scheduleDate || today} className="text-[10px] font-black outline-none px-2" onChange={e => setTestData({...testData, endTimeDate: e.target.value})} /> <input type="time" className="text-[10px] font-black outline-none border-l pl-2" onChange={e => setTestData({...testData, endTimeTime: e.target.value})} /></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-slate-50/50 rounded-2xl border border-slate-100 animate-in slide-in-from-top-2">
+              {/* Start */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 ml-1">
+                  <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">Test Start Window</span>
+                </div>
+                <div className="flex gap-2 bg-white p-2.5 rounded-xl border border-slate-200 shadow-inner focus-within:ring-2 focus-within:ring-violet-100 transition-all">
+                  <input 
+                    type="date" 
+                    min={today} 
+                    className="flex-1 bg-transparent text-[10px] font-black outline-none cursor-pointer px-1" 
+                    onChange={e => setTestData({...testData, scheduleDate: e.target.value})} 
+                  />
+                  <div className="w-px bg-slate-100 h-5 self-center" />
+                  <input 
+                    type="time" 
+                    className="bg-transparent text-[10px] font-black outline-none cursor-pointer px-1" 
+                    onChange={e => setTestData({...testData, scheduleTime: e.target.value})} 
+                  />
+                </div>
+              </div>
+
+              {/* End */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 ml-1">
+                  <div className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse" />
+                  <span className="text-[9px] font-black text-rose-500 uppercase tracking-[0.2em]">Deadline (End Window)</span>
+                </div>
+                <div className="flex gap-2 bg-white p-2.5 rounded-xl border border-slate-200 shadow-inner focus-within:ring-2 focus-within:ring-rose-100 transition-all">
+                  <input 
+                    type="date" 
+                    min={testData.scheduleDate || today} 
+                    className="flex-1 bg-transparent text-[10px] font-black outline-none cursor-pointer px-1" 
+                    onChange={e => setTestData({...testData, endTimeDate: e.target.value})} 
+                  />
+                  <div className="w-px bg-slate-100 h-5 self-center" />
+                  <input 
+                    type="time" 
+                    className="bg-transparent text-[10px] font-black outline-none cursor-pointer px-1" 
+                    onChange={e => setTestData({...testData, endTimeTime: e.target.value})} 
+                  />
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -299,30 +454,67 @@ const handleCreateTest = async () => {
               
               <div className="flex justify-between items-start mb-6">
                 <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${synced ? 'bg-emerald-50 text-emerald-600 shadow-md' : 'bg-violet-50 text-violet-600'}`}><FileText size={20} /></div>
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${synced ? 'bg-emerald-50 text-emerald-600 shadow-md' : 'bg-violet-50 text-violet-600'}`}>
+                    <FileText size={20} />
+                  </div>
                   <div className="flex flex-col">
-                    {testData.pattern === "SINGLE" ? (
-                      <select className="font-black text-slate-800 uppercase text-xs border-b border-violet-100 outline-none bg-transparent" value={sub.name} onChange={(e) => updateSubjectName(idx, e.target.value)}>
-                        {configTree.map(s => <option key={s._id} value={s.subjectName}>{s.subjectName}</option>)}
-                      </select>
-                    ) : <h3 className="font-black text-slate-800 uppercase text-xs">{sub.name}</h3>}
-                    <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest">{synced ? `${sub.count} Qs Ready` : 'Pending PDF'}</span>
+                    <h3 className="font-black text-slate-800 uppercase text-xs">{sub.name}</h3>
+                    <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest">
+                      {synced ? `${sub.count} Qs Ready` : 'Pending PDF'}
+                    </span>
                   </div>
                 </div>
-                {synced && <button onClick={() => { setPreviewData({ subject: sub.name, questions: sub.questions }); setShowPreview(true); }} className="p-2 bg-violet-50 text-violet-600 rounded-lg hover:bg-violet-600 hover:text-white transition-all"><Eye size={14}/></button>}
+                {synced && (
+                  <button 
+                    onClick={() => { setPreviewData({ subject: sub.name, questions: sub.questions }); setShowPreview(true); }} 
+                    className="p-2 bg-violet-50 text-violet-600 rounded-lg hover:bg-violet-600 hover:text-white transition-all"
+                  >
+                    <Eye size={14}/>
+                  </button>
+                )}
               </div>
 
               <div className={`flex-1 rounded-[1.5rem] border-2 border-dashed flex flex-col items-center justify-center p-4 transition-all ${sub.file ? 'bg-slate-50 border-slate-200' : 'bg-[#fcfaff] border-violet-100'}`}>
                 {!sub.file ? (
                   <>
-                    <input type="file" id={`f-${idx}`} className="hidden" accept=".pdf" onChange={(e) => { const updated = [...testData.subjects]; updated[idx].file = e.target.files[0]; setTestData({ ...testData, subjects: updated }); }} />
-                    <label htmlFor={`f-${idx}`} className="cursor-pointer bg-slate-900 text-white px-5 py-2 text-[9px] font-black rounded-lg uppercase tracking-widest active:scale-95 shadow-md">Attach PDF</label>
+                    <input 
+                      type="file" 
+                      id={`f-${idx}`} 
+                      className="hidden" 
+                      accept=".pdf" 
+                      onChange={(e) => { 
+                        const updated = [...testData.subjects]; 
+                        updated[idx].file = e.target.files[0]; 
+                        setTestData({ ...testData, subjects: updated }); 
+                      }} 
+                    />
+                    <label htmlFor={`f-${idx}`} className="cursor-pointer bg-slate-900 text-white px-5 py-2 text-[9px] font-black rounded-lg uppercase tracking-widest active:scale-95 shadow-md">
+                      Attach PDF
+                    </label>
                   </>
                 ) : (
                   <div className="w-full space-y-3">
-                    <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-slate-100"><FileText size={12} className="text-rose-500" /><p className="text-[9px] font-black text-slate-600 truncate flex-1">{sub.file.name}</p><button onClick={() => { const up = [...testData.subjects]; up[idx].file = null; up[idx].synced = false; setTestData({...testData, subjects: up}); }} className="text-slate-300 hover:text-rose-500"><Trash2 size={12}/></button></div>
-                    <button onClick={() => handleSyncPDF(idx)} disabled={sub.loading} className="w-full py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-[9px] font-black rounded-xl shadow-md disabled:opacity-50 uppercase tracking-widest active:scale-95 transition-all">
-                      {sub.loading ? <Loader2 className="animate-spin" size={12}/> : "Extract Qs"}
+                    <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-slate-100">
+                      <FileText size={12} className="text-rose-500" />
+                      <p className="text-[9px] font-black text-slate-600 truncate flex-1">{sub.file.name}</p>
+                      <button 
+                        onClick={() => { 
+                          const up = [...testData.subjects]; 
+                          up[idx].file = null; 
+                          up[idx].synced = false; 
+                          setTestData({...testData, subjects: up}); 
+                        }} 
+                        className="text-slate-300 hover:text-rose-500"
+                      >
+                        <Trash2 size={12}/>
+                      </button>
+                    </div>
+                    <button 
+                      onClick={() => handleSyncPDF(idx)} 
+                      disabled={sub.loading} 
+                      className="w-full py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-[9px] font-black rounded-xl shadow-md disabled:opacity-50 uppercase tracking-widest active:scale-95 transition-all"
+                    >
+                      {sub.loading ? <Loader2 className="animate-spin mx-auto" size={12}/> : "Extract Qs"}
                     </button>
                   </div>
                 )}
@@ -338,8 +530,10 @@ const handleCreateTest = async () => {
             <button disabled className="flex-1 flex items-center justify-center gap-2 py-3 rounded-[1.6rem] font-black uppercase text-[10px] tracking-widest bg-slate-50 text-slate-400">
               <CheckCircle2 size={16}/> PDF MODE
             </button>
-            <button onClick={handleCreateTest} disabled={isSubmitting || !testData.subjects.every(s => s.synced) || testData.selectedBatchIds.length === 0}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-[1.6rem] font-black uppercase text-[10px] tracking-widest transition-all active:scale-95 text-white ${!testData.subjects.every(s => s.synced) ? 'bg-slate-100 text-slate-300' : 'bg-gradient-to-r from-blue-600 to-violet-600 shadow-lg shadow-blue-200 hover:brightness-105'}`}
+            <button 
+              onClick={handleCreateTest} 
+              disabled={isSubmitting || !testData.subjects.every(s => s.synced) || testData.selectedBatchIds.length === 0}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-[1.6rem] font-black uppercase text-[10px] tracking-widest transition-all active:scale-95 text-white ${!testData.subjects.every(s => s.synced) ? 'bg-slate-100 text-slate-300' : 'bg-gradient-to-r from-blue-600 to-violet-600 shadow-lg shadow-blue-200 hover:brightness-105'}`}
             >
                 {isSubmitting ? <Loader2 className="animate-spin" size={16}/> : <Zap size={16} />}
                 Publish Test
@@ -352,24 +546,43 @@ const handleCreateTest = async () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white w-full max-w-4xl max-h-[85vh] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-10">
             <div className="p-6 border-b flex justify-between items-center bg-white shrink-0">
-              <div><h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter">Extraction Preview</h2><p className="text-[9px] font-black text-slate-300 uppercase italic leading-none mt-1">Reviewing {previewData.subject} module</p></div>
-              <button onClick={() => setShowPreview(false)} className="p-2 bg-slate-50 text-slate-400 hover:text-rose-50 rounded-xl"><X size={20} /></button>
+              <div>
+                <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter">Extraction Preview</h2>
+                <p className="text-[9px] font-black text-slate-300 uppercase italic leading-none mt-1">Reviewing {previewData.subject} module</p>
+              </div>
+              <button onClick={() => setShowPreview(false)} className="p-2 bg-slate-50 text-slate-400 hover:text-rose-500 rounded-xl transition-colors">
+                <X size={20} />
+              </button>
             </div>
             <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar bg-slate-50/30">
-              {previewData.questions.map((q, i) => (
-                <div key={i} className="space-y-3 p-5 border border-slate-200 rounded-[1.5rem] bg-white shadow-sm">
-                  <p className="font-bold text-slate-800 text-[13px]">Q{i+1}. {q.questionText || q.text}</p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {q.options.map((opt, oi) => (
-                      <div key={oi} className={`p-3 text-[10px] rounded-xl border font-bold transition-all ${q.correctAnswer === oi ? 'bg-emerald-50 border-emerald-500 text-emerald-700' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>
-                        <span className="opacity-40 mr-1">{String.fromCharCode(65 + oi)}.</span> {opt}
-                      </div>
-                    ))}
+              {previewData.questions.map((q, i) => {
+                const opts = q.options || [];
+                return (
+                  <div key={i} className="space-y-3 p-5 border border-slate-200 rounded-[1.5rem] bg-white shadow-sm">
+                    <p className="font-bold text-slate-800 text-[13px]">Q{i+1}. {q.questionText || q.text}</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {opts.map((opt, oi) => {
+                        // ✅ Handle both plain strings and {text} objects in preview
+                        const optText = typeof opt === "string" ? opt : opt.text;
+                        return (
+                          <div 
+                            key={oi} 
+                            className={`p-3 text-[10px] rounded-xl border font-bold transition-all ${q.correctAnswer === oi ? 'bg-emerald-50 border-emerald-500 text-emerald-700' : 'bg-slate-50 border-slate-100 text-slate-400'}`}
+                          >
+                            <span className="opacity-40 mr-1">{String.fromCharCode(65 + oi)}.</span> {optText}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
-            <div className="p-4 border-t bg-white shrink-0"><button onClick={() => setShowPreview(false)} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg">Looks Good</button></div>
+            <div className="p-4 border-t bg-white shrink-0">
+              <button onClick={() => setShowPreview(false)} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg">
+                Looks Good
+              </button>
+            </div>
           </div>
         </div>
       )}

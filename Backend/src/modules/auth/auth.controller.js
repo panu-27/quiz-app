@@ -15,7 +15,6 @@ export const registerStudent = async (req, res) => {
 export const login = async (req, res) => {
   
     const result = await authService.login(req.body);
-    console.log(result);
     return res.status(result.status).json(result);
   
 };

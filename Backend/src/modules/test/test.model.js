@@ -17,16 +17,21 @@ const sectionSchema = new mongoose.Schema({
     default: "Med",
   },
   topics: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Topic' }],
-  questions: [{
+  questions: {
+    type:[{
     // ✅ Add this to your schema so it's formally recognized
     questionId: { type: mongoose.Schema.Types.ObjectId, default: () => new mongoose.Types.ObjectId() },
-    order: Number,
     questionText: String,
-    options: [String],
+    options: [{
+      text: String,
+      image: String,
+      isImageOption: { type: Boolean, default: false }
+    }],
     correctAnswer: Number,
-    explanation: String,
-    subjectId: mongoose.Schema.Types.ObjectId
-  }]
+    explanation: String,  
+  }], 
+    default: []
+  }
 }, { _id: false });
 
 /* ---------------- BLOCK CONFIG (WITH TIMER) ---------------- */

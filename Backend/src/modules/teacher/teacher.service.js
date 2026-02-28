@@ -37,17 +37,17 @@ export const createTest = async (
     finalMarkingScheme.isNegativeMarking = true;
     finalMarkingScheme.defaultCorrect = 4;
     finalMarkingScheme.defaultNegative = 1;
-  } 
+  }
   else if (examType === "PCM") {
     finalMarkingScheme.isNegativeMarking = false;
-    finalMarkingScheme.defaultCorrect = 1; 
-    
+    finalMarkingScheme.defaultCorrect = 1;
+
     blocks.forEach(block => {
       block.sections.forEach(section => {
         const sName = section.subjectName?.toLowerCase() || "";
         // Logic: Math = 2, Physics/Chem = 1
         const marks = sName.includes("math") ? 2 : 1;
-        
+
         finalMarkingScheme.subjectWise.push({
           subjectId: section.subject,
           correctMarks: marks,
@@ -55,12 +55,12 @@ export const createTest = async (
         });
       });
     });
-  } 
+  }
   else if (examType === "PCB") {
     finalMarkingScheme.isNegativeMarking = false;
     finalMarkingScheme.defaultCorrect = 1;
     finalMarkingScheme.defaultNegative = 0;
-  } 
+  }
   else {
     finalMarkingScheme.defaultCorrect = 2;
     finalMarkingScheme.defaultNegative = 0;
@@ -75,7 +75,7 @@ export const createTest = async (
     instituteId: teacher.instituteId,
     teacherId: teacher.id || teacher._id,
     batches: batchIds,
-    blocks, 
+    blocks,
     metadata,
     duration,
     startTime,
@@ -98,7 +98,7 @@ export const createCustomTest = async (teacher, payload) => {
   // 2. BACKEND MARKING SCHEME ENGINE
   let finalMarkingScheme = {
     isNegativeMarking: false,
-    defaultCorrect: 2, 
+    defaultCorrect: 2,
     defaultNegative: 0,
     subjectWise: []
   };
@@ -107,17 +107,17 @@ export const createCustomTest = async (teacher, payload) => {
     finalMarkingScheme.isNegativeMarking = true;
     finalMarkingScheme.defaultCorrect = 4;
     finalMarkingScheme.defaultNegative = 1;
-  } 
+  }
   else if (examType === "PCM") {
     finalMarkingScheme.isNegativeMarking = false;
     finalMarkingScheme.defaultCorrect = 1; // Fallback default
-    
+
     blocks.forEach(block => {
       block.sections.forEach(section => {
         const sName = section.subjectName?.toLowerCase() || "";
         // Logic: Math = 2, Physics/Chem = 1
         const marks = sName.includes("math") ? 2 : 1;
-        
+
         finalMarkingScheme.subjectWise.push({
           subjectId: section.subject,
           correctMarks: marks,
@@ -125,12 +125,12 @@ export const createCustomTest = async (teacher, payload) => {
         });
       });
     });
-  } 
+  }
   else if (examType === "PCB") {
     finalMarkingScheme.isNegativeMarking = false;
     finalMarkingScheme.defaultCorrect = 1; // All P, C, and B are 1 mark
     finalMarkingScheme.defaultNegative = 0;
-  } 
+  }
   else {
     // OTHER / SINGLE: 2 Marks, No Negative
     finalMarkingScheme.defaultCorrect = 2;
@@ -146,7 +146,7 @@ export const createCustomTest = async (teacher, payload) => {
     teacherId: teacher.id || teacher._id,
     batches: batchIds,
     blocks,
-    markingScheme: finalMarkingScheme, 
+    markingScheme: finalMarkingScheme,
     metadata,
     duration,
     startTime,
@@ -155,73 +155,149 @@ export const createCustomTest = async (teacher, payload) => {
 };
 
 export const generateCustomTest = async (teacher, testId) => {
-  const test = await Test.findOne({ _id: testId, teacherId: teacher.id || teacher._id });
-  if (!test) throw new Error("Test not found or unauthorized");
-  if (test.mode === "PDF") return test;
+  try {
 
-  // Define how many questions of each type we WANT based on selection
-  const distributionRatios = {
-    "Easy": { easy: 0.70, medium: 0.20, hard: 0.10 },
-    "Med":  { easy: 0.20, medium: 0.60, hard: 0.20 },
-    "Hard": { easy: 0.10, medium: 0.20, hard: 0.70 }
-  };
+    console.log("========== GENERATE CUSTOM TEST START ==========");
 
-  for (let i = 0; i < test.blocks.length; i++) {
-    for (let j = 0; j < test.blocks[i].sections.length; j++) {
-      const section = test.blocks[i].sections[j];
-      const TARGET_COUNT = section.numQuestions;
-      const selectedRatio = distributionRatios[section.difficulty] || distributionRatios["Med"];
+    const teacherId = teacher.id || teacher._id;
 
-      // 1. Fetch all matching questions from selected topics
-      const allQs = await BankQuestion.find({ topicId: { $in: section.topics } }).lean();
-      
-      if (allQs.length < TARGET_COUNT) {
-        console.warn(`Insufficient questions in DB for ${section.subjectName}. Have ${allQs.length}, need ${TARGET_COUNT}`);
-      }
+    // STEP 1: Fetch test
+    const test = await Test.findOne({ _id: testId, teacherId });
 
-      // 2. Separate them into difficulty buckets
-      const buckets = {
-        easy: shuffle(allQs.filter(q => q.difficulty === 'easy')),
-        medium: shuffle(allQs.filter(q => q.difficulty === 'medium')),
-        hard: shuffle(allQs.filter(q => q.difficulty === 'hard'))
-      };
-
-      let finalSelection = [];
-
-      // 3. Try to fill based on ratio
-      const targetEasy = Math.floor(TARGET_COUNT * selectedRatio.easy);
-      const targetMed = Math.floor(TARGET_COUNT * selectedRatio.medium);
-      const targetHard = Math.floor(TARGET_COUNT * selectedRatio.hard);
-
-      finalSelection.push(...buckets.easy.splice(0, targetEasy));
-      finalSelection.push(...buckets.medium.splice(0, targetMed));
-      finalSelection.push(...buckets.hard.splice(0, targetHard));
-
-      // 4. FILL THE GAP (The "Safety Valve")
-      // If we are short (due to rounding or lack of specific difficulty), 
-      // grab remaining questions from the combined leftover pool
-      if (finalSelection.length < TARGET_COUNT) {
-        const remainingPool = shuffle([...buckets.easy, ...buckets.medium, ...buckets.hard]);
-        const gap = TARGET_COUNT - finalSelection.length;
-        finalSelection.push(...remainingPool.splice(0, gap));
-      }
-
-      // 5. Map to Schema and Shuffle the final list so Easy/Hard are mixed
-      test.blocks[i].sections[j].questions = shuffle(finalSelection).map((q, index) => ({
-        questionId: q._id,
-        order: index + 1,
-        questionText: q.text,
-        options: q.options,
-        correctAnswer: q.options.indexOf(q.answer),
-        explanation : q.explanation,
-        subjectId: section.subject 
-      }));
+    if (!test) {
+      throw new Error("Test not found or unauthorized");
     }
-  }
 
-  test.markModified('blocks');
-  await test.save();
-  return test;
+    if (test.mode === "PDF") {
+      return test;
+    }
+
+    // STEP 2: Distribution ratios
+    const distributionRatios = {
+      Easy: { easy: 0.60, medium: 0.30, hard: 0.10 },
+      Med: { easy: 0.20, medium: 0.60, hard: 0.20 },
+      Hard: { easy: 0.10, medium: 0.40, hard: 0.50 }
+    };
+
+    // STEP 3: Loop blocks
+    for (let i = 0; i < test.blocks.length; i++) {
+
+      const block = test.blocks[i];
+
+      if (!block.sections?.length) continue;
+
+      for (let j = 0; j < block.sections.length; j++) {
+
+        const section = block.sections[j];
+
+        const TARGET_COUNT = section.numQuestions;
+
+        const selectedRatio =
+          distributionRatios[section.difficulty] || distributionRatios["Med"];
+
+        // STEP 4: Fetch questions from bank
+        const allQs = await BankQuestion.find({
+          topicId: { $in: section.topics }
+        }).lean();
+
+        if (!allQs.length) {
+          throw new Error("No questions found for topics");
+        }
+
+        // STEP 5: Create difficulty buckets
+        const buckets = {
+          easy: shuffle(allQs.filter(q => q.difficulty === "easy")),
+          medium: shuffle(allQs.filter(q => q.difficulty === "medium")),
+          hard: shuffle(allQs.filter(q => q.difficulty === "hard"))
+        };
+
+        let finalSelection = [];
+
+        // STEP 6: Calculate targets
+        const targetEasy = Math.floor(TARGET_COUNT * selectedRatio.easy);
+        const targetMed = Math.floor(TARGET_COUNT * selectedRatio.medium);
+        const targetHard = Math.floor(TARGET_COUNT * selectedRatio.hard);
+
+        finalSelection.push(...buckets.easy.splice(0, targetEasy));
+        finalSelection.push(...buckets.medium.splice(0, targetMed));
+        finalSelection.push(...buckets.hard.splice(0, targetHard));
+
+        // STEP 7: Fill remaining gap
+        if (finalSelection.length < TARGET_COUNT) {
+
+          const gap = TARGET_COUNT - finalSelection.length;
+
+          const remainingPool = shuffle([
+            ...buckets.easy,
+            ...buckets.medium,
+            ...buckets.hard
+          ]);
+
+          finalSelection.push(...remainingPool.splice(0, gap));
+        }
+
+        // STEP 8: Map to Test schema format
+        test.blocks[i].sections[j].questions =
+          shuffle(finalSelection).map((q) => {
+
+            let questionOptions = q.options;
+
+            // Parse if string
+            if (typeof questionOptions === "string") {
+              try {
+                questionOptions = JSON.parse(questionOptions);
+              } catch {
+                questionOptions = [];
+              }
+            }
+
+            // Convert to required schema format
+            const formattedOptions = questionOptions.map(opt => {
+
+              if (typeof opt === "string") {
+                return {
+                  text: opt,
+                  image: null,
+                  isImageOption: false
+                };
+              }
+
+              return {
+                text: opt.text || "",
+                image: opt.image || null,
+                isImageOption: opt.isImageOption || false
+              };
+            });
+
+            return {
+              questionId: q._id,
+              questionText: q.text,
+              options: formattedOptions,
+              correctAnswer: parseInt(q.answer, 10), // ✅ USE INDEX DIRECTLY
+              explanation: q.explanation || ""
+            };
+
+          });
+
+      }
+    }
+
+    // STEP 9: Save test
+    test.markModified("blocks");
+
+    await test.save();
+
+    console.log("✅ Test generated successfully");
+
+    return test;
+
+  } catch (err) {
+
+    console.error("❌ ERROR in generateCustomTest:", err);
+
+    throw err;
+
+  }
 };
 
 /* ---------------- GET TEACHER BATCHES ---------------- */
@@ -235,10 +311,10 @@ export const getMyBatches = async (teacher) => {
 
   // Find batches where the teacher's ID exists in the 'teachers' array
   const batches = await Batch.find({
-    teachers: teacherId, 
+    teachers: teacherId,
   })
-  .select("_id name") // Only return necessary fields for the frontend chips
-  .lean(); // Faster execution by returning plain JSON objects
+    .select("_id name") // Only return necessary fields for the frontend chips
+    .lean(); // Faster execution by returning plain JSON objects
 
   return batches;
 };

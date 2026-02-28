@@ -27,7 +27,7 @@ export default function CreateTest() {
       
       
       {/* FORM CONTENT */}
-      <div className="max-w-4xl mx-auto">
+      <div className="w-full mx-auto">
         {mode === 'pdf' ? <PDFFormView /> : <CustomFormView />}
       </div>
     </div>

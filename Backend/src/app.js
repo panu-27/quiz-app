@@ -17,8 +17,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/api/uploads', express.static(path.join(process.cwd(), 'uploads')));
-import bcrypt from "bcryptjs";
-bcrypt.hash("password123", 10).then(console.log);
 
 // Health check
 app.get("/", (req, res) => {

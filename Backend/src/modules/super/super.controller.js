@@ -19,7 +19,6 @@ export const createInstituteAdmin = async (req, res) => {
 };
 
 export const getInstitutes = async (req, res) => {
-  console.log("api hit")
   try {
     const institutes = await service.getInstitutes();
     res.json(institutes);

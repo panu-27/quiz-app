@@ -17,11 +17,19 @@ export default function StudentLibrary() {
   const [loading, setLoading] = useState(true);
   const [resources, setResources] = useState([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [viewerReady, setViewerReady] = useState(false); // ← track iframe load
 
   const categories = ['All', 'Notes', 'PYQs', 'Formulas'];
   const subjects = ['All', 'Physics', 'Chemistry', 'Maths', 'Biology'];
   const baseURL = import.meta.env.VITE_API_BASE_URL;
   const baseURL1 = import.meta.env.VITE_API_BASE_URL1;
+
+  // ── Resolve the full file URL ─────────────────────────────────────
+  // Uses baseURL1 if defined (separate file server), else falls back to baseURL
+  const resolveFileUrl = (fileUrl) => {
+    const base = baseURL1 || baseURL;
+    return `${base}${fileUrl}`;
+  };
 
   useEffect(() => {
     const fetchVaultData = async () => {
@@ -32,14 +40,8 @@ export default function StudentLibrary() {
           method: "GET",
           headers: { "Authorization": `Bearer ${token}` }
         });
-        console.log(res);
         const data = await res.json();
-        if (!data) {
-          setResources([]);
-          return;
-        }
-        console.log(data);
-
+        if (!data) { setResources([]); return; }
         const flattened = Object.values(data).flat();
         setResources(flattened);
       } catch (err) {
@@ -55,26 +57,45 @@ export default function StudentLibrary() {
 
   const handleOpenFile = (item) => {
     setOpeningFile(item);
+    setViewerReady(false); // reset load state
     setIsDecrypting(true);
-
-    // Fake decryption delay for "Security" feel
     setTimeout(() => {
       setIsDecrypting(false);
       setShowViewer(true);
     }, 1200);
   };
 
-  const handleDownload = (e, url, filename) => {
-    e.stopPropagation();
-    const link = document.createElement('a');
-    link.href = `${baseURL}${url}`;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleCloseViewer = () => {
+    setShowViewer(false);
+    setOpeningFile(null);
+    setViewerReady(false);
   };
 
-
+  // ── Download: fetch as blob so it always triggers save dialog ────
+  const handleDownload = async (e, fileUrl, filename) => {
+    e.stopPropagation();
+    try {
+      const fullUrl = resolveFileUrl(fileUrl);
+      const token = localStorage.getItem("token");
+      const res = await fetch(fullUrl, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error("Download failed");
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename || "document.pdf";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error("Download error:", err);
+      // Fallback: open in new tab
+      window.open(resolveFileUrl(fileUrl), "_blank");
+    }
+  };
 
   const filteredAssets = resources.filter(r => {
     const matchesCategory = activeCategory === 'All' || r.category === activeCategory;
@@ -85,10 +106,11 @@ export default function StudentLibrary() {
 
   const categoryIcons = {
     'Notes': '/student/notes.svg',
-    'PYQs': '/student/pdf.svg',      // Ensure these files exist in your public folder
+    'PYQs': '/student/pdf.svg',
     'Formulas': '/student/formulas.svg',
     'Default': '/student/notes.svg'
   };
+
   return (
     <div className="min-h-[88vh] bg-[#7A41F7] flex flex-col font-sans relative">
 
@@ -104,7 +126,6 @@ export default function StudentLibrary() {
             <button onClick={() => navigate("/student")} className="p-2 bg-white/20 hover:bg-white/30 rounded-xl transition-all text-white backdrop-blur-md">
               <ArrowLeftIcon className="w-5 h-5" />
             </button>
-
             <div className="text-center">
               <h2 className="text-lg font-black text-white tracking-tight">Nexus Library</h2>
               <p className="text-[9px] font-bold text-white/60 uppercase tracking-widest mt-0.5">Secure Repository</p>
@@ -113,22 +134,17 @@ export default function StudentLibrary() {
 
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className={`p-2 rounded-xl transition-all backdrop-blur-md z-[1001] ${isSidebarOpen ? 'bg-white text-[#7A41F7] shadow-lg' : 'bg-white/20 text-white'
-              }`}
+            className={`p-2 rounded-xl transition-all backdrop-blur-md z-[1001] ${isSidebarOpen ? 'bg-white text-[#7A41F7] shadow-lg' : 'bg-white/20 text-white'}`}
           >
             {isSidebarOpen ? <XMarkIcon className="w-5 h-5" /> : <Bars3BottomRightIcon className="w-5 h-5" />}
           </button>
         </div>
       </nav>
 
-      {/* --- FLOATING DROPDOWN (ROOT LEVEL) --- */}
-      {/* Moving this here ensures it is NEVER clipped by the Nav or the Sheet */}
+      {/* FLOATING DROPDOWN */}
       {isSidebarOpen && (
         <div className="fixed inset-0 z-[1000] flex justify-end p-6 pointer-events-none">
-          {/* Backdrop */}
           <div className="fixed inset-0 pointer-events-auto" onClick={() => setIsSidebarOpen(false)} />
-
-          {/* Dropdown Box */}
           <div className="relative mt-16 w-44 h-fit bg-white rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.3)] border border-slate-100 p-1.5 pointer-events-auto animate-in slide-in-from-top-4 fade-in duration-200">
             <p className="px-3 py-2 text-[8px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50 mb-1">
               Filter Subject
@@ -137,14 +153,11 @@ export default function StudentLibrary() {
               {subjects.map((sub) => (
                 <button
                   key={sub}
-                  onClick={() => {
-                    setSelectedSubject(sub);
-                    setIsSidebarOpen(false);
-                  }}
+                  onClick={() => { setSelectedSubject(sub); setIsSidebarOpen(false); }}
                   className={`w-full text-left px-4 py-2 rounded-xl text-[11px] font-bold transition-all ${selectedSubject === sub
                     ? "bg-indigo-50 text-indigo-700"
                     : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                    }`}
+                  }`}
                 >
                   {sub}
                 </button>
@@ -155,7 +168,7 @@ export default function StudentLibrary() {
       )}
 
       {/* 2. THE OVERLAPPING SHEET */}
-      <div className="flex-1 bg-white rounded-t-[2.5rem] relative  flex flex-col min-h-0 z-10">
+      <div className="flex-1 bg-white rounded-t-[2.5rem] relative flex flex-col min-h-0 z-10">
         <main className="max-w-lg mx-auto w-full px-6 -mt-13 flex flex-col flex-1 min-h-0">
 
           {/* 3. SEARCH & CATEGORY BLOCK */}
@@ -178,7 +191,7 @@ export default function StudentLibrary() {
                   className={`px-5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border shrink-0 ${activeCategory === cat
                     ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-100'
                     : 'bg-slate-50 text-slate-400 border-transparent hover:border-slate-200'
-                    }`}
+                  }`}
                 >
                   {cat}
                 </button>
@@ -186,7 +199,6 @@ export default function StudentLibrary() {
             </div>
           </div>
 
-          {/* 4. ASSET GRID */}
           {/* 4. ASSET GRID */}
           <div className="flex-1 overflow-y-auto no-scrollbar pt-4 pb-32 space-y-3">
             {loading ? (
@@ -201,33 +213,22 @@ export default function StudentLibrary() {
                   onClick={() => handleOpenFile(item)}
                   className="group bg-white border border-slate-100 p-4 rounded-2xl flex items-center gap-4 hover:border-indigo-200 hover:shadow-md transition-all cursor-pointer active:scale-[0.98]"
                 >
-                  {/* --- CUSTOM SVG ICON --- */}
                   <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center shrink-0 group-hover:bg-indigo-50 transition-colors">
                     <img
                       src={categoryIcons[item.category] || categoryIcons.Default}
                       alt={item.category}
                       className="w-7 h-7 object-contain"
-                      onError={(e) => { e.target.src = categoryIcons.Default; }} // Fallback if path is wrong
+                      onError={(e) => { e.target.src = categoryIcons.Default; }}
                     />
                   </div>
-
-                  {/* --- TEXT CONTENT --- */}
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-[13px] font-bold text-slate-800 truncate leading-tight">
-                      {item.title}
-                    </h4>
+                    <h4 className="text-[13px] font-bold text-slate-800 truncate leading-tight">{item.title}</h4>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[9px] font-black text-indigo-600 uppercase tracking-tighter">
-                        {item.subject}
-                      </span>
+                      <span className="text-[9px] font-black text-indigo-600 uppercase tracking-tighter">{item.subject}</span>
                       <span className="w-1 h-1 bg-slate-300 rounded-full" />
-                      <span className="text-[9px] font-bold text-slate-400 uppercase">
-                        {item.fileSize}
-                      </span>
+                      <span className="text-[9px] font-bold text-slate-400 uppercase">{item.fileSize}</span>
                     </div>
                   </div>
-
-                  {/* --- ACTION ARROW (STYLIZED) --- */}
                   <div className="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-sm">
                     <ChevronRightIcon className="w-5 h-5 stroke-[2.5]" />
                   </div>
@@ -243,23 +244,29 @@ export default function StudentLibrary() {
         </main>
       </div>
 
-      {/* --- FULL SCREEN PDF VIEWER MODAL --- */}
+      {/* DECRYPTING OVERLAY */}
+      {isDecrypting && (
+        <div className="fixed inset-0 z-[2000] bg-black/60 flex flex-col items-center justify-center backdrop-blur-sm">
+          <Loader2 className="w-10 h-10 text-white animate-spin mb-3" />
+          <p className="text-white text-xs font-black uppercase tracking-widest">Decrypting...</p>
+        </div>
+      )}
+
+      {/* FULL SCREEN PDF VIEWER */}
       {showViewer && openingFile && (
         <div className="fixed inset-0 z-[3000] bg-white flex flex-col animate-in fade-in duration-200">
 
-          {/* SIMPLE TOP BAR */}
+          {/* TOP BAR */}
           <div className="h-14 border-b border-slate-200 flex items-center justify-between px-4 shrink-0">
             <div className="flex items-center gap-3 min-w-0">
               <button
-                onClick={() => setShowViewer(false)}
+                onClick={handleCloseViewer}
                 className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
               >
                 <XMarkIcon className="w-5 h-5 text-slate-500" />
               </button>
               <div className="truncate">
-                <h3 className="text-[13px] font-bold text-slate-900 truncate">
-                  {openingFile.title}
-                </h3>
+                <h3 className="text-[13px] font-bold text-slate-900 truncate">{openingFile.title}</h3>
                 <p className="text-[10px] text-slate-500 font-medium uppercase tracking-tight">
                   {openingFile.subject} • {openingFile.fileSize}
                 </p>
@@ -275,16 +282,26 @@ export default function StudentLibrary() {
             </button>
           </div>
 
-          {/* CLEAN VIEWPORT */}
-          <div className="flex-1 bg-slate-100">
+          {/* PDF VIEWPORT */}
+          <div className="flex-1 bg-slate-100 relative">
+            {/* Loading spinner while iframe loads */}
+            {!viewerReady && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-slate-100">
+                <Loader2 className="w-8 h-8 text-indigo-500 animate-spin mb-2" />
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Loading Document...</p>
+              </div>
+            )}
+
             {openingFile.fileUrl ? (
               <iframe
-                src={`${baseURL}${openingFile.fileUrl}#toolbar=0&navpanes=0`}
+                // ✅ Google Docs viewer — works on all browsers including mobile Safari
+                // encodeURIComponent ensures special chars in URL don't break the viewer
+                src={`https://docs.google.com/viewer?url=${encodeURIComponent(resolveFileUrl(openingFile.fileUrl))}&embedded=true`}
                 className="w-full h-full border-none"
                 title="Document Viewer"
+                onLoad={() => setViewerReady(true)}  // hide spinner once loaded
               />
             ) : (
-              /* FILE NOT FOUND STATE */
               <div className="w-full h-full flex flex-col items-center justify-center bg-white">
                 <div className="p-4 bg-slate-50 rounded-full mb-3">
                   <InboxIcon className="w-8 h-8 text-slate-300" />
