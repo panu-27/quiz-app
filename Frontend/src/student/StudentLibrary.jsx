@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from "react-router-dom";
 import {
-  MagnifyingGlassIcon, DocumentTextIcon, XMarkIcon,
+  MagnifyingGlassIcon, XMarkIcon,
   ArrowDownTrayIcon, ChevronRightIcon, Bars3BottomRightIcon,
   ArrowLeftIcon, InboxIcon
 } from "@heroicons/react/24/outline";
@@ -17,18 +17,22 @@ export default function StudentLibrary() {
   const [loading, setLoading] = useState(true);
   const [resources, setResources] = useState([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [viewerReady, setViewerReady] = useState(false); // ← track iframe load
+  const [viewerReady, setViewerReady] = useState(false);
+  const [showViewer, setShowViewer] = useState(false);
 
   const categories = ['All', 'Notes', 'PYQs', 'Formulas'];
   const subjects = ['All', 'Physics', 'Chemistry', 'Maths', 'Biology'];
-  const baseURL = import.meta.env.VITE_API_BASE_URL;
-  const baseURL1 = import.meta.env.VITE_API_BASE_URL1;
+  const baseURL = import.meta.env.VITE_API_BASE_URL; // e.g. http://localhost:5000/api
 
-  // ── Resolve the full file URL ─────────────────────────────────────
-  // Uses baseURL1 if defined (separate file server), else falls back to baseURL
+  // ✅ FIX: fileUrl stored as "/uploads/vault/..."
+  // Backend serves at "/api/uploads/..." so strip /api from baseURL and use full path
   const resolveFileUrl = (fileUrl) => {
-    const base = baseURL1 || baseURL;
-    return `${base}${fileUrl}`;
+    // baseURL is like "http://localhost:5000/api"
+    // fileUrl is like "/uploads/vault/filename.pdf"
+    // We need: "http://localhost:5000/api/uploads/vault/filename.pdf"
+    // fileUrl already starts with /uploads so just concat baseURL + fileUrl
+    return `${baseURL}${fileUrl}`;
+    // Result: http://localhost:5000/api/uploads/vault/filename.pdf ✅
   };
 
   useEffect(() => {
@@ -53,11 +57,9 @@ export default function StudentLibrary() {
     fetchVaultData();
   }, [baseURL]);
 
-  const [showViewer, setShowViewer] = useState(false);
-
   const handleOpenFile = (item) => {
     setOpeningFile(item);
-    setViewerReady(false); // reset load state
+    setViewerReady(false);
     setIsDecrypting(true);
     setTimeout(() => {
       setIsDecrypting(false);
@@ -71,7 +73,6 @@ export default function StudentLibrary() {
     setViewerReady(false);
   };
 
-  // ── Download: fetch as blob so it always triggers save dialog ────
   const handleDownload = async (e, fileUrl, filename) => {
     e.stopPropagation();
     try {
@@ -92,7 +93,6 @@ export default function StudentLibrary() {
       URL.revokeObjectURL(blobUrl);
     } catch (err) {
       console.error("Download error:", err);
-      // Fallback: open in new tab
       window.open(resolveFileUrl(fileUrl), "_blank");
     }
   };
@@ -259,10 +259,7 @@ export default function StudentLibrary() {
           {/* TOP BAR */}
           <div className="h-14 border-b border-slate-200 flex items-center justify-between px-4 shrink-0">
             <div className="flex items-center gap-3 min-w-0">
-              <button
-                onClick={handleCloseViewer}
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-              >
+              <button onClick={handleCloseViewer} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
                 <XMarkIcon className="w-5 h-5 text-slate-500" />
               </button>
               <div className="truncate">
@@ -284,7 +281,6 @@ export default function StudentLibrary() {
 
           {/* PDF VIEWPORT */}
           <div className="flex-1 bg-slate-100 relative">
-            {/* Loading spinner while iframe loads */}
             {!viewerReady && (
               <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-slate-100">
                 <Loader2 className="w-8 h-8 text-indigo-500 animate-spin mb-2" />
@@ -294,12 +290,10 @@ export default function StudentLibrary() {
 
             {openingFile.fileUrl ? (
               <iframe
-                // ✅ Google Docs viewer — works on all browsers including mobile Safari
-                // encodeURIComponent ensures special chars in URL don't break the viewer
                 src={`https://docs.google.com/viewer?url=${encodeURIComponent(resolveFileUrl(openingFile.fileUrl))}&embedded=true`}
                 className="w-full h-full border-none"
                 title="Document Viewer"
-                onLoad={() => setViewerReady(true)}  // hide spinner once loaded
+                onLoad={() => setViewerReady(true)}
               />
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center bg-white">
