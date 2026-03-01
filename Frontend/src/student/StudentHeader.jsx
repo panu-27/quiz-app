@@ -10,7 +10,7 @@ export default function StudentHeader() {
   const navItems = [
     { label: "Dashboard", path: "/student" },
     { label: "Library", path: "/student/library" },
-    { label: "Analysis", path: "/student/analysis" },
+    { label: "Analysis", path: "/student/personal" },
     { label: "Profile", path: "/student/profile" },
   ];
 
@@ -22,7 +22,7 @@ export default function StudentHeader() {
         h-14 sm:h-18
         bg-gray-50 border-b border-slate-200
         flex items-center justify-between
-        px-3 sm:px-10 md:px-4 xl:px-48
+        px-3 sm:px-10 md:px-4 lg:px-8 xl:px-24 2xl:px-48
         sticky top-0 z-40
       "
     >
