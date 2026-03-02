@@ -22,14 +22,14 @@ const login = ({ token, user }) => {
   else if (user.role === "INSTITUTE_ADMIN") navigate("/institute-admin");
   else if (user.role === "TEACHER") navigate("/admin");
   else if (user.role === "STUDENT") navigate("/student");
-  else navigate("/login");
+  else navigate("/");
 };
 
 
   const logout = () => {
     localStorage.clear();
     setUser(null);
-    navigate("/login");
+    navigate("/");
   };
 
   return (
