@@ -9,7 +9,7 @@ const NexusLoader = () => {
       </div>
 
       {/* 2. Simulated Header Skeleton */}
-      <div className="bg-[#7A41F7] pt-40 pb-16 px-6 relative overflow-hidden">
+      <div className="bg-[#7A41F7] pt-36 pb-16 px-6 relative overflow-hidden">
         <div className="flex justify-between items-center relative z-10">
           <div className="flex items-center gap-4">
             <div className="w-9 h-9 rounded-xl sk-dark" /> {/* Back Button */}
@@ -23,7 +23,7 @@ const NexusLoader = () => {
       </div>
 
       {/* 3. Simulated Content Sheet */}
-      <div className="flex-1 bg-white -mt-8 rounded-t-[2.5rem] relative z-20 px-6 pt-18 space-y-6">
+      <div className="flex-1 bg-white -mt-8 rounded-t-[2.5rem] relative z-20 px-6 pt-14 space-y-6">
         
         {/* Tab Switcher Skeleton */}
         <div className="flex gap-2 mb-4">
