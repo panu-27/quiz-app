@@ -5,6 +5,7 @@ import {
   CheckCircle2, Loader2, ChevronDown, X, Share2,
   Circle, Triangle, BarChart2, ClipboardList
 } from "lucide-react";
+import LoaderAnalysis from "./LoaderAnalysis";
 
 export default function AttemptAnalytics() {
   const baseURL = import.meta.env.VITE_API_BASE_URL;
@@ -135,9 +136,8 @@ export default function AttemptAnalytics() {
   };
 
   if (loading) return (
-    <div className="flex flex-col items-center justify-center h-screen bg-white">
-      <Loader2 className="w-10 h-10 text-[#7A41F7] animate-spin mb-4" />
-      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Syncing Analytics...</p>
+    <div >
+      <LoaderAnalysis/>
     </div>
   );
 
