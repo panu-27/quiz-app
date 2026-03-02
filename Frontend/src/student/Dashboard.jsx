@@ -190,7 +190,10 @@ export default function StudentDashboard() {
 
   }, []);
 
-  const handleLogout = () => { localStorage.clear(); navigate("/"); };
+  const handleLogout = () => { 
+    localStorage.clear(); 
+    navigate("/"); 
+  };
 
   const quizzes = [
     { name: "Physics Quiz", color: "bg-[#EBF3FF]", badge: "bg-[#D1E5FF]", tag: "Physics", icon: <Atom size={18} />, questions: 15, players: "20k+" },
