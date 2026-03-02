@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   ChevronRight, ArrowLeft, Clock, Inbox, Search,
   Zap, Layers, Target, Activity, Loader2, Calendar,
-  ClipboardList, TrendingUp, BarChart2
+  ClipboardList, TrendingUp, BarChart2, Trophy
 } from "lucide-react";
 import StudentHeader from "./StudentHeader";
 
@@ -57,8 +57,8 @@ const DesktopRowSkeleton = () => (
 function DesktopHistoryRow({ record, isExpanded, onToggle, navigate }) {
   return (
     <div className={`bg-white border transition-all duration-300 overflow-hidden ${isExpanded
-        ? 'rounded-3xl border-purple-100 shadow-lg shadow-purple-50'
-        : 'rounded-2xl border-slate-100 shadow-sm hover:shadow-md hover:border-purple-100'
+      ? 'rounded-3xl border-purple-100 shadow-lg shadow-purple-50'
+      : 'rounded-2xl border-slate-100 shadow-sm hover:shadow-md hover:border-purple-100'
       }`}>
       <button
         onClick={onToggle}
@@ -90,8 +90,55 @@ function DesktopHistoryRow({ record, isExpanded, onToggle, navigate }) {
 
       {/* Expanded attempts */}
       {isExpanded && (
-        <div className="px-5 pb-5 space-y-2">
-          <div className="h-px bg-slate-100 mb-4" />
+        <div className="px-5 pb-5 space-y-3">
+
+          {/* 🔥 Re-Attempt Banner */}
+          <div className="space-y-4">
+
+            {/* Reattempt Card */}
+            <div className="bg-gradient-to-r from-[#7A41F7] to-[#5B2ED6] rounded-2xl p-5 flex items-center justify-between text-white shadow-md shadow-purple-100">
+
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-white/70">
+                  Want to practice again?
+                </p>
+                <h4 className="text-sm font-bold">
+                  Re-Attempt This Test
+                </h4>
+              </div>
+
+              <button
+                onClick={() => navigate(`/student/test/${record._id}`)}
+                className="flex items-center gap-2 px-5 py-2 bg-white text-[#7A41F7] rounded-xl text-xs font-bold hover:scale-105 active:scale-95 transition-all shadow-sm"
+              >
+                Start Again <ChevronRight size={14} />
+              </button>
+            </div>
+
+            {/* Leaderboard Card */}
+            <div
+              onClick={() => navigate(`/student/leaderboard/${record._id}`)}
+              className="bg-white border border-slate-100 rounded-2xl p-5 flex items-center justify-between hover:bg-slate-50 transition-all shadow-sm cursor-pointer active:scale-[0.98]"
+            >
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+                  Compare performance
+                </p>
+                <h4 className="text-sm font-bold text-slate-900">
+                  View Leaderboard
+                </h4>
+              </div>
+
+              <div className="w-10 h-10 rounded-xl bg-[#F1EBFE] flex items-center justify-center text-[#7A41F7]">
+                <Trophy size={18} />
+              </div>
+            </div>
+
+          </div>
+
+          <div className="h-px bg-slate-100 my-3" />
+
+          {/* Attempts List */}
           {record.attempts?.map((attempt) => (
             <div
               key={attempt._id}
@@ -99,20 +146,33 @@ function DesktopHistoryRow({ record, isExpanded, onToggle, navigate }) {
             >
               <div className="flex items-center gap-5">
                 <div className="text-center">
-                  <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Attempt</p>
-                  <p className="text-sm font-bold text-slate-700 font-display">#{String(attempt.attemptNumber).padStart(2, '0')}</p>
+                  <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">
+                    Attempt
+                  </p>
+                  <p className="text-sm font-bold text-slate-700 font-display">
+                    #{String(attempt.attemptNumber).padStart(2, '0')}
+                  </p>
                 </div>
+
                 <div className="w-px h-6 bg-slate-200" />
+
                 <div>
-                  <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Score</p>
+                  <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">
+                    Score
+                  </p>
                   <div className="flex items-center gap-1">
                     <Zap size={12} className="text-orange-400" />
-                    <p className="text-sm font-bold text-[#7A41F7] font-display">+{attempt.score}</p>
+                    <p className="text-sm font-bold text-[#7A41F7] font-display">
+                      +{attempt.score}
+                    </p>
                   </div>
                 </div>
               </div>
+
               <button
-                onClick={() => navigate(`/student/analytics/${record._id}/attempt/${attempt.attemptNumber}`)}
+                onClick={() =>
+                  navigate(`/student/analytics/${record._id}/attempt/${attempt.attemptNumber}`)
+                }
                 className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-[#7A41F7] hover:text-white hover:border-[#7A41F7] rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95"
               >
                 Analyze <ChevronRight size={13} />
@@ -131,8 +191,8 @@ function DesktopHistoryRow({ record, isExpanded, onToggle, navigate }) {
 function HistoryLogItem({ record, isExpanded, onToggle, navigate }) {
   return (
     <div className={`bg-white transition-all duration-500 ease-in-out overflow-hidden border ${isExpanded
-        ? 'rounded-[2rem] border-slate-100 shadow-xl shadow-purple-900/10'
-        : 'rounded-[1.5rem] border-slate-50 shadow-sm hover:shadow-md'
+      ? 'rounded-[2rem] border-slate-100 shadow-xl shadow-purple-900/10'
+      : 'rounded-[1.5rem] border-slate-50 shadow-sm hover:shadow-md'
       }`}>
       <button
         onClick={onToggle}
@@ -140,8 +200,8 @@ function HistoryLogItem({ record, isExpanded, onToggle, navigate }) {
       >
         <div className="flex items-center gap-4 text-left">
           <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 ${isExpanded
-              ? 'bg-[#7A41F7] text-white shadow-lg shadow-purple-200'
-              : 'bg-slate-50 text-slate-400 group-hover:bg-[#F1EBFE] group-hover:text-[#7A41F7]'
+            ? 'bg-[#7A41F7] text-white shadow-lg shadow-purple-200'
+            : 'bg-slate-50 text-slate-400 group-hover:bg-[#F1EBFE] group-hover:text-[#7A41F7]'
             }`}>
             <Target size={20} className={isExpanded ? 'rotate-[360deg] transition-transform duration-700' : ''} />
           </div>
@@ -168,8 +228,46 @@ function HistoryLogItem({ record, isExpanded, onToggle, navigate }) {
       </button>
 
       {isExpanded && (
-        <div className="px-4 pb-5 pt-0 space-y-2 animate-in fade-in slide-in-from-top-3 duration-500">
-          <div className="h-px bg-slate-50 mb-4 mx-2" />
+        <div className="px-4 pb-5 pt-0 space-y-3 animate-in fade-in slide-in-from-top-3 duration-500">
+
+          {/* 🔥 Re-Attempt Banner */}
+          <div className="bg-gradient-to-r from-[#7A41F7] to-[#5B2ED6] rounded-2xl p-5 text-white shadow-md space-y-4">
+
+            {/* Text Section */}
+            <div>
+              <p className="text-[9px] font-black uppercase tracking-widest text-white/60">
+                Ready Again?
+              </p>
+              <p className="text-[14px] font-black tracking-tight mt-1">
+                Re-Attempt This Test
+              </p>
+            </div>
+
+            {/* Buttons Section */}
+            <div className="flex flex-col gap-3">
+
+              {/* Primary Action */}
+              <button
+                onClick={() => navigate(`/student/test/${record._id}`)}
+                className="w-full py-3 bg-white text-[#7A41F7] rounded-xl text-[11px] font-black uppercase tracking-widest shadow-sm active:scale-95 transition-all"
+              >
+                Start Test
+              </button>
+
+              {/* Secondary Action */}
+              <button
+                onClick={() => navigate(`/student/leaderboard/${record._id}`)}
+                className="w-full py-3 bg-white/20 border border-white/30 backdrop-blur-sm text-white rounded-xl text-[11px] font-black uppercase tracking-widest active:scale-95 transition-all"
+              >
+                View Leaderboard
+              </button>
+
+            </div>
+          </div>
+
+          <div className="h-px bg-slate-50 my-3 mx-2" />
+
+          {/* Attempts List */}
           {record.attempts?.map((attempt) => (
             <div
               key={attempt._id}
@@ -177,20 +275,33 @@ function HistoryLogItem({ record, isExpanded, onToggle, navigate }) {
             >
               <div className="flex items-center gap-5">
                 <div className="text-center">
-                  <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Attempt</p>
-                  <p className="text-[12px] font-black text-slate-700">#0{attempt.attemptNumber}</p>
+                  <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-0.5">
+                    Attempt
+                  </p>
+                  <p className="text-[12px] font-black text-slate-700">
+                    #{String(attempt.attemptNumber).padStart(2, "0")}
+                  </p>
                 </div>
+
                 <div className="w-px h-6 bg-slate-200" />
+
                 <div>
-                  <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Performance</p>
+                  <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-0.5">
+                    Performance
+                  </p>
                   <div className="flex items-center gap-1">
                     <Zap size={10} className="text-orange-400" />
-                    <p className="text-[12px] font-black text-[#7A41F7]">+{attempt.score}</p>
+                    <p className="text-[12px] font-black text-[#7A41F7]">
+                      +{attempt.score}
+                    </p>
                   </div>
                 </div>
               </div>
+
               <button
-                onClick={() => navigate(`/student/analytics/${record._id}/attempt/${attempt.attemptNumber}`)}
+                onClick={() =>
+                  navigate(`/student/analytics/${record._id}/attempt/${attempt.attemptNumber}`)
+                }
                 className="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-[#7A41F7] hover:text-white hover:border-[#7A41F7] rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shadow-sm active:scale-95"
               >
                 Analyze
@@ -310,8 +421,8 @@ export default function TestHistory() {
 
               {/* List */}
               {filteredHistory.length > 0 ? (
-                  <div className="space-y-3 max-h-[calc(100vh-260px)] overflow-y-auto pr-2 no-scrollbar">
-                    {filteredHistory.map(record => (
+                <div className="space-y-3 max-h-[calc(100vh-260px)] overflow-y-auto pr-2 no-scrollbar">
+                  {filteredHistory.map(record => (
                     <DesktopHistoryRow
                       key={record._id}
                       record={record}

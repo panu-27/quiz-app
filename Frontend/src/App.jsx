@@ -25,6 +25,7 @@ import CreateAdminPage from "./CreateAdminPage";
 import ViewInstitutes from "./ViewInstitutes";
 import ViewAdmins from "./ViewAdmins";
 import PublicRoute from "./auth/PublicRoute";
+import LeaderboardPage from "./student/LeaderboardPage";
 
 
 export default function App() {
@@ -72,6 +73,7 @@ export default function App() {
           <Route index element={<StudentDashboard />} />
           <Route path="history" element={<TestHistory />} />
           <Route path="analytics/:testId/attempt/:attemptNumber" element={<AttemptAnalytics />} />
+          <Route path="leaderboard/:testId" element={<LeaderboardPage/>} />
           <Route path="profile" element={<StudentProfile />} />
           <Route path="library" element={<StudentLibrary />} />
           <Route path="personal" element={<StudentPersonalAnalytics />} />

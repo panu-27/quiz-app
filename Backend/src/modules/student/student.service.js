@@ -53,17 +53,14 @@ export const startAttempt = async (student, testId) => {
     if (!test.batches.some(b => b.toString() === studentBatchId))
         throw new Error("Not allowed to attempt this test");
 
-    // ── TIME WINDOW CHECK ──────────────────────────────────────────────
     const now = new Date();
 
+    // ── START TIME CHECK ───────────────────────────────
     if (test.startTime && now < new Date(test.startTime))
         throw new Error("Test has not started yet");
 
-    if (test.endTime && now > new Date(test.endTime))
-        throw new Error("Test window has closed. No more attempts allowed");
-    // ──────────────────────────────────────────────────────────────────
 
-    // ── RETURN ACTIVE ATTEMPT IF EXISTS ───────────────────────────────
+    // ── RETURN ACTIVE ATTEMPT IF EXISTS (MOVED UP) ─────
     const activeAttempt = await TestAttempt.findOne({
         testId: testObjId,
         studentId,
@@ -72,22 +69,31 @@ export const startAttempt = async (student, testId) => {
 
     if (activeAttempt)
         return activeAttempt;
-    // ──────────────────────────────────────────────────────────────────
+    // ───────────────────────────────────────────────────
 
-    // ── BLOCK RE-ATTEMPT DURING ACTIVE WINDOW ─────────────────────────
+
+    // ── CHECK COMPLETED ATTEMPT ────────────────────────
     const completedAttempt = await TestAttempt.findOne({
         testId: testObjId,
         studentId,
         status: "completed"
     }).sort({ attemptNumber: -1 });
 
-    if (completedAttempt && test.endTime && now < new Date(test.endTime))
-        throw new Error("You have already attempted this test. You can attempt again after the test window closes.");
-    // ──────────────────────────────────────────────────────────────────
+
+    // During active window → only 1 attempt allowed
+    if (test.endTime && now <= new Date(test.endTime)) {
+        if (completedAttempt) {
+            throw new Error(
+                "You have already attempted this test. Re-attempt allowed after test window closes."
+            );
+        }
+    }
+    // ───────────────────────────────────────────────────
+
 
     const attemptNumber = completedAttempt ? completedAttempt.attemptNumber + 1 : 1;
 
-    // ── ASSIGNED SET ──────────────────────────────────────────────────
+    // ── ASSIGNED SET ───────────────────────────────────
     let assignedSet = null;
 
     if (test.metadata?.distribution === "4 Sets" && test.sets) {
@@ -98,9 +104,10 @@ export const startAttempt = async (student, testId) => {
     const sourceBlocks = assignedSet
         ? test.sets.get(assignedSet)
         : test.blocks;
-    // ──────────────────────────────────────────────────────────────────
+    // ───────────────────────────────────────────────────
 
-    // ── SNAPSHOT BLOCKS ───────────────────────────────────────────────
+
+    // ── SNAPSHOT BLOCKS ────────────────────────────────
     const attemptBlocks = sourceBlocks.map(block => ({
         blockName: block.blockName,
         duration: block.duration,
@@ -128,9 +135,10 @@ export const startAttempt = async (student, testId) => {
         (sum, b) => sum + b.sections.reduce((s, sec) => s + sec.numQuestions, 0),
         0
     );
-    // ──────────────────────────────────────────────────────────────────
+    // ───────────────────────────────────────────────────
 
-    // ── ATOMIC UPSERT (prevents duplicate key on race conditions) ─────
+
+    // ── ATOMIC UPSERT ──────────────────────────────────
     const attempt = await TestAttempt.findOneAndUpdate(
         {
             testId: testObjId,
@@ -158,7 +166,6 @@ export const startAttempt = async (student, testId) => {
             setDefaultsOnInsert: true
         }
     );
-    // ──────────────────────────────────────────────────────────────────
 
     return attempt;
 };
@@ -288,7 +295,7 @@ export const submitTest = async (student, testId, data) => {
         );
     }
 
-     return {
+    return {
 
         totalScore,
         totalCorrect,

@@ -174,7 +174,7 @@ export default function StudentAnalysis() {
       ══════════════════════════════════════════ */}
       <div className="lg:hidden relative max-h-screen overflow-hidden">
         <BlurPreview mobile />
-        <LockOverlay />
+        {/* <LockOverlay /> */}
       </div>
 
       {/* ══════════════════════════════════════════

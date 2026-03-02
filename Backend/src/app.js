@@ -9,7 +9,7 @@ import teacherRoutes from "./modules/teacher/teacher.routes.js";
 import studentRoutes from "./modules/student/student.routes.js";
 import pdfRoutes from "./modules/pdf/pdf.routes.js";
 import bankQuestionRoutes from "./modules/questionBank/bankQuestions.routes.js";
-
+import leaderboardRoutes from "./modules/leaderboard/leaderboard.route.js";
 const app = express();
 
 // Middlewares
@@ -29,8 +29,10 @@ app.use("/api/super", superRoutes);
 app.use("/api/institute", instituteRoutes);
 app.use("/api/teacher", teacherRoutes);
 app.use("/api/student", studentRoutes);
+app.use("/api/leaderboard" , leaderboardRoutes);
 app.use("/api/pdf", pdfRoutes);
 app.use("/api/bankQuestion" , bankQuestionRoutes )
+
 
 // Global error handler (always last)
 app.use((err, req, res, next) => {

@@ -172,6 +172,7 @@ export default function AttemptAnalytics() {
               <button onClick={() => setViewMode("questions")} className="mt-6 px-10 py-3 bg-white/20 backdrop-blur-md text-white rounded-2xl text-sm font-bold border border-white/30 active:scale-95 transition-transform">
                 Check Answer Sheet
               </button>
+             
             </div>
 
             <div className="grid grid-cols-2 gap-4 px-2">

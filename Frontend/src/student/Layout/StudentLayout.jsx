@@ -1,5 +1,6 @@
 import { Outlet, NavLink, useLocation } from "react-router-dom";
-import { LayoutGrid, BookOpen,Library, Heart, User as UserIcon, Plus, Home, Search, BarChart2, Book } from "lucide-react";
+import { useEffect, useState } from "react"; // Added hooks
+import { LayoutGrid, BookOpen, Library, Heart, User as UserIcon, Plus, Home, Search, BarChart2, Book } from "lucide-react";
 
 const navItem =
   "p-2 rounded-2xl transition-colors flex items-center justify-center";
@@ -12,22 +13,41 @@ const inactive =
 
 export default function StudentLayout() {
   const location = useLocation();
+  const [hideForPdf, setHideForPdf] = useState(false); // Helper to track PDF state
 
-  // Logic: Check if the current URL contains "/test/"
-const isTestPage = location.pathname.includes("/test/") ;
-const isAnalysisPage = location.pathname.includes("/analytics");
-  // 2. We want to SHOW the navbar on all pages EXCEPT the test page
-  const showNavbar = isTestPage || isAnalysisPage ;
+  // 1. Logic: Check if the current URL contains "/test/" or "/analytics"
+  const isTestPage = location.pathname.includes("/test/");
+  const isAnalysisPage = location.pathname.includes("/analytics");
+
+  // 2. Observer: Listen for the attribute change on document.body
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      // Check if our custom attribute exists
+      setHideForPdf(document.body.hasAttribute('data-hide-nav'));
+    });
+
+    observer.observe(document.body, { attributes: true });
+    
+    return () => {
+      observer.disconnect();
+      document.body.removeAttribute('data-hide-nav'); // Cleanup on unmount
+    };
+  }, []);
+
+  // 3. Keep your variable names: Logic updated to include hideForPdf
+  // If ANY of these are true, showNavbar becomes true (which hides the bar in your JSX)
+  const showNavbar = isTestPage || isAnalysisPage || hideForPdf;
+
   return (
     <div className="min-h-screen flex flex-col bg-[#F8FAFF]">
-      {/* PAGE CONTENT - Remove padding-bottom if on test page */}
-      <main className={`bg-white flex-1 z-50 ${isTestPage ? "pb-0" : "pb-0"}`}>
+      {/* PAGE CONTENT */}
+      <main className={`bg-white flex-1 z-50 pb-0`}>
         <Outlet />
       </main>
 
-      {/* BOTTOM NAV - Only render if NOT on test page */}
+      {/* BOTTOM NAV - Only render if NOT showNavbar */}
       {(!showNavbar) && (
-        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50">
+        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-[4000] animate-in slide-in-from-bottom duration-300">
           {/* 1. The Floating Plus Button */}
           <button
             className="absolute left-1/2 -translate-x-1/2 -top-5 w-12 h-12 

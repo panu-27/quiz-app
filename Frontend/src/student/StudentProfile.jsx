@@ -65,7 +65,7 @@ function LoadingBar({ active }) {
 function Toast({ msg, type, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 3000); return () => clearTimeout(t); }, [onDone]);
   return (
-    <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 z-[500] flex items-center gap-2.5 px-5 py-3 rounded-2xl shadow-xl text-sm font-semibold text-white fade-up pointer-events-none font-body
+    <div className={`fixed bottom-24 left-1/2 -translate-x-1/2 z-[500] flex items-center gap-2.5 px-5 py-3 rounded-2xl shadow-xl text-sm font-semibold text-white fade-up pointer-events-none font-body
       ${type === "success" ? "bg-emerald-500" : "bg-rose-500"}`}>
       {type === "success" ? <Check size={16} /> : <AlertCircle size={16} />}
       {msg}
@@ -216,9 +216,11 @@ function AvatarPanel({ name, avatarUrl, onAvatarChange, baseURL, onClose }) {
   );
 }
 
-/* ── Password panel ── */
+/* ── Fixed Password panel (Desktop) ── */
 function PasswordPanel({ baseURL, onClose }) {
-  const [form, setForm] = useState({ password: "", confirm: "" });
+  // Added oldPassword to state
+  const [form, setForm] = useState({ oldPassword: "", password: "", confirm: "" });
+  const [showO, setShowO] = useState(false);
   const [showP, setShowP] = useState(false);
   const [showC, setShowC] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -227,22 +229,35 @@ function PasswordPanel({ baseURL, onClose }) {
   const mismatch = form.password && form.confirm && form.password !== form.confirm;
 
   const save = async () => {
-    if (!form.password || mismatch) return;
-    if (form.password.length < 6) { setToast({ msg: "Min 6 characters required.", type: "error" }); return; }
+    if (!form.oldPassword || !form.password || mismatch) return;
+    if (form.password.length < 6) {
+      setToast({ msg: "Min 6 characters required.", type: "error" });
+      return;
+    }
+
     setSaving(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${baseURL}/student/update-password`, {
-        method: "PATCH",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ password: form.password }),
+      const res = await fetch(`${baseURL}/auth/update-password`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          oldPassword: form.oldPassword,
+          newPassword: form.password
+        }),
       });
-      if (!res.ok) throw new Error();
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed");
+
       setToast({ msg: "Password changed!", type: "success" });
-      setForm({ password: "", confirm: "" });
+      setForm({ oldPassword: "", password: "", confirm: "" });
       setTimeout(onClose, 1400);
-    } catch {
-      setToast({ msg: "Failed. Try again.", type: "error" });
+    } catch (err) {
+      setToast({ msg: err.message || "Failed. Try again.", type: "error" });
     } finally {
       setSaving(false);
     }
@@ -256,8 +271,9 @@ function PasswordPanel({ baseURL, onClose }) {
       </div>
 
       <div className="space-y-3">
-        <PassInput label="New Password" value={form.password} onChange={v => setForm(f => ({ ...f, password: v }))} show={showP} onToggle={() => setShowP(p => !p)} />
-        <PassInput label="Confirm Password" value={form.confirm} onChange={v => setForm(f => ({ ...f, confirm: v }))} show={showC} onToggle={() => setShowC(p => !p)} />
+        <PassInput label="Current Password" value={form.oldPassword} onChange={v => setForm(f => ({ ...f, oldPassword: v }))} show={showO} onToggle={() => setShowO(!showO)} />
+        <PassInput label="New Password" value={form.password} onChange={v => setForm(f => ({ ...f, password: v }))} show={showP} onToggle={() => setShowP(!showP)} />
+        <PassInput label="Confirm New Password" value={form.confirm} onChange={v => setForm(f => ({ ...f, confirm: v }))} show={showC} onToggle={() => setShowC(!showC)} />
 
         {mismatch && (
           <p className="text-[10px] text-rose-500 font-semibold flex items-center gap-1.5 px-1 font-body">
@@ -271,32 +287,30 @@ function PasswordPanel({ baseURL, onClose }) {
           </button>
           <button
             onClick={save}
-            disabled={saving || !form.password || !!mismatch}
+            disabled={saving || !form.password || !form.oldPassword || !!mismatch}
             className="flex-1 py-2.5 bg-[#7A41F7] hover:bg-[#6832E3] disabled:opacity-40 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all active:scale-[0.97] font-body"
           >
             {saving ? "Saving…" : "Update Password"}
           </button>
         </div>
       </div>
-
       {toast && <Toast msg={toast.msg} type={toast.type} onDone={() => setToast(null)} />}
     </div>
   );
 }
 
-/* ════════════════════════════════════════════════════
-   MOBILE SETTINGS — FULL SCROLLABLE PAGE
-════════════════════════════════════════════════════ */
-function MobileSettingsPage({ onBack, name, avatarUrl, onAvatarChange, baseURL }) {
+/* ── Fixed Mobile Settings Page ── */
+function MobileSettingsPage({ onBack, name, email, avatarUrl, onAvatarChange, baseURL }) {
   const fileRef = useRef();
   const [preview, setPreview] = useState(null);
   const [file, setFile] = useState(null);
   const [avatarSaving, setAvS] = useState(false);
-  const [passForm, setPassForm] = useState({ password: "", confirm: "" });
+  const [showO, setShowO] = useState(false);
   const [showP, setShowP] = useState(false);
   const [showC, setShowC] = useState(false);
   const [passSaving, setPasS] = useState(false);
   const [toast, setToast] = useState(null);
+  const [passForm, setPassForm] = useState({ oldPassword: "", password: "", confirm: "" });
 
   const pick = (e) => {
     const f = e.target.files?.[0];
@@ -312,7 +326,7 @@ function MobileSettingsPage({ onBack, name, avatarUrl, onAvatarChange, baseURL }
       const token = localStorage.getItem("token");
       const fd = new FormData();
       fd.append("avatar", file);
-      const res = await fetch(`/api/student/updateavatar`, {
+      const res = await fetch(`${baseURL}/student/updateavatar`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: fd,
@@ -321,6 +335,7 @@ function MobileSettingsPage({ onBack, name, avatarUrl, onAvatarChange, baseURL }
       onAvatarChange(preview);
       setToast({ msg: "Photo updated!", type: "success" });
       setFile(null);
+      setPreview(null);
     } catch {
       setToast({ msg: "Upload failed.", type: "error" });
     } finally {
@@ -331,21 +346,24 @@ function MobileSettingsPage({ onBack, name, avatarUrl, onAvatarChange, baseURL }
   const mismatch = passForm.password && passForm.confirm && passForm.password !== passForm.confirm;
 
   const savePassword = async () => {
-    if (!passForm.password || mismatch) return;
-    if (passForm.password.length < 6) { setToast({ msg: "Min 6 characters required.", type: "error" }); return; }
+    if (!passForm.oldPassword || !passForm.password || mismatch) return;
     setPasS(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${baseURL}/student/update-password`, {
-        method: "PATCH",
+      const res = await fetch(`${baseURL}/auth/update-password`, {
+        method: "PUT",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ password: passForm.password }),
+        body: JSON.stringify({
+          oldPassword: passForm.oldPassword,
+          newPassword: passForm.password
+        }),
       });
-      if (!res.ok) throw new Error();
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed");
       setToast({ msg: "Password changed!", type: "success" });
-      setPassForm({ password: "", confirm: "" });
-    } catch {
-      setToast({ msg: "Failed to change password.", type: "error" });
+      setPassForm({ oldPassword: "", password: "", confirm: "" });
+    } catch (err) {
+      setToast({ msg: err.message, type: "error" });
     } finally {
       setPasS(false);
     }
@@ -364,6 +382,7 @@ function MobileSettingsPage({ onBack, name, avatarUrl, onAvatarChange, baseURL }
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 py-6 space-y-6 pb-16">
+        {/* Profile Photo Section */}
         <section className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100">
           <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-4 font-body">Profile Photo</p>
           <div className="flex items-center gap-4 mb-4">
@@ -400,12 +419,14 @@ function MobileSettingsPage({ onBack, name, avatarUrl, onAvatarChange, baseURL }
           )}
         </section>
 
+        {/* Account Info Section */}
         <section className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 space-y-3">
           <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest font-body">Account Info</p>
           <LockedField label="Full Name (cannot be changed)" value={name} icon={<User size={15} />} />
-          <LockedField label="Email (cannot be changed)" value="••••••@nexus.edu" icon={<Globe size={15} />} />
+          <LockedField label="Email (cannot be changed)" value={email} icon={<Globe size={15} />} />
         </section>
 
+        {/* Change Password Section */}
         <section className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100">
           <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-4 font-body">Change Password</p>
           <div className="bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3 flex items-start gap-2.5 mb-4">
@@ -413,19 +434,21 @@ function MobileSettingsPage({ onBack, name, avatarUrl, onAvatarChange, baseURL }
             <p className="text-[11px] font-semibold text-amber-700 leading-snug font-body">Use at least 6 characters. You'll stay logged in after changing.</p>
           </div>
           <div className="space-y-3">
-            <PassInput label="New Password" value={passForm.password} onChange={v => setPassForm(f => ({ ...f, password: v }))} show={showP} onToggle={() => setShowP(p => !p)} />
-            <PassInput label="Confirm Password" value={passForm.confirm} onChange={v => setPassForm(f => ({ ...f, confirm: v }))} show={showC} onToggle={() => setShowC(p => !p)} />
+            <PassInput label="Current Password" value={passForm.oldPassword} onChange={v => setPassForm(f => ({ ...f, oldPassword: v }))} show={showO} onToggle={() => setShowO(!showO)} />
+            <PassInput label="New Password" value={passForm.password} onChange={v => setPassForm(f => ({ ...f, password: v }))} show={showP} onToggle={() => setShowP(!showP)} />
+            <PassInput label="Confirm Password" value={passForm.confirm} onChange={v => setPassForm(f => ({ ...f, confirm: v }))} show={showC} onToggle={() => setShowC(!showC)} />
             {mismatch && <p className="text-[10px] text-rose-500 font-semibold flex items-center gap-1.5 px-1 font-body"><AlertCircle size={11} /> Passwords don't match</p>}
           </div>
           <button
             onClick={savePassword}
-            disabled={passSaving || !passForm.password || !!mismatch}
+            disabled={passSaving || !passForm.password || !passForm.oldPassword || !!mismatch}
             className="w-full mt-4 py-3.5 bg-[#7A41F7] hover:bg-[#6832E3] disabled:opacity-40 text-white font-bold text-xs uppercase tracking-widest rounded-2xl active:scale-[0.97] transition-all shadow-lg shadow-purple-100 font-body"
           >
             {passSaving ? "Updating…" : "Update Password"}
           </button>
         </section>
 
+        {/* Logout Section */}
         <section className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100">
           <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-4 font-body">Account</p>
           <button
@@ -526,47 +549,55 @@ export default function StudentProfile() {
   const name = getVal("name");
   const resolved = avatarUrl || authUser?.profilePic || DEFAULT_AVATAR(name);
 
-const scrollWithOffset = (element, offset = 140) => {
-  const y =
-    element.getBoundingClientRect().top +
-    window.pageYOffset -
-    offset;
+  // ── Stats derived from profile.stats (already included in /student/profile response)
+  const stats = profile?.stats || {};
+  const instRank = stats.percentile || "N/A";
+  const classRank = stats.classRank || "N/A";
+  const stateRank = stats.stateRank || "N/A";
+  const progress = stats.progress ?? 0;
+  const accuracy = stats.accuracy ?? 0;
 
-  window.scrollTo({
-    top: y,
-    behavior: "smooth"
-  });
-};
+  const scrollWithOffset = (element, offset = 140) => {
+    const y =
+      element.getBoundingClientRect().top +
+      window.pageYOffset -
+      offset;
 
-const togglePanel = (panel) => {
-  const isClosing = desktopPanel === panel;
-  const newPanel = isClosing ? null : panel;
+    window.scrollTo({
+      top: y,
+      behavior: "smooth"
+    });
+  };
 
-  setDesktopPanel(newPanel);
+  const togglePanel = (panel) => {
+    const isClosing = desktopPanel === panel;
+    const newPanel = isClosing ? null : panel;
 
-  setTimeout(() => {
+    setDesktopPanel(newPanel);
 
-    // CASE 1: closing panel → scroll to top
-    if (isClosing) {
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth"
-      });
-      return;
-    }
+    setTimeout(() => {
 
-    // CASE 2: opening avatar
-    if (newPanel === "avatar" && avatarRef.current) {
-      scrollWithOffset(avatarRef.current, 140);
-    }
+      // CASE 1: closing panel → scroll to top
+      if (isClosing) {
+        window.scrollTo({
+          top: 0,
+          behavior: "smooth"
+        });
+        return;
+      }
 
-    // CASE 3: opening password
-    if (newPanel === "password" && passwordRef.current) {
-      scrollWithOffset(passwordRef.current, 140);
-    }
+      // CASE 2: opening avatar
+      if (newPanel === "avatar" && avatarRef.current) {
+        scrollWithOffset(avatarRef.current, 140);
+      }
 
-  }, 120);
-};
+      // CASE 3: opening password
+      if (newPanel === "password" && passwordRef.current) {
+        scrollWithOffset(passwordRef.current, 140);
+      }
+
+    }, 120);
+  };
 
   if (mobileSettings) {
     return (
@@ -575,6 +606,7 @@ const togglePanel = (panel) => {
         <MobileSettingsPage
           onBack={() => setMobileSettings(false)}
           name={name}
+          email={getVal("email")}
           avatarUrl={resolved}
           onAvatarChange={setAvatarUrl}
           baseURL={baseURL}
@@ -662,16 +694,16 @@ const togglePanel = (panel) => {
                 </div>
 
                 <div className="w-full mt-6 bg-white/10 backdrop-blur-sm border border-white/10 rounded-2xl p-4 flex justify-between items-center">
-                  <StatItem icon={<Globe size={15} className="text-white/60" />} label="Institute" value={`#${profile?.instRank || "1,438"}`} />
+                  <StatItem icon={<Globe size={15} className="text-white/60" />} label="Predicted Percentile" value={`${instRank}`} />
                   <div className="w-[1px] h-7 bg-white/20" />
-                  <StatItem icon={<MapPin size={15} className="text-white/60" />} label="Class" value={`#${profile?.classRank || "56"}`} />
+                  <StatItem icon={<MapPin size={15} className="text-white/60" />} label="Class" value={`${classRank}`} />
                   <div className="w-[1px] h-7 bg-white/20" />
-                  <StatItem icon={<Star size={15} className="text-white/60" />} label="State" value={`#${profile?.worldRank || "12,940"}`} />
+                  <StatItem icon={<Star size={15} className="text-white/60" />} label="State Rank" value={`${stateRank}`} />
                 </div>
 
                 <div className="w-full mt-3 grid grid-cols-2 gap-3">
-                  <MetricProgress label="Progress" value="94" color="text-violet-200" bgColor="bg-white/10 border-white/10" icon={<Calendar size={13} />} desktop />
-                  <MetricProgress label="Accuracy" value="78" color="text-emerald-300" bgColor="bg-white/10 border-white/10" icon={<Target size={13} />} desktop />
+                  <MetricProgress label="Progress" value={progress} color="text-violet-200" bgColor="bg-white/10 border-white/10" icon={<Calendar size={13} />} desktop />
+                  <MetricProgress label="Accuracy" value={accuracy} color="text-emerald-300" bgColor="bg-white/10 border-white/10" icon={<Target size={13} />} desktop />
                 </div>
               </div>
             )}
@@ -875,16 +907,16 @@ const togglePanel = (panel) => {
                     <circle cx="75" cy="75" r="20" stroke="white" strokeWidth="1" strokeDasharray="4 4" />
                   </svg>
                 </div>
-                <StatItem icon={<Globe size={18} className="text-white/70" />} label="INSTITUTE" value={`#${profile?.instRank || "1,438"}`} />
+                <StatItem icon={<Globe size={18} className="text-white/70" />} label="State Percentile" value={`${instRank}`} />
                 <div className="w-[1px] h-10 bg-gradient-to-b from-transparent via-white/30 to-transparent" />
-                <StatItem icon={<MapPin size={18} className="text-white/70" />} label="CLASS" value={`#${profile?.classRank || "56"}`} />
+                <StatItem icon={<MapPin size={18} className="text-white/70" />} label="CLASS" value={`${classRank}`} />
                 <div className="w-[1px] h-10 bg-gradient-to-b from-transparent via-white/30 to-transparent" />
-                <StatItem icon={<Star size={18} className="text-white/70" />} label="STATE" value={`#${profile?.worldRank || "12,940"}`} />
+                <StatItem icon={<Star size={18} className="text-white/70" />} label="STATE Rank" value={`${stateRank}`} />
               </div>
 
               <div className="grid grid-cols-2 gap-4 mb-8 px-2">
-                <MetricProgress label="Progress" value="94" color="text-[#7A41F7]" bgColor="bg-[#F3EBFF]" icon={<Calendar size={14} />} />
-                <MetricProgress label="Accuracy" value="78" color="text-emerald-600" bgColor="bg-[#EBFDEB]" icon={<Target size={14} />} />
+                <MetricProgress label="Progress" value={progress} color="text-[#7A41F7]" bgColor="bg-[#F3EBFF]" icon={<Calendar size={14} />} />
+                <MetricProgress label="Accuracy" value={accuracy} color="text-emerald-600" bgColor="bg-[#EBFDEB]" icon={<Target size={14} />} />
               </div>
 
               {/* Mobile Academic — original card style preserved */}

@@ -34,6 +34,12 @@ const userSchema = new Schema(
       required: true,
     },
 
+    profilePic: {
+      type: String,
+      default: null
+    },
+
+
     instituteId: {
       type: Schema.Types.ObjectId,
       ref: "Institute",
@@ -50,6 +56,15 @@ const userSchema = new Schema(
       type: Boolean,
       default: false, // students need approval
     },
+
+    stats: {
+      instRank: { type: String, default: "N/A" },
+      classRank: { type: String, default: "N/A" },
+      stateRank: { type: String, default: "N/A" },
+      percentile: { type: String, default: "0.00" },
+      accuracy: { type: Number, default: 0 },
+      progress: { type: Number, default: 0 }
+    }
   },
   { timestamps: true }
 );

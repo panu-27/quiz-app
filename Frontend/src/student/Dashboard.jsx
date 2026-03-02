@@ -123,13 +123,13 @@ export default function StudentDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [tests, setTests]               = useState([]);
+  const [tests, setTests] = useState([]);
   const [testsLoading, setTestsLoading] = useState(true);
 
-  const [topRankName, setTopRankName]   = useState("Brandon Matrovs");
-  const [rankLoading, setRankLoading]   = useState(true);
+  const [topRankName, setTopRankName] = useState("Brandon Matrovs");
+  const [rankLoading, setRankLoading] = useState(true);
 
-  const [stats, setStats]               = useState({ attempted: 12, scheduled: 0, completed: 8 });
+  const [stats, setStats] = useState({ attempted: "_", scheduled: 0, completed: "_" });
   const [statsLoading, setStatsLoading] = useState(true);
 
   /* ── fetches ── */
@@ -153,7 +153,12 @@ export default function StudentDashboard() {
     const fetchTopRank = async () => {
       try {
         setRankLoading(true);
-        const res = await api.get("/api/gettoprank");
+        const token = localStorage.getItem("token");
+        const res = await api.get("/leaderboard/stats/top-one", {
+          headers: {
+            Authorization: `Bearer ${token}`
+          },
+        });
         const name = res.data?.name || res.data?.studentName || res.data?.student?.name;
         if (name) setTopRankName(name);
       } catch {
@@ -164,35 +169,34 @@ export default function StudentDashboard() {
     };
 
     /* my stats */
-    const fetchStats = async () => {
+    const fetchMyStats = async () => {
       try {
         setStatsLoading(true);
-        const res = await api.get("/api/student/getmystats");
-        const d = res.data;
-        setStats(prev => ({
-          attempted: d?.attempted ?? d?.testsAttempted ?? d?.attemptedTests ?? prev.attempted,
-          scheduled: d?.scheduled ?? d?.scheduledTests ?? prev.scheduled,
-          completed: d?.completed ?? d?.testsCompleted ?? d?.completedTests ?? prev.completed,
-        }));
-      } catch {
-        /* defaults (12 / 0 / 8) stay */
+        const token = localStorage.getItem("token");
+        const res = await api.get("/student/stats", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setStats(res.data || { attempted: 0, scheduled: 0, completed: 0 });
+      } catch (err) {
+        console.error("my-stats failed", err);
       } finally {
         setStatsLoading(false);
       }
-    };
+    };  
 
     fetchMyTests();
+    fetchMyStats();
     fetchTopRank();
-    fetchStats();
+
   }, []);
 
   const handleLogout = () => { localStorage.clear(); navigate("/"); };
 
   const quizzes = [
-    { name: "Physics Quiz",   color: "bg-[#EBF3FF]", badge: "bg-[#D1E5FF]", tag: "Physics",   icon: <Atom size={18} />,        questions: 10, players: "20k+" },
+    { name: "Physics Quiz", color: "bg-[#EBF3FF]", badge: "bg-[#D1E5FF]", tag: "Physics", icon: <Atom size={18} />, questions: 15, players: "20k+" },
     { name: "Chemistry Quiz", color: "bg-[#FFF4EB]", badge: "bg-[#FFE9D6]", tag: "Chemistry", icon: <FlaskConical size={18} />, questions: 15, players: "12k+" },
-    { name: "Math Quiz",      color: "bg-[#F3EBFF]", badge: "bg-[#E6D6FF]", tag: "Math",      icon: <Calculator size={18} />,  questions: 20, players: "15k+" },
-    { name: "Biology Quiz",   color: "bg-[#EBFDEB]", badge: "bg-[#D6F7D6]", tag: "Biology",   icon: <Dna size={18} />,         questions: 12, players: "8k+"  },
+    { name: "Math Quiz", color: "bg-[#F3EBFF]", badge: "bg-[#E6D6FF]", tag: "Math", icon: <Calculator size={18} />, questions: 15, players: "15k+" },
+    { name: "Biology Quiz", color: "bg-[#EBFDEB]", badge: "bg-[#D6F7D6]", tag: "Biology", icon: <Dna size={18} />, questions: 15, players: "8k+" },
   ];
 
   /* ── shared top rank content (real data) ── */
@@ -209,9 +213,7 @@ export default function StudentDashboard() {
             className="w-full h-full object-cover"
           />
         </div>
-        <div className="absolute -right-1 -bottom-1 w-6 h-4 bg-white rounded-sm overflow-hidden border border-white shadow-sm">
-          <div className="h-1/2 bg-[#D91E18]" />
-        </div>
+        
       </div>
       <div className="text-white min-w-0">
         <p className={`${large ? "text-base" : "text-[15px]"} font-bold truncate`}>{topRankName}</p>
@@ -245,12 +247,22 @@ export default function StudentDashboard() {
               <h2 className="text-[16px] font-bold text-slate-900 leading-tight">{user?.name || "Student"}</h2>
             </div>
           </div>
+
           <div className="flex items-center gap-2">
-            <button className="p-2.5 bg-slate-50 rounded-full text-slate-600 active:bg-slate-200 transition-colors">
+            {/* NOTIFICATION BELL WITH LIVE TEST COUNT */}
+            <button className="relative p-2.5 bg-slate-50 rounded-full text-slate-600 active:bg-slate-200 transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
               </svg>
+
+              {/* Badge: only shows if tests exist and loading is finished */}
+              {!testsLoading && tests.length > 0 && (
+                <div className="absolute -top-1 -right-1 w-5 h-5 bg-orange-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white animate-bounce">
+                  {tests.length}
+                </div>
+              )}
             </button>
+
             <button onClick={handleLogout} className="p-2.5 bg-slate-50 rounded-full text-[#7A41F7] active:bg-slate-200 transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
@@ -259,7 +271,6 @@ export default function StudentDashboard() {
           </div>
         </div>
       </div>
-
       {/* ══════════════════════════════════════════
           MOBILE LAYOUT
       ══════════════════════════════════════════ */}
@@ -409,9 +420,9 @@ export default function StudentDashboard() {
         ) : (
           <div className="grid grid-cols-3 gap-5 mb-8">
             {[
-              { label: "Tests Attempted", value: stats.attempted, icon: <PlayCircle   size={22} className="text-[#7A41F7]"    />, bg: "bg-[#F3EBFF]",  iconBg: "bg-[#E6D6FF]",   sub: "All time"  },
-              { label: "Scheduled Tests", value: stats.scheduled, icon: <Clock        size={22} className="text-orange-500"  />, bg: "bg-orange-50",  iconBg: "bg-orange-100",  sub: "Live now"  },
-              { label: "Tests Completed", value: stats.completed, icon: <CheckCircle2 size={22} className="text-emerald-500" />, bg: "bg-emerald-50", iconBg: "bg-emerald-100", sub: "All time"  },
+              { label: "Tests Attempted", value: stats.attempted, icon: <PlayCircle size={22} className="text-[#7A41F7]" />, bg: "bg-[#F3EBFF]", iconBg: "bg-[#E6D6FF]", sub: "All time" },
+              { label: "Scheduled Tests", value: stats.scheduled, icon: <Clock size={22} className="text-orange-500" />, bg: "bg-orange-50", iconBg: "bg-orange-100", sub: "Live now" },
+              { label: "Tests Completed", value: stats.completed, icon: <CheckCircle2 size={22} className="text-emerald-500" />, bg: "bg-emerald-50", iconBg: "bg-emerald-100", sub: "All time" },
             ].map((s, i) => (
               <div key={i} className={`${s.bg} rounded-2xl p-5 flex items-center gap-4`}>
                 <div className={`${s.iconBg} w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0`}>{s.icon}</div>
@@ -589,9 +600,9 @@ export default function StudentDashboard() {
               <p className="text-xs font-bold text-slate-400 mb-3 uppercase tracking-widest">Quick Links</p>
               <div className="space-y-1">
                 {[
-                  { label: "My Library",  icon: <BookOpen   size={16} />, path: "/student/library"     },
-                  { label: "Leaderboard", icon: <Trophy     size={16} />, path: "/student/leaderboard" },
-                  { label: "My Progress", icon: <TrendingUp size={16} />, path: "/student/history"     },
+                  { label: "My Library", icon: <BookOpen size={16} />, path: "/student/library" },
+                  { label: "Leaderboard", icon: <Trophy size={16} />, path: "/student/leaderboard" },
+                  { label: "My Progress", icon: <TrendingUp size={16} />, path: "/student/history" },
                 ].map((link, i) => (
                   <button
                     key={i}

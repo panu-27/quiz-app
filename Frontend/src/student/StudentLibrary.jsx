@@ -255,9 +255,15 @@ export default function StudentLibrary() {
     setOpeningFile(item);
     setViewerReady(false);
     setIsDecrypting(true);
+    document.body.setAttribute('data-hide-nav', 'true');
     setTimeout(() => { setIsDecrypting(false); setShowViewer(true); }, 1200);
   };
-  const handleCloseViewer = () => { setShowViewer(false); setOpeningFile(null); setViewerReady(false); };
+  const handleCloseViewer = () => { 
+    setShowViewer(false); 
+    setOpeningFile(null); 
+    setViewerReady(false); 
+    document.body.removeAttribute('data-hide-nav');
+  };
 
   const handleDownload = async (e, fileUrl, filename) => {
     e.stopPropagation();
