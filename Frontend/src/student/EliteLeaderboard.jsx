@@ -307,7 +307,7 @@ export default function EliteLeaderboard() {
 
   const userRankRef    = useRef(null);
   const desktopUserRef = useRef(null);
-
+  const baseURL = process.env.VITE_API_BASE_URL;
   
 
   useEffect(() => {
@@ -316,7 +316,7 @@ export default function EliteLeaderboard() {
       setLoading(true);
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch(`http://localhost:5000/api/leaderboard/stats/all`, {
+        const res = await fetch(`${baseURL}/leaderboard/stats/all`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
