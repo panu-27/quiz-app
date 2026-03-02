@@ -6,6 +6,7 @@ import {
   ClipboardList, TrendingUp, BarChart2, Trophy
 } from "lucide-react";
 import StudentHeader from "./StudentHeader";
+import NexusLoader from "./NexusLoader";
 
 /* ── Fonts ── */
 const GlobalStyles = () => (
@@ -372,8 +373,7 @@ export default function TestHistory() {
       </div>
       {/* Mobile loading */}
       <div className="md:hidden flex flex-col items-center justify-center h-screen bg-white">
-        <Loader2 className="w-10 h-10 text-[#7A41F7] animate-spin mb-4" />
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Syncing Nexus Archive...</p>
+        <NexusLoader/>
       </div>
     </>
   );
