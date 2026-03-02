@@ -1,19 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronRight, ArrowUp, Crown, WifiOff, Medal, Star, Users, Zap } from "lucide-react";
+import api from "../api/axios";
+
 
 const FALLBACK_DATA = [
-  { rank: 1, name: "Adison Press",  points: "2,569", country: "🇨🇦", avatar: null },
-  { rank: 2, name: "Ruben Geidt",   points: "1,469", country: "🇩🇪", avatar: null },
-  { rank: 3, name: "Jakob Levin",   points: "1,053", country: "🇨🇿", avatar: null },
-  { rank: 4, name: "Madelyn Dias",  points: "590",   country: "🇮🇳", avatar: null },
-  { rank: 5, name: "Zain Vaccaro",  points: "448",   country: "🇮🇹", avatar: null },
-  { rank: 6, name: "Skylar Geidt",  points: "410",   country: "🇩🇪", avatar: null },
-  { rank: 7, name: "Elena Rossi",   points: "370",   country: "🇮🇹", avatar: null },
-  { rank: 8, name: "Yuki Tanaka",   points: "350",   country: "🇯🇵", avatar: null },
-  { rank: 9, name: "Lars Thomsen",  points: "340",   country: "🇩🇰", avatar: null },
-  { rank: 10, name: "Hana Kim",     points: "320",   country: "🇰🇷", avatar: null },
-  { rank: 11, name: "Sofia Silva",  points: "310",   country: "🇧🇷", avatar: null },
-  { rank: 12, name: "Liam O'Brien", points: "295",   country: "🇮🇪", avatar: null, current: true },
+  { rank: 1, name: "Adison Press", points: "2,569", country: "🇨🇦", avatar: null },
+  { rank: 2, name: "Ruben Geidt", points: "1,469", country: "🇩🇪", avatar: null },
+  { rank: 3, name: "Jakob Levin", points: "1,053", country: "🇨🇿", avatar: null },
+  { rank: 4, name: "Madelyn Dias", points: "590", country: "🇮🇳", avatar: null },
+  { rank: 5, name: "Zain Vaccaro", points: "448", country: "🇮🇹", avatar: null },
+  { rank: 6, name: "Skylar Geidt", points: "410", country: "🇩🇪", avatar: null },
+  { rank: 7, name: "Elena Rossi", points: "370", country: "🇮🇹", avatar: null },
+  { rank: 8, name: "Yuki Tanaka", points: "350", country: "🇯🇵", avatar: null },
+  { rank: 9, name: "Lars Thomsen", points: "340", country: "🇩🇰", avatar: null },
+  { rank: 10, name: "Hana Kim", points: "320", country: "🇰🇷", avatar: null },
+  { rank: 11, name: "Sofia Silva", points: "310", country: "🇧🇷", avatar: null },
+  { rank: 12, name: "Liam O'Brien", points: "295", country: "🇮🇪", avatar: null, current: true },
 ];
 
 const GLOBAL_STYLES = `
@@ -147,7 +149,7 @@ function DesktopTopCard({ user, rank }) {
 function DesktopRankRow({ user, index, innerRef }) {
   const isTop5 = user.rank <= 5;
   const ringColor = user.rank === 1 ? '#F59E0B' : user.rank === 2 ? '#94A3B8' : user.rank === 3 ? '#CD7C3A' : null;
-  const ringGlow  = user.rank === 1 ? 'rgba(245,158,11,0.3)' : user.rank === 2 ? 'rgba(148,163,184,0.25)' : user.rank === 3 ? 'rgba(205,124,58,0.25)' : null;
+  const ringGlow = user.rank === 1 ? 'rgba(245,158,11,0.3)' : user.rank === 2 ? 'rgba(148,163,184,0.25)' : user.rank === 3 ? 'rgba(205,124,58,0.25)' : null;
 
   return (
     <div
@@ -155,7 +157,7 @@ function DesktopRankRow({ user, index, innerRef }) {
       className={`flex items-center gap-4 px-5 py-4 rounded-2xl transition-all
         ${user.current ? 'bg-[#7A41F7] shadow-lg shadow-purple-200/60'
           : isTop5 ? 'bg-white border border-slate-100 shadow-sm hover:shadow-md hover:border-purple-100'
-          : 'bg-white border border-slate-50 hover:border-slate-100'}`}
+            : 'bg-white border border-slate-50 hover:border-slate-100'}`}
       style={{ animationDelay: `${index * 40}ms` }}
     >
       <div className={`w-8 text-center text-xs font-bold shrink-0 ${user.current ? 'text-white/60' : 'text-slate-300'}`}>
@@ -224,9 +226,9 @@ function PodiumCircle({ user, rank, size = 70, elevated = false }) {
 }
 
 function MobilePodium({ podiumUsers }) {
-  const first  = podiumUsers.find(u => u.rank === 1);
+  const first = podiumUsers.find(u => u.rank === 1);
   const second = podiumUsers.find(u => u.rank === 2);
-  const third  = podiumUsers.find(u => u.rank === 3);
+  const third = podiumUsers.find(u => u.rank === 3);
 
   if (podiumUsers.length === 1 && first) {
     return <div className="flex justify-center py-6"><PodiumCircle user={first} rank={1} size={90} elevated /></div>;
@@ -235,15 +237,15 @@ function MobilePodium({ podiumUsers }) {
     return (
       <div className="flex items-end justify-center gap-8 py-4 px-6">
         {second && <PodiumCircle user={second} rank={2} size={68} />}
-        {first  && <PodiumCircle user={first}  rank={1} size={84} elevated />}
+        {first && <PodiumCircle user={first} rank={1} size={84} elevated />}
       </div>
     );
   }
   return (
     <div className="flex items-end justify-center gap-4 px-6 py-2">
       <div className="flex-1 flex justify-center mb-1">{second && <PodiumCircle user={second} rank={2} size={64} />}</div>
-      <div className="flex-1 flex justify-center">{first  && <PodiumCircle user={first}  rank={1} size={80} elevated />}</div>
-      <div className="flex-1 flex justify-center mb-1">{third  && <PodiumCircle user={third}  rank={3} size={64} />}</div>
+      <div className="flex-1 flex justify-center">{first && <PodiumCircle user={first} rank={1} size={80} elevated />}</div>
+      <div className="flex-1 flex justify-center mb-1">{third && <PodiumCircle user={third} rank={3} size={64} />}</div>
     </div>
   );
 }
@@ -251,7 +253,7 @@ function MobilePodium({ podiumUsers }) {
 /* ── Mobile Rank Row ── */
 function MobileRankRow({ user, innerRef }) {
   const ringColor = user.rank === 1 ? '#F59E0B' : user.rank === 2 ? '#94A3B8' : user.rank === 3 ? '#CD7C3A' : null;
-  const ringGlow  = user.rank === 1 ? 'rgba(245,158,11,0.3)' : user.rank === 2 ? 'rgba(148,163,184,0.25)' : user.rank === 3 ? 'rgba(205,124,58,0.25)' : null;
+  const ringGlow = user.rank === 1 ? 'rgba(245,158,11,0.3)' : user.rank === 2 ? 'rgba(148,163,184,0.25)' : user.rank === 3 ? 'rgba(205,124,58,0.25)' : null;
 
   return (
     <div
@@ -300,36 +302,48 @@ function SkeletonRow() {
    MAIN
 ───────────────────────────────────── */
 export default function EliteLeaderboard() {
-  const [allRanks, setAllRanks]           = useState([]);
-  const [loading, setLoading]             = useState(true);
+  const [allRanks, setAllRanks] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [usingFallback, setUsingFallback] = useState(false);
-  const [showJumpBtn, setShowJumpBtn]     = useState(false);
+  const [showJumpBtn, setShowJumpBtn] = useState(false);
 
-  const userRankRef    = useRef(null);
+  const userRankRef = useRef(null);
   const desktopUserRef = useRef(null);
-  const baseURL = process.env.VITE_API_BASE_URL;
-  
+  // 1. Correct Vite Env access
+  const baseURL = import.meta.env.VITE_API_BASE_URL;
 
   useEffect(() => {
     let cancelled = false;
+
     async function fetchData() {
       setLoading(true);
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch(`${baseURL}/leaderboard/stats/all`, {
+
+        // 2. Axios call (Note: If your 'api' instance already has a baseURL, 
+        // just use "/leaderboard/stats/all")
+        const res = await api.get(`${baseURL}/leaderboard/stats/all`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const data = await res.json();
+
+        // 3. Axios stores the response in .data automatically
+        const data = res.data;
+
         if (!cancelled) {
           setAllRanks(Array.isArray(data) && data.length > 0 ? data : FALLBACK_DATA);
           setUsingFallback(!Array.isArray(data) || data.length === 0);
         }
-      } catch {
-        if (!cancelled) { setAllRanks(FALLBACK_DATA); setUsingFallback(true); }
+      } catch (err) {
+        console.error("Fetch error:", err);
+        if (!cancelled) {
+          setAllRanks(FALLBACK_DATA);
+          setUsingFallback(true);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
     }
+
     fetchData();
     return () => { cancelled = true; };
   }, []);
@@ -341,9 +355,9 @@ export default function EliteLeaderboard() {
     return () => observer.disconnect();
   }, [loading, allRanks]);
 
-  const podiumUsers   = allRanks.slice(0, Math.min(3, allRanks.length));
-  const listRanks     = allRanks.slice(podiumUsers.length);
-  const currentUser   = allRanks.find(u => u.current);
+  const podiumUsers = allRanks.slice(0, Math.min(3, allRanks.length));
+  const listRanks = allRanks.slice(podiumUsers.length);
+  const currentUser = allRanks.find(u => u.current);
   const currentInTop5 = currentUser && currentUser.rank <= 5;
 
   // For desktop top-3 cards — [2nd, 1st, 3rd] order
@@ -351,7 +365,7 @@ export default function EliteLeaderboard() {
     ? [allRanks[1], allRanks[0], allRanks[2]]
     : null;
 
-  const scrollToUser        = () => userRankRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const scrollToUser = () => userRankRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   const desktopScrollToUser = () => desktopUserRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
   return (
@@ -362,8 +376,8 @@ export default function EliteLeaderboard() {
       <div className="lg:hidden min-h-screen bg-[#7A41F7] relative flex flex-col">
 
         <div className="px-5 pt-12 pb-2 flex items-center justify-between shrink-0">
-          <br/>
-          
+          <br />
+
 
           {usingFallback && (
             <div className="flex items-center gap-1.5 bg-black/20 rounded-full px-3 py-1.5">
@@ -459,10 +473,10 @@ export default function EliteLeaderboard() {
           {loading ? (
             <div className="space-y-6">
               <div className="grid grid-cols-3 gap-5">
-                {[0,1,2].map(i => <div key={i} className="h-[200px] bg-white rounded-3xl animate-pulse border border-slate-100" />)}
+                {[0, 1, 2].map(i => <div key={i} className="h-[200px] bg-white rounded-3xl animate-pulse border border-slate-100" />)}
               </div>
               <div className="grid grid-cols-3 gap-6">
-                <div className="col-span-2 space-y-3">{[0,1,2,3,4,5].map(i => <div key={i} className="h-16 bg-white rounded-2xl animate-pulse border border-slate-100" />)}</div>
+                <div className="col-span-2 space-y-3">{[0, 1, 2, 3, 4, 5].map(i => <div key={i} className="h-16 bg-white rounded-2xl animate-pulse border border-slate-100" />)}</div>
                 <div className="h-[400px] bg-white rounded-3xl animate-pulse border border-slate-100" />
               </div>
             </div>
@@ -538,7 +552,7 @@ export default function EliteLeaderboard() {
                     <div className="space-y-3">
                       {[
                         { label: "Total Students", value: allRanks.length, icon: <Users size={14} className="text-[#7A41F7]" />, bg: "bg-[#F3EBFF]" },
-                        { label: "Top Score",   value: allRanks[0] ? allRanks[0].points + " score" : "—", icon: <Zap size={14} className="text-amber-500" />, bg: "bg-amber-50" },
+                        { label: "Top Score", value: allRanks[0] ? allRanks[0].points + " score" : "—", icon: <Zap size={14} className="text-amber-500" />, bg: "bg-amber-50" },
                         { label: "Your Points", value: currentUser ? currentUser.points + " score" : "—", icon: <Star size={14} className="text-emerald-500" />, bg: "bg-emerald-50" },
                       ].map((s, i) => (
                         <div key={i} className="flex items-center gap-3">
