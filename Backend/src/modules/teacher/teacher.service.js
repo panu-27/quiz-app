@@ -237,7 +237,6 @@ export const createCustomTest = async (teacher, payload) => {
 export const generateCustomTest = async (teacher, testId) => {
   try {
 
-    console.log("========== GENERATE CUSTOM TEST START ==========");
 
     const teacherId = teacher.id || teacher._id;
 
@@ -367,7 +366,6 @@ export const generateCustomTest = async (teacher, testId) => {
 
     await test.save();
 
-    console.log("✅ Test generated successfully");
 
     return test;
 
@@ -442,18 +440,14 @@ export const deployMaterial = async (teacher, metadata, file) => {
 /* ---------------- GET CRAFTED TESTS ---------------- */
 export const getCraftedTests = async (teacher) => {
   const teacherId = teacher._id || teacher.id;
-  console.log("🔎 Logged in teacherId:", teacherId);
 
   const teacherDoc = await User.findById(teacherId)
     .select("instituteId name email")
     .lean();
 
-  console.log("👤 Teacher Document:", teacherDoc);
 
-  console.log(234324);
   const instituteId = teacherDoc?.instituteId;
   log("🏫 Teacher instituteId:");
-  console.log("🏫 Teacher instituteId:", instituteId);
 
   const query = {
     mode: "CRAFTED",
@@ -463,7 +457,6 @@ export const getCraftedTests = async (teacher) => {
     ]
   };
 
-  console.log("🧠 Final Query:", JSON.stringify(query, null, 2));
 
   const tests = await Test.find(query)
     .select("_id title examType duration createdAt teacherId instituteId")
@@ -471,8 +464,6 @@ export const getCraftedTests = async (teacher) => {
     .sort({ createdAt: -1 })
     .lean();
 
-  console.log("📦 Tests Found:", tests.length);
-  console.log("📄 Tests Data:", tests);
 
   return tests;
 };

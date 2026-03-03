@@ -34,9 +34,9 @@ app.use("/api/student", studentRoutes);
 app.use("/api/leaderboard" , leaderboardRoutes);
 app.use("/api/pdf", pdfRoutes);
 app.use("/api/bankQuestion" , bankQuestionRoutes )
-const password = "password123";
-const hashedPassword = await bcrypt.hash(password, 10);
-console.log("Hashed Password:", hashedPassword); // Log the hashed password for debugging
+// const password = "password123";
+// const hashedPassword = await bcrypt.hash(password, 10);
+// console.log("Hashed Password:", hashedPassword); // Log the hashed password for debugging
 
 // Global error handler (always last)
 app.use((err, req, res, next) => {
