@@ -5,6 +5,8 @@ import path from "path";
 import Resource from "./Resource.js";
 import BankQuestion from "../questionBank/BankQuestion.js";
 import mongoose from "mongoose";
+import User from "../user/user.model.js";
+import { log } from "console";
 
 /* ---------------- GET TEACHER BATCHES ---------------- */
 
@@ -156,8 +158,8 @@ export const craftTest = async (
     blocks,
     metadata,
     duration,
-    startTime : pastStart, 
-    endTime : pastEnd, 
+    startTime: pastStart,
+    endTime: pastEnd,
   });
 };
 /* ---------------- CREATE CUSTOM TEST ---------------- */
@@ -440,14 +442,37 @@ export const deployMaterial = async (teacher, metadata, file) => {
 /* ---------------- GET CRAFTED TESTS ---------------- */
 export const getCraftedTests = async (teacher) => {
   const teacherId = teacher._id || teacher.id;
+  console.log("🔎 Logged in teacherId:", teacherId);
 
-  const tests = await Test.find({
-    teacherId,
+  const teacherDoc = await User.findById(teacherId)
+    .select("instituteId name email")
+    .lean();
+
+  console.log("👤 Teacher Document:", teacherDoc);
+
+  console.log(234324);
+  const instituteId = teacherDoc?.instituteId;
+  log("🏫 Teacher instituteId:");
+  console.log("🏫 Teacher instituteId:", instituteId);
+
+  const query = {
     mode: "CRAFTED",
-  })
-    .select("_id title examType duration createdAt")
+    $or: [
+      { teacherId },
+      ...(instituteId ? [{ instituteId }] : [])
+    ]
+  };
+
+  console.log("🧠 Final Query:", JSON.stringify(query, null, 2));
+
+  const tests = await Test.find(query)
+    .select("_id title examType duration createdAt teacherId instituteId")
+    .populate("teacherId", "name")
     .sort({ createdAt: -1 })
     .lean();
+
+  console.log("📦 Tests Found:", tests.length);
+  console.log("📄 Tests Data:", tests);
 
   return tests;
 };
@@ -460,8 +485,18 @@ export const scheduleTest = async (teacher, { testId, batchIds, startTime, endTi
   if (!batchIds?.length) throw new Error("At least one batch must be selected");
   if (!startTime) throw new Error("Start time is required");
 
-  // 1. Ownership check
-  const test = await Test.findOne({ _id: testId, teacherId });
+  // Fetch instituteId fresh from DB
+  const teacherDoc = await User.findById(teacherId).select("instituteId").lean();
+  const instituteId = teacherDoc?.instituteId;
+
+  // 1. Ownership check — own test OR same institute colleague's test
+  const test = await Test.findOne({
+    _id: testId,
+    $or: [
+      { teacherId },
+      ...(instituteId ? [{ instituteId }] : []),
+    ],
+  });
   if (!test) throw new Error("Test not found or unauthorized");
 
   // 2. Security: verify teacher owns all selected batches
