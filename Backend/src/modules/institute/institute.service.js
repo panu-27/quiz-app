@@ -7,16 +7,16 @@ export const createTeacher = async (admin, { name, email, password }) => {
   const exists = await User.findOne({ email });
   if (exists) throw new Error("Email already registered");
   const hashed = await bcrypt.hash(password, 10);
-  return User.create({ 
-    name, email, 
-    password: hashed, 
-    role: "TEACHER", 
-    instituteId: admin.instituteId, 
-    approved: true 
+  return User.create({
+    name, email,
+    password: hashed,
+    role: "TEACHER",
+    instituteId: admin.instituteId,
+    approved: true
   });
 };
 
-export const getTeachers = (admin) => 
+export const getTeachers = (admin) =>
   User.find({ instituteId: admin.instituteId, role: "TEACHER" }).select("-password");
 
 export const deleteTeacher = async (admin, teacherId) => {
@@ -27,10 +27,10 @@ export const deleteTeacher = async (admin, teacherId) => {
 };
 
 // --- BATCHES ---
-export const createBatch = (admin, { name }) => 
+export const createBatch = (admin, { name }) =>
   Batch.create({ name, instituteId: admin.instituteId });
 
-export const getBatches = (admin) => 
+export const getBatches = (admin) =>
   Batch.find({ instituteId: admin.instituteId })
     .populate("teachers", "name email") // Populating the array
     .sort("-createdAt");
@@ -42,7 +42,7 @@ export const deleteBatch = async (admin, batchId) => {
 };
 
 // --- STUDENT APPROVAL ---
-export const getPendingRequests = (admin) => 
+export const getPendingRequests = (admin) =>
   User.find({ instituteId: admin.instituteId, role: "STUDENT", approved: false }).select("-password");
 
 export const approveAndAssign = async (admin, { studentId, batchId }) => {
@@ -79,10 +79,23 @@ export const removeTeacherFromBatch = async (admin, { batchId, teacherId }) => {
   );
 };
 
-export const getBatchStudents = (admin, batchId) => 
+export const getBatchStudents = (admin, batchId) =>
   User.find({ batchId, instituteId: admin.instituteId }).select("-password");
 
 export const removeStudentFromBatch = async (admin, { batchId, studentId }) => {
-  await User.updateOne({ _id: studentId, instituteId: admin.instituteId }, { $unset: { batchId: "" } });
-  return Batch.updateOne({ _id: batchId }, { $pull: { students: studentId } });
+
+  // 1️⃣ Remove batchId and set approved to false
+  await User.updateOne(
+    { _id: studentId, instituteId: admin.instituteId },
+    {
+      $unset: { batchId: "" },
+      $set: { approved: false }
+    }
+  );
+
+  // 2️⃣ Remove student from batch array
+  return Batch.updateOne(
+    { _id: batchId },
+    { $pull: { students: studentId } }
+  );
 };

@@ -106,6 +106,15 @@ export const createTest = async (req, res) => {
   }
 };
 
+export const craftTest = async (req, res) => {
+  try {
+    const test = await service.craftTest(req.user, req.body);
+    res.status(201).json(test);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
 /* ---------------- CREATE CUSTOM TEST ---------------- */
 export const createCustomTest = async (req, res) => {
   try {
@@ -150,5 +159,30 @@ export const deployMaterial = async (req, res) => {
     res.status(201).json(result);
   } catch (err) {
     res.status(400).json({ message: err.message });
+  }
+};
+
+
+
+/* ---------------- GET CRAFTED TESTS ---------------- */
+export const getCraftedTests = async (req, res) => {
+  try {
+    const tests = await service.getCraftedTests(req.user);
+    res.status(200).json(tests);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+/* ---------------- RESCHEDULE / REINITIALIZE TEST ---------------- */
+export const scheduleTest = async (req, res) => {
+  try {
+    const test = await service.scheduleTest(req.user, req.body);
+    res.status(200).json({ message: "Test rescheduled successfully", test });
+  } catch (err) {
+    const status = err.message.includes("unauthorized") || err.message.includes("Unauthorized") ? 403
+                 : err.message.includes("not found") ? 404
+                 : 400;
+    res.status(status).json({ message: err.message });
   }
 };

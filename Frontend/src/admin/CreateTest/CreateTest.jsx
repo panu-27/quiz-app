@@ -2,18 +2,18 @@ import React, { useState } from 'react';
 import MethodSelection from "./shared/MethodSelection";
 import PDFFormView from "./PDFFormView";
 import CustomFormView from "./CustomFormView";
-import { ArrowLeft, ShieldCheck } from "lucide-react";
+import CraftTest from "./CraftTest";
+import ScheduleTests from "./ScheduleTests";
 import AdminHeader from '../AdminHeader';
 import { useAuth } from '../../context/AuthContext';
 
 export default function CreateTest() {
-  const { user, logout } = useAuth(); // Get auth data for the header
-  const [mode, setMode] = useState(null); 
+  const { user, logout } = useAuth();
+  const [mode, setMode] = useState(null);
 
   if (!mode) {
     return (
       <div className="min-h-screen bg-[#f0ebf8]">
-        {/* Pass props so the header isn't empty */}
         <AdminHeader userName={user?.name} onLogout={logout} />
         <MethodSelection onSelect={(val) => setMode(val)} />
       </div>
@@ -22,13 +22,12 @@ export default function CreateTest() {
 
   return (
     <div className="min-h-screen bg-[#f0ebf8]">
-      {/* MAIN NAV HEADER */}
       <AdminHeader userName={user?.name} onLogout={logout} />
-      
-      
-      {/* FORM CONTENT */}
       <div className="w-full mx-auto">
-        {mode === 'pdf' ? <PDFFormView /> : <CustomFormView />}
+        {mode === 'pdf'      && <PDFFormView />}
+        {mode === 'dynamic'  && <CustomFormView />}
+        {mode === 'craft'    && <CraftTest />}
+        {mode === 'schedule' && <ScheduleTests />}
       </div>
     </div>
   );

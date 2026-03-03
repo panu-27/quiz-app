@@ -3,8 +3,8 @@ import Test from "../test/test.model.js";
 import fs from "fs";
 import path from "path";
 import Resource from "./Resource.js";
-import Topic from "../questionBank/Topic.js";
 import BankQuestion from "../questionBank/BankQuestion.js";
+import mongoose from "mongoose";
 
 /* ---------------- GET TEACHER BATCHES ---------------- */
 
@@ -80,6 +80,84 @@ export const createTest = async (
     duration,
     startTime,
     endTime,
+  });
+};
+
+export const craftTest = async (
+  teacher,
+  { title, batchIds, examType, blocks, markingScheme, metadata, duration, startTime, endTime }
+) => {
+  // 1. Basic Validations
+  if (!batchIds?.length) throw new Error("At least one batch must be selected");
+  if (!examType) throw new Error("Exam type pattern (JEE/NEET/PCM/PCB) is required");
+  if (!blocks?.length) throw new Error("Blocks with questions are required");
+
+  // 2. SECURITY CHECK
+  const teacherBatches = await Batch.find({ teachers: teacher.id || teacher._id }).select("_id");
+  const allowedBatchIds = teacherBatches.map((b) => b._id.toString());
+  const invalidBatch = batchIds.find((id) => !allowedBatchIds.includes(id));
+
+  if (invalidBatch) throw new Error("Operational Error: Unauthorized batch selection");
+
+  // 3. APPLY MARKING SCHEME LOGIC (Consistent with Custom Test)
+  let finalMarkingScheme = {
+    isNegativeMarking: false,
+    defaultCorrect: 2,
+    defaultNegative: 0,
+    subjectWise: []
+  };
+
+  if (examType === "JEE" || examType === "NEET") {
+    finalMarkingScheme.isNegativeMarking = true;
+    finalMarkingScheme.defaultCorrect = 4;
+    finalMarkingScheme.defaultNegative = 1;
+  }
+  else if (examType === "PCM") {
+    finalMarkingScheme.isNegativeMarking = false;
+    finalMarkingScheme.defaultCorrect = 1;
+
+    blocks.forEach(block => {
+      block.sections.forEach(section => {
+        const sName = section.subjectName?.toLowerCase() || "";
+        // Logic: Math = 2, Physics/Chem = 1
+        const marks = sName.includes("math") ? 2 : 1;
+
+        finalMarkingScheme.subjectWise.push({
+          subjectId: section.subject,
+          correctMarks: marks,
+          negativeMarks: 0
+        });
+      });
+    });
+  }
+  else if (examType === "PCB") {
+    finalMarkingScheme.isNegativeMarking = false;
+    finalMarkingScheme.defaultCorrect = 1;
+    finalMarkingScheme.defaultNegative = 0;
+  }
+  else {
+    finalMarkingScheme.defaultCorrect = 2;
+    finalMarkingScheme.defaultNegative = 0;
+  }
+
+  const now = new Date();
+  const pastStart = new Date(now.getTime() - 24 * 60 * 60 * 1000); // 1 day ago
+  const pastEnd = new Date(now.getTime() - 23 * 60 * 60 * 1000); // 23 hours ago
+
+  // 4. Create the Record
+  return Test.create({
+    title,
+    mode: "CRAFTED",
+    examType,
+    markingScheme: finalMarkingScheme, // Using the engine-generated scheme
+    instituteId: teacher.instituteId,
+    teacherId: teacher.id || teacher._id,
+    batches: batchIds,
+    blocks,
+    metadata,
+    duration,
+    startTime : pastStart, 
+    endTime : pastEnd, 
   });
 };
 /* ---------------- CREATE CUSTOM TEST ---------------- */
@@ -353,4 +431,51 @@ export const deployMaterial = async (teacher, metadata, file) => {
   });
 
   return { success: true, resource: newResource };
+};
+
+
+
+// Add these two functions to teacher.service.js
+
+/* ---------------- GET CRAFTED TESTS ---------------- */
+export const getCraftedTests = async (teacher) => {
+  const teacherId = teacher._id || teacher.id;
+
+  const tests = await Test.find({
+    teacherId,
+    mode: "CRAFTED",
+  })
+    .select("_id title examType duration createdAt")
+    .sort({ createdAt: -1 })
+    .lean();
+
+  return tests;
+};
+
+/* ---------------- RESCHEDULE / REINITIALIZE TEST ---------------- */
+export const scheduleTest = async (teacher, { testId, batchIds, startTime, endTime }) => {
+  const teacherId = teacher._id || teacher.id;
+
+  if (!mongoose.Types.ObjectId.isValid(testId)) throw new Error("Invalid test ID");
+  if (!batchIds?.length) throw new Error("At least one batch must be selected");
+  if (!startTime) throw new Error("Start time is required");
+
+  // 1. Ownership check
+  const test = await Test.findOne({ _id: testId, teacherId });
+  if (!test) throw new Error("Test not found or unauthorized");
+
+  // 2. Security: verify teacher owns all selected batches
+  const teacherBatches = await Batch.find({ teachers: teacherId }).select("_id");
+  const allowedIds = teacherBatches.map((b) => b._id.toString());
+  const invalidBatch = batchIds.find((id) => !allowedIds.includes(id));
+  if (invalidBatch) throw new Error("Unauthorized batch selection");
+
+  // 3. Update scheduling fields — blocks/questions stay untouched
+  test.batches = batchIds;
+  test.startTime = new Date(startTime);
+  test.endTime = new Date(endTime);
+
+  await test.save();
+
+  return test;
 };

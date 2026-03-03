@@ -23,6 +23,13 @@ router.post(
   controller.createTest
 );
 
+router.post(
+  "/craft-test",
+  auth,
+  role(["TEACHER"]),
+  controller.craftTest
+);
+
 /* ---------------- CUSTOM TEST (NEW) ---------------- */
 router.post(
   "/create-custom-test",
@@ -68,6 +75,22 @@ router.get(
   auth,
   role(["TEACHER"]),
   controller.getTestAnalytics
+);
+
+
+router.get(
+  "/get-crafted",
+  auth,
+  role(["TEACHER"]),
+  controller.getCraftedTests
+);
+
+/* ---------------- REINITIALIZE / RESCHEDULE A TEST ---------------- */
+router.post(
+  "/schedule",
+  auth,
+  role(["TEACHER"]),
+  controller.scheduleTest
 );
 
 

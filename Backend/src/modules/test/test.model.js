@@ -51,7 +51,7 @@ const testSchema = new mongoose.Schema(
     // or a global limit for the whole session
     duration: { type: Number, required: true },
 
-    mode: { type: String, enum: ["CUSTOM", "PDF"], required: true },
+    mode: { type: String, enum: ["CUSTOM", "PDF" , "CRAFTED"], required: true },
     examType: {
       type: String,
       enum: ["JEE", "NEET", "PCM" , "PCB" , "OTHER"],

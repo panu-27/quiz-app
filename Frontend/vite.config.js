@@ -14,9 +14,9 @@ export default defineConfig({
         enabled: true // allows PWA in dev mode
       },
       manifest: {
-        name: "Quiz App",
+        name: "Nexus Quiz",
         short_name: "Quiz",
-        description: "Online Quiz Examination System",
+        description: "Online Quiz Examination System by @ArcheType20s",
         start_url: "./",
         display: "standalone",
         background_color: "#ffffff",

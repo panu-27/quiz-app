@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileUp, Database, ChevronRight, Layout, Sparkles } from 'lucide-react';
+import { FileUp, Database, ChevronRight, Layout, Sparkles, PenLine, RefreshCw } from 'lucide-react';
 
 export default function MethodSelection({ onSelect }) {
   return (
@@ -16,43 +16,77 @@ export default function MethodSelection({ onSelect }) {
         </p>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6 w-full max-w-3xl">
-        
+      {/* 4-column grid */}
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 w-full max-w-5xl">
+
         {/* OPTION 1: PDF DIGITIZER */}
-        <button 
+        <button
           onClick={() => onSelect('pdf')}
-          className="group relative bg-white border border-slate-200 p-8 rounded-2xl text-left transition-all hover:border-[#673ab7] hover:shadow-xl active:scale-[0.98]"
+          className="group relative bg-white border border-slate-200 p-7 rounded-2xl text-left transition-all hover:border-[#673ab7] hover:shadow-xl active:scale-[0.98]"
         >
-          <div className="w-14 h-14 bg-purple-50 text-[#673ab7] rounded-2xl flex items-center justify-center mb-6 group-hover:bg-[#673ab7] group-hover:text-white transition-colors">
-            <FileUp size={28} />
+          <div className="w-12 h-12 bg-purple-50 text-[#673ab7] rounded-2xl flex items-center justify-center mb-5 group-hover:bg-[#673ab7] group-hover:text-white transition-colors">
+            <FileUp size={24} />
           </div>
-          
-          <h2 className="text-xl font-bold text-slate-800 mb-2">Upload PDF Paper</h2>
-          <p className="text-sm text-slate-500 leading-relaxed mb-6">
+          <h2 className="text-base font-bold text-slate-800 mb-2">Upload PDF Paper</h2>
+          <p className="text-xs text-slate-500 leading-relaxed mb-5">
             Digitize your existing PDF segments. Our AI extracts text, options, and diagrams automatically.
           </p>
-
-          <div className="flex items-center text-[#673ab7] text-xs font-bold uppercase tracking-widest gap-1 group-hover:gap-2 transition-all">
-            Get Started <ChevronRight size={14} />
+          <div className="flex items-center text-[#673ab7] text-[10px] font-bold uppercase tracking-widest gap-1 group-hover:gap-2 transition-all">
+            Get Started <ChevronRight size={12} />
           </div>
         </button>
 
         {/* OPTION 2: SMART BANK */}
-        <button 
+        <button
           onClick={() => onSelect('dynamic')}
-          className="group relative bg-white border border-slate-200 p-8 rounded-2xl text-left transition-all hover:border-[#673ab7] hover:shadow-xl active:scale-[0.98]"
+          className="group relative bg-white border border-slate-200 p-7 rounded-2xl text-left transition-all hover:border-blue-400 hover:shadow-xl active:scale-[0.98]"
         >
-          <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-            <Database size={28} />
+          <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-5 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+            <Database size={24} />
           </div>
-          
-          <h2 className="text-xl font-bold text-slate-800 mb-2">Use Question Bank</h2>
-          <p className="text-sm text-slate-500 leading-relaxed mb-6">
+          <h2 className="text-base font-bold text-slate-800 mb-2">Use Question Bank</h2>
+          <p className="text-xs text-slate-500 leading-relaxed mb-5">
             Pick chapters and difficulty. We'll generate a balanced paper from our curated database instantly.
           </p>
+          <div className="flex items-center text-blue-600 text-[10px] font-bold uppercase tracking-widest gap-1 group-hover:gap-2 transition-all">
+            Get Started <ChevronRight size={12} />
+          </div>
+        </button>
 
-          <div className="flex items-center text-blue-600 text-xs font-bold uppercase tracking-widest gap-1 group-hover:gap-2 transition-all">
-            Get Started <ChevronRight size={14} />
+        {/* OPTION 3: CRAFT TEST (JSON) */}
+        <button
+          onClick={() => onSelect('craft')}
+          className="group relative bg-white border border-slate-200 p-7 rounded-2xl text-left transition-all hover:border-emerald-500 hover:shadow-xl active:scale-[0.98]"
+        >
+          <span className="absolute top-4 right-4 bg-emerald-50 text-emerald-600 border border-emerald-100 text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">
+            New
+          </span>
+          <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-5 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+            <PenLine size={24} />
+          </div>
+          <h2 className="text-base font-bold text-slate-800 mb-2">Craft Test Manually</h2>
+          <p className="text-xs text-slate-500 leading-relaxed mb-5">
+            Paste your questions as JSON with full LaTeX support. Live preview renders math and options instantly.
+          </p>
+          <div className="flex items-center text-emerald-600 text-[10px] font-bold uppercase tracking-widest gap-1 group-hover:gap-2 transition-all">
+            Get Started <ChevronRight size={12} />
+          </div>
+        </button>
+
+        {/* OPTION 4: REINITIALIZE */}
+        <button
+          onClick={() => onSelect('schedule')}
+          className="group relative bg-white border border-slate-200 p-7 rounded-2xl text-left transition-all hover:border-orange-400 hover:shadow-xl active:scale-[0.98]"
+        >
+          <div className="w-12 h-12 bg-orange-50 text-orange-500 rounded-2xl flex items-center justify-center mb-5 group-hover:bg-orange-500 group-hover:text-white transition-colors">
+            <RefreshCw size={24} />
+          </div>
+          <h2 className="text-base font-bold text-slate-800 mb-2">Reinitialize a Test</h2>
+          <p className="text-xs text-slate-500 leading-relaxed mb-5">
+            Reschedule a predefined test for new batches. Set a fresh date, time window, and go live instantly.
+          </p>
+          <div className="flex items-center text-orange-500 text-[10px] font-bold uppercase tracking-widest gap-1 group-hover:gap-2 transition-all">
+            Get Started <ChevronRight size={12} />
           </div>
         </button>
 
