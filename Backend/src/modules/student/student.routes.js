@@ -1,9 +1,12 @@
 import express from "express";
+import multer from "multer";
+import { storage } from "../../config/cloudinary.js";
 import auth from "../../middlewares/auth.middleware.js";
 import role from "../../middlewares/role.middleware.js";
 import * as controller from "./student.controller.js";
 
 const router = express.Router();
+const upload = multer({ storage: storage });
 
 router.get("/my-tests", auth, role(["STUDENT"]), controller.getMyTests);
 
@@ -38,6 +41,13 @@ router.get(
   controller.getAttemptAnalysis
 );
 
+router.post(
+  "/updateavatar", 
+  auth, 
+  role(["STUDENT"]), 
+  upload.single("avatar"), 
+  controller.updateAvatar
+);
 
 router.get("/my-library", auth, role(["STUDENT"]), controller.getMyLibrary);
 

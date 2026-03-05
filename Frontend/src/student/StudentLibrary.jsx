@@ -8,7 +8,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { Loader2, Film, FileText, Atom, FlaskConical, Calculator, Dna, BookOpen, ChevronRight } from 'lucide-react';
 import StudentHeader from './StudentHeader';
-
+import api from '../api/axios';
 /* ══════════════════════════════════════════════
    SHIMMER — YouTube-style skeleton
 ══════════════════════════════════════════════ */
@@ -203,20 +203,21 @@ export default function StudentLibrary() {
 
   const categories = ['All', 'Notes', 'PYQs', 'Formulas'];
   const subjects   = ['All', 'Physics', 'Chemistry', 'Maths', 'Biology'];
-  const baseURL    = import.meta.env.VITE_API_BASE_URL;
 
-  const resolveFileUrl = (fileUrl) => `${baseURL}${fileUrl}`;
+  // Resolve file URLs — works in both Electron and web
+  const resolveFileUrl = (fileUrl) => {
+    const base = window.__API_URL__
+      ? window.__API_URL__.replace(/\/api$/, '')
+      : (import.meta.env.VITE_API_BASE_URL || '').replace(/\/api$/, '');
+    return `${base}${fileUrl}`;
+  };
 
   /* fetch resources */
   useEffect(() => {
     const fetchVaultData = async () => {
       setResourcesLoading(true);
       try {
-        const token = localStorage.getItem('token');
-        const res   = await fetch(`${baseURL}/student/my-library`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
+        const { data } = await api.get('/student/my-library');
         if (!data) { setResources([]); return; }
         setResources(Object.values(data).flat());
       } catch {
@@ -226,19 +227,14 @@ export default function StudentLibrary() {
       }
     };
     fetchVaultData();
-  }, [baseURL]);
+  }, []);
 
   /* fetch videos */
   useEffect(() => {
     const fetchVideos = async () => {
       setVideosLoading(true);
       try {
-        const token = localStorage.getItem('token');
-        const res   = await fetch(`${baseURL}/student/my-videos`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) throw new Error('failed');
-        const data = await res.json();
+        const { data } = await api.get('/student/my-videos');
         const list = data?.videos || data || [];
         setVideos(list.length ? list : FALLBACK_VIDEOS);
       } catch {
@@ -248,7 +244,7 @@ export default function StudentLibrary() {
       }
     };
     fetchVideos();
-  }, [baseURL]);
+  }, []);
 
   /* file open/close (mobile) */
   const handleOpenFile = (item) => {
@@ -269,11 +265,8 @@ export default function StudentLibrary() {
     e.stopPropagation();
     try {
       const fullUrl = resolveFileUrl(fileUrl);
-      const token   = localStorage.getItem('token');
-      const res     = await fetch(fullUrl, { headers: { Authorization: `Bearer ${token}` } });
-      if (!res.ok) throw new Error('Download failed');
-      const blob    = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
+      const res = await api.get(fullUrl, { responseType: 'blob', baseURL: '' });
+      const blobUrl = URL.createObjectURL(res.data);
       const link    = document.createElement('a');
       link.href = blobUrl; link.download = filename || 'document.pdf';
       document.body.appendChild(link); link.click();

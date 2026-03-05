@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
-import { PowerIcon } from "@heroicons/react/24/solid";
+
+// Inline power icon — no external dependency needed
+const PowerIcon = ({ className }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path fillRule="evenodd" d="M12 2.25a.75.75 0 01.75.75v9a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM6.166 5.106a.75.75 0 010 1.06 8.25 8.25 0 1011.668 0 .75.75 0 111.06-1.06c3.808 3.807 3.808 9.98 0 13.788-3.807 3.808-9.98 3.808-13.788 0-3.808-3.807-3.808-9.98 0-13.788a.75.75 0 011.06 0z" clipRule="evenodd" />
+  </svg>
+);
 
 const ExamLobby = ({ testTitle, userName, enterFullscreen, exitApp, isLoading = false }) => {
   const [agreed, setAgreed] = useState(false);

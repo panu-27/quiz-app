@@ -19,14 +19,14 @@ export default function PublicHeader() {
 
         {/* Desktop / Tablet logo — UNCHANGED */}
         <img
-          src="/icon-512.png"
+          src="./icon-512.png"
           alt="Nexus"
           className="hidden sm:block h-8 sm:h-14 w-auto object-contain"
         />
 
         {/* Mobile logo — FIXED */}
         <img
-          src="/icon-512.png"
+          src="./icon-512.png"
           alt="Nexus"
           className="block sm:hidden h-12 w-auto object-contain"
         />

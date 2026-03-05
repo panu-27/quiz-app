@@ -19,7 +19,6 @@ export default function CreateInstitutePage() {
         headers: { "Authorization": `Bearer ${token}` , "Content-Type": "application/json" } ,
         body: JSON.stringify(formData)
       });
-      console.log(res);
       alert("institute created");
     } catch {
       alert("Institute creation failed");

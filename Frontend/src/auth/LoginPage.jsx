@@ -165,7 +165,7 @@ export default function LoginPage() {
 {/* RIGHT : Illustration (Tablet + Desktop) */}
 <div className="hidden sm:flex justify-center items-center">
   <img
-    src="/loginpagestudent.jpg"
+    src="./loginpagestudent.jpg"
     alt="Students learning"
     className="
       w-[260px]

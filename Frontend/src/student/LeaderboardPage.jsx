@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Trophy } from "lucide-react";
+import api from "../api/axios";
 
 /* ── YouTube Style Loading Components ── */
 const ShimmerCSS = () => (
@@ -59,22 +60,13 @@ const LeaderboardSkeleton = () => (
 export default function LeaderboardPage() {
     const { testId } = useParams();
     const navigate = useNavigate();
-    const baseURL = import.meta.env.VITE_API_BASE_URL;
-
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchLeaderboard = async () => {
             try {
-                const token = localStorage.getItem("token");
-                const res = await fetch(`${baseURL}/leaderboard/${testId}`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                });
-
-                const result = await res.json();
+                const { data: result } = await api.get(`/leaderboard/${testId}`);
                 setData(result);
             } catch (err) {
                 console.error(err);
@@ -84,7 +76,7 @@ export default function LeaderboardPage() {
         };
 
         fetchLeaderboard();
-    }, [testId, baseURL]);
+    }, [testId]);
 
     if (loading) return (
         <>

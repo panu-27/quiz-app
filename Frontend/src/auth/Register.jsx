@@ -233,7 +233,7 @@ export default function Register() {
                     {/* RIGHT : Illustration (Tablet + Desktop) */}
                     <div className="hidden sm:flex justify-center items-center">
                         <img
-                            src="/loginpagestudent.svg"
+                            src="./loginpagestudent.svg"
                             alt="Students learning"
                             className="
       w-[260px]

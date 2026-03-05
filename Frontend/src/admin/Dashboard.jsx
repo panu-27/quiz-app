@@ -110,12 +110,7 @@ const startUpload = async () => {
 
   // Logging for your debugging
   console.group("🚀 NEXUS DEPLOYMENT INITIATED");
-  console.log("Payload:", { 
-    fileName: selectedFile.name, 
-    subjectId: selectedSubject, 
-    category: selectedType, 
-    batches: selectedBatchIds 
-  });
+
   console.groupEnd();
 
   const interval = setInterval(() => {

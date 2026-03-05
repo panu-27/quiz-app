@@ -59,6 +59,29 @@ export default function TestAttempt() {
 
   const user = JSON.parse(localStorage.getItem("user") || "null");
 
+  // Detect if running inside Electron desktop app
+  const isElectron = typeof window !== 'undefined' && !!window.electron?.isElectron;
+
+  /* ── Fullscreen helpers (web only — Electron uses kiosk) ── */
+  const enterFullscreen = useCallback(() => {
+    if (isElectron) return; // Electron handles via kiosk
+    const el = document.documentElement;
+    try {
+      if (el.requestFullscreen)            el.requestFullscreen();
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    } catch {}
+  }, [isElectron]);
+
+  const exitFullscreen = useCallback(() => {
+    if (isElectron) return;
+    try {
+      if (document.fullscreenElement) {
+        if (document.exitFullscreen)            document.exitFullscreen();
+        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+      }
+    } catch {}
+  }, [isElectron]);
+
   /* keep refs in sync */
   useEffect(() => { examActiveRef.current   = examStarted;  }, [examStarted]);
   useEffect(() => { hasSubmittedRef.current = hasSubmitted; }, [hasSubmitted]);
@@ -99,13 +122,16 @@ export default function TestAttempt() {
       }
 
       setExamStarted(true);
+      // Engage lock — Electron kiosk OR web fullscreen
+      if (isElectron) window.electron.examStarted();
+      else enterFullscreen();
     } catch (err) {
       const msg = err.response?.data?.message || "Unable to start test. Please try again.";
       setStartError(msg);
     } finally {
       setIsLoading(false);
     }
-  }, [testId]);
+  }, [testId, isElectron, enterFullscreen]);
 
   /* ═══════════════════════════════════════════════════════════════
      2. DERIVED STATE
@@ -306,6 +332,9 @@ export default function TestAttempt() {
       });
       setHasSubmitted(true);
       clearViolations(testId);
+      // Release lock — Electron kiosk OR web fullscreen
+      if (isElectron) window.electron.examFinished();
+      else exitFullscreen();
       if (!silent) {
         setModal({
           type: "score",
@@ -330,7 +359,7 @@ export default function TestAttempt() {
         });
       }
     }
-  }, [testId, navigate, clearViolations, buildPayload]);
+  }, [testId, navigate, clearViolations, buildPayload, isElectron, exitFullscreen]);
 
   const handleSubmit = useCallback((isAuto = false) => {
     if (submitLock.current) return;
@@ -405,6 +434,54 @@ export default function TestAttempt() {
     setViolationModal({ type, count: newCount });
   }, [testId, getViolations, addViolation, MAX_VIOLATIONS, handleSubmit]);
 
+  /* ═══════════════════════════════════════════════════════════════
+     11b. ELECTRON VIOLATION BRIDGE
+     Subscribe to violations triggered by the Electron main process
+     (window blur, close attempt) — these bypass web event listeners
+     ═══════════════════════════════════════════════════════════════ */
+  useEffect(() => {
+    if (!isElectron || !examStarted || hasSubmitted) return;
+    const unsub = window.electron.onViolation((type) => {
+      handleViolation(type);
+    });
+    return () => unsub?.();
+  }, [isElectron, examStarted, hasSubmitted, handleViolation]);
+
+  /* ═══════════════════════════════════════════════════════════════
+     11c. FULLSCREEN LOCK (web only)
+     • Block Escape and F11 keys during exam so student can't exit fullscreen
+     • If fullscreenchange fires and we're no longer fullscreen, re-enter
+     ═══════════════════════════════════════════════════════════════ */
+  useEffect(() => {
+    if (isElectron || !examStarted || hasSubmitted) return;
+
+    const blockEscapeF11 = (e) => {
+      if (e.key === 'Escape' || e.key === 'F11') {
+        e.preventDefault();
+        e.stopPropagation();
+        // Re-enter fullscreen in case browser already exited
+        enterFullscreen();
+      }
+    };
+
+    const onFullscreenChange = () => {
+      // If exam is active and fullscreen was exited by any means, force back in
+      if (!document.fullscreenElement && !hasSubmittedRef.current && examActiveRef.current) {
+        enterFullscreen();
+      }
+    };
+
+    document.addEventListener('keydown', blockEscapeF11, true); // capture phase
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+
+    return () => {
+      document.removeEventListener('keydown', blockEscapeF11, true);
+      document.removeEventListener('fullscreenchange', onFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', onFullscreenChange);
+    };
+  }, [isElectron, examStarted, hasSubmitted, enterFullscreen]);
+
   const dismissViolationModal = useCallback(() => {
     setViolationModal(null);
     setTimeout(() => { violationBlockedRef.current = false; }, 600);
@@ -413,7 +490,8 @@ export default function TestAttempt() {
   useEffect(() => {
     if (!examStarted || hasSubmitted) return;
     const onVis  = () => { if (document.visibilityState === 'hidden') handleViolation('visibility'); };
-    const onBlur = () => { setTimeout(() => { if (!document.hasFocus()) handleViolation('window_blur'); }, 200); };
+    // In Electron, window blur is handled via IPC (avoids double-counting)
+    const onBlur = isElectron ? null : () => { setTimeout(() => { if (!document.hasFocus()) handleViolation('window_blur'); }, 200); };
     const onCtx  = (e) => { e.preventDefault(); handleViolation('right_click'); };
     const onCP   = (e) => { e.preventDefault(); handleViolation('copy_paste'); };
     const onKey  = (e) => {
@@ -427,13 +505,13 @@ export default function TestAttempt() {
       if (banned.some(Boolean)) { e.preventDefault(); handleViolation('devtools'); }
     };
     document.addEventListener('visibilitychange', onVis);
-    window.addEventListener('blur', onBlur);
+    if (onBlur) window.addEventListener('blur', onBlur);
     document.addEventListener('contextmenu', onCtx);
     ['copy','cut','paste'].forEach(ev => document.addEventListener(ev, onCP));
     document.addEventListener('keydown', onKey);
     return () => {
       document.removeEventListener('visibilitychange', onVis);
-      window.removeEventListener('blur', onBlur);
+      if (onBlur) window.removeEventListener('blur', onBlur);
       document.removeEventListener('contextmenu', onCtx);
       ['copy','cut','paste'].forEach(ev => document.removeEventListener(ev, onCP));
       document.removeEventListener('keydown', onKey);
@@ -447,11 +525,14 @@ export default function TestAttempt() {
     setModal({
       type: "confirm",
       title: "Exit Exam?",
-      message: "Your progress will be saved. Are you sure you want to exit?",
-      onConfirm: () => navigate("/student"),
-      onCancel:  () => setModal(null),
+      message: "Exiting will submit your current responses. Are you sure?",
+      onConfirm: () => {
+        setModal(null);
+        performSubmit(true); // submit → releases fullscreen → navigates to /student
+      },
+      onCancel: () => setModal(null),
     });
-  }, [navigate]);
+  }, [performSubmit]);
 
   /* ─────────────────────────────────────────────────────────────────
      EARLY RETURNS

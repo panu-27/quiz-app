@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import api from "../api/axios";
 import {
   ChevronRight, ArrowLeft, Clock, Inbox, Search,
   Zap, Layers, Target, Activity, Loader2, Calendar,
@@ -319,7 +320,6 @@ function HistoryLogItem({ record, isExpanded, onToggle, navigate }) {
    MAIN COMPONENT
 ════════════════════════════════════════════════════ */
 export default function TestHistory() {
-  const baseURL = import.meta.env.VITE_API_BASE_URL;
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState(null);
@@ -330,12 +330,7 @@ export default function TestHistory() {
     const fetchHistory = async () => {
       setLoading(true);
       try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`${baseURL}/student/my-history`, {
-          method: "GET",
-          headers: { "Authorization": `Bearer ${token}` }
-        });
-        const data = await res.json();
+        const { data } = await api.get("/student/my-history");
         setHistory(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error("Archive Sync Error", err);
@@ -344,7 +339,7 @@ export default function TestHistory() {
       }
     };
     fetchHistory();
-  }, [baseURL]);
+  }, []);
 
   const filteredHistory = history.filter(record => {
     const title = record.testDetails?.title || "";

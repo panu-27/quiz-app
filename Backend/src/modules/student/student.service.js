@@ -35,12 +35,25 @@ export const getMyTests = async (jwtUser) => {
 };
 
 
+// ADD THIS TO student.service.js
+export const updateProfilePic = async (userId, imageUrl) => {
+    // 1. Find the user by ID and update the profilePic field
+    const user = await User.findByIdAndUpdate(
+        userId,
+        { profilePic: imageUrl }, // This updates the URL from Cloudinary
+        { new: true } // Returns the updated document instead of the old one
+    ).select("profilePic");
 
+    if (!user) {
+        throw new Error("User not found");
+    }
+
+    return user;
+};
 
 
 /* ---------------- START ATTEMPT SERVICE ---------------- */
 export const startAttempt = async (student, testId) => {
-    console.log("Starting attempt for student:", student.id || student._id, "Test ID:", testId);
 
     const test = await Test.findById(testId).lean();
 
@@ -109,6 +122,17 @@ export const startAttempt = async (student, testId) => {
 
 
     // ── SNAPSHOT BLOCKS ────────────────────────────────
+
+    // Fisher-Yates shuffle — each student gets their own random order
+    const shuffleArray = (arr) => {
+        const a = [...arr];
+        for (let i = a.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+    };
+
     const attemptBlocks = sourceBlocks.map(block => ({
         blockName: block.blockName,
         duration: block.duration,
@@ -121,7 +145,7 @@ export const startAttempt = async (student, testId) => {
             correct: 0,
             wrong: 0,
             unattempted: section.numQuestions,
-            questions: section.questions.map(q => ({
+            questions: shuffleArray(section.questions).map(q => ({  // ← only change
                 questionId: q.questionId,
                 questionText: q.questionText,
                 questionImage: q.questionImage || null,
@@ -174,7 +198,6 @@ export const startAttempt = async (student, testId) => {
 
 /* ---------------- SUBMIT TEST SERVICE ---------------- */
 export const submitTest = async (student, testId, data) => {
-    console.log("Submitting test for student:", student.id || student._id, "Test ID:", testId);
     const { answers = [], timeTaken = 0, isFinal } = data;
 
     const studentId = student.id || student._id;

@@ -8,6 +8,7 @@ import {
   KeyRound, ChevronDown, ChevronUp
 } from "lucide-react";
 import StudentHeader from "./StudentHeader";
+import api from "../api/axios";
 
 /* ────────────────────────────────
    HELPERS
@@ -118,7 +119,7 @@ function PassInput({ label, value, onChange, show, onToggle }) {
 ════════════════════════════════════════════════════ */
 
 /* ── Avatar panel ── */
-function AvatarPanel({ name, avatarUrl, onAvatarChange, baseURL, onClose }) {
+function AvatarPanel({ name, avatarUrl, onAvatarChange, onClose }) {
   const fileRef = useRef();
   const [preview, setPreview] = useState(null);
   const [file, setFile] = useState(null);
@@ -136,15 +137,11 @@ function AvatarPanel({ name, avatarUrl, onAvatarChange, baseURL, onClose }) {
     if (!file) return;
     setSaving(true);
     try {
-      const token = localStorage.getItem("token");
       const fd = new FormData();
       fd.append("avatar", file);
-      const res = await fetch(`/api/student/updateavatar`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: fd,
+      await api.post("/student/updateavatar", fd, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
-      if (!res.ok) throw new Error();
       onAvatarChange(preview);
       setToast({ msg: "Photo updated!", type: "success" });
       setTimeout(onClose, 1400);
@@ -217,7 +214,7 @@ function AvatarPanel({ name, avatarUrl, onAvatarChange, baseURL, onClose }) {
 }
 
 /* ── Fixed Password panel (Desktop) ── */
-function PasswordPanel({ baseURL, onClose }) {
+function PasswordPanel({ onClose }) {
   // Added oldPassword to state
   const [form, setForm] = useState({ oldPassword: "", password: "", confirm: "" });
   const [showO, setShowO] = useState(false);
@@ -237,27 +234,15 @@ function PasswordPanel({ baseURL, onClose }) {
 
     setSaving(true);
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${baseURL}/auth/update-password`, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          oldPassword: form.oldPassword,
-          newPassword: form.password
-        }),
+      await api.put("/auth/update-password", {
+        oldPassword: form.oldPassword,
+        newPassword: form.password,
       });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed");
-
       setToast({ msg: "Password changed!", type: "success" });
       setForm({ oldPassword: "", password: "", confirm: "" });
       setTimeout(onClose, 1400);
     } catch (err) {
-      setToast({ msg: err.message || "Failed. Try again.", type: "error" });
+      setToast({ msg: err.response?.data?.message || "Failed. Try again.", type: "error" });
     } finally {
       setSaving(false);
     }
@@ -300,7 +285,7 @@ function PasswordPanel({ baseURL, onClose }) {
 }
 
 /* ── Fixed Mobile Settings Page ── */
-function MobileSettingsPage({ onBack, name, email, avatarUrl, onAvatarChange, baseURL }) {
+function MobileSettingsPage({ onBack, name, email, avatarUrl, onAvatarChange }) {
   const fileRef = useRef();
   const [preview, setPreview] = useState(null);
   const [file, setFile] = useState(null);
@@ -323,15 +308,11 @@ function MobileSettingsPage({ onBack, name, email, avatarUrl, onAvatarChange, ba
     if (!file) return;
     setAvS(true);
     try {
-      const token = localStorage.getItem("token");
       const fd = new FormData();
       fd.append("avatar", file);
-      const res = await fetch(`${baseURL}/student/updateavatar`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: fd,
+      await api.post("/student/updateavatar", fd, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
-      if (!res.ok) throw new Error();
       onAvatarChange(preview);
       setToast({ msg: "Photo updated!", type: "success" });
       setFile(null);
@@ -349,21 +330,14 @@ function MobileSettingsPage({ onBack, name, email, avatarUrl, onAvatarChange, ba
     if (!passForm.oldPassword || !passForm.password || mismatch) return;
     setPasS(true);
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${baseURL}/auth/update-password`, {
-        method: "PUT",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          oldPassword: passForm.oldPassword,
-          newPassword: passForm.password
-        }),
+      await api.put("/auth/update-password", {
+        oldPassword: passForm.oldPassword,
+        newPassword: passForm.password,
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed");
       setToast({ msg: "Password changed!", type: "success" });
       setPassForm({ oldPassword: "", password: "", confirm: "" });
     } catch (err) {
-      setToast({ msg: err.message, type: "error" });
+      setToast({ msg: err.response?.data?.message || "Failed.", type: "error" });
     } finally {
       setPasS(false);
     }
@@ -524,17 +498,12 @@ export default function StudentProfile() {
   const avatarRef = useRef(null);
   const passwordRef = useRef(null);
 
-  const baseURL = import.meta.env.VITE_API_BASE_URL;
-
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
       try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`${baseURL}/student/profile`, { headers: { Authorization: `Bearer ${token}` } });
-        if (!res.ok) throw new Error();
-        const data = await res.json();
+        const { data } = await api.get("/student/profile");
         if (!cancelled) { setProfile(data); setAvatarUrl(data.profilePic || null); }
       } catch {
         if (!cancelled) setProfile(null);
@@ -543,11 +512,21 @@ export default function StudentProfile() {
       }
     })();
     return () => { cancelled = true; };
-  }, [baseURL]);
+  }, []);
 
   const getVal = (f) => profile?.[f] || authUser?.[f] || "N/A";
   const name = getVal("name");
-  const resolved = avatarUrl || authUser?.profilePic || DEFAULT_AVATAR(name);
+  const resolveMediaUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith('http') || url.startsWith('data:') || url.startsWith('blob:')) return url;
+    // In Electron, window.__API_URL__ is injected; strip /api suffix to get host
+    const base = window.__API_URL__
+      ? window.__API_URL__.replace(/\/api$/, '')
+      : (import.meta.env.VITE_API_BASE_URL || '').replace(/\/api$/, '');
+    return `${base}${url}`;
+  };
+
+  const resolved = resolveMediaUrl(avatarUrl || authUser?.profilePic) || DEFAULT_AVATAR(name);
 
   // ── Stats derived from profile.stats (already included in /student/profile response)
   const stats = profile?.stats || {};
@@ -609,7 +588,7 @@ export default function StudentProfile() {
           email={getVal("email")}
           avatarUrl={resolved}
           onAvatarChange={setAvatarUrl}
-          baseURL={baseURL}
+          
         />
       </>
     );
@@ -808,7 +787,7 @@ export default function StudentProfile() {
                           name={name}
                           avatarUrl={resolved}
                           onAvatarChange={setAvatarUrl}
-                          baseURL={baseURL}
+                          
                           onClose={() => setDesktopPanel(null)}
                         />
                       </div>
@@ -835,7 +814,7 @@ export default function StudentProfile() {
                     {desktopPanel === "password" && (
                       <div ref={passwordRef}>
                         <PasswordPanel
-                          baseURL={baseURL}
+                          
                           onClose={() => setDesktopPanel(null)}
                         />
                       </div>

@@ -6,9 +6,9 @@ import {
   Circle, Triangle, BarChart2, ClipboardList
 } from "lucide-react";
 import LoaderAnalysis from "./LoaderAnalysis";
+import api from "../api/axios";
 
 export default function AttemptAnalytics() {
-  const baseURL = import.meta.env.VITE_API_BASE_URL;
   const { testId, attemptNumber } = useParams();
   const navigate = useNavigate();
 
@@ -48,12 +48,7 @@ export default function AttemptAnalytics() {
     const fetchAnalysis = async () => {
       setLoading(true);
       try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`${baseURL}/student/test-analysis/${testId}/attempt/${attemptNumber}`, {
-          method: 'GET',
-          headers: { "Authorization": `Bearer ${token}` }
-        });
-        const result = await res.json();
+        const { data: result } = await api.get(`/student/test-analysis/${testId}/attempt/${attemptNumber}`);
         setData(result);
       } catch (err) {
         console.error(err);
@@ -62,7 +57,7 @@ export default function AttemptAnalytics() {
       }
     };
     fetchAnalysis();
-  }, [testId, attemptNumber, baseURL]);
+  }, [testId, attemptNumber]);
 
   const scrollToSubject = (name) => {
     setViewMode("questions");

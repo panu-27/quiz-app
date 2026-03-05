@@ -30,14 +30,14 @@ export default function StudentHeader() {
       <a href="/student" className="flex items-center">
         {/* Desktop / Tablet */}
         <img
-          src="/icon-512.png"
+          src="./icon-512.png"
           alt="Nexus"
           className="hidden sm:block h-8 sm:h-12 md:h-14 w-auto object-contain"
         />
 
         {/* Mobile */}
         <img
-          src="/icon-512.png"
+          src="./icon-512.png"
           alt="Nexus"
           className="block sm:hidden h-12 w-auto object-contain"
         />

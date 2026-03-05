@@ -123,6 +123,15 @@ export default function StudentDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  const resolveMediaUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith('http') || url.startsWith('data:') || url.startsWith('blob:')) return url;
+    const base = window.__API_URL__
+      ? window.__API_URL__.replace(/\/api$/, '')
+      : (import.meta.env.VITE_API_BASE_URL || '').replace(/\/api$/, '');
+    return `${base}${url}`;
+  };
+
   const [tests, setTests] = useState([]);
   const [testsLoading, setTestsLoading] = useState(true);
 
@@ -241,7 +250,7 @@ export default function StudentDashboard() {
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-100 flex items-center justify-center">
               {user?.profilePic
-                ? <img src={user.profilePic} alt="Profile" className="w-full h-full object-cover" />
+                ? <img src={resolveMediaUrl(user.profilePic)} alt="Profile" className="w-full h-full object-cover" />
                 : <div className="text-[#7A41F7] font-bold text-lg">{user?.name?.charAt(0)?.toUpperCase() || "S"}</div>
               }
             </div>
@@ -317,7 +326,7 @@ export default function StudentDashboard() {
               <div className="mt-5 px-7 py-2.5 bg-white text-[#7A41F7] rounded-full text-sm font-bold shadow-md inline-block">Start Quiz</div>
             </div>
             <div className="absolute right-[-5%] top-28 -translate-y-1/2 w-44 h-44 rounded-full bg-white/15 z-0" />
-            <img src="/student/tests.svg" alt="Quiz illustration" className="absolute right-2 bottom-2 w-32 z-10 object-contain" />
+            <img src="./student/tests.svg" alt="Quiz illustration" className="absolute right-2 bottom-2 w-32 z-10 object-contain" />
           </div>
         </div>
 
@@ -458,7 +467,7 @@ export default function StudentDashboard() {
               </div>
               <div className="absolute right-[-3%] top-1/2 -translate-y-1/2 w-72 h-72 rounded-full bg-white/10 z-0" />
               <div className="absolute right-[-6%] top-1/2 -translate-y-1/2 w-52 h-52 rounded-full bg-white/10 z-0" />
-              <img src="/student/tests.svg" alt="Quiz illustration" className="absolute right-8 bottom-0 w-44 z-10 object-contain" />
+              <img src="./student/tests.svg" alt="Quiz illustration" className="absolute right-8 bottom-0 w-44 z-10 object-contain" />
             </div>
 
             {/* Top Rank Card */}

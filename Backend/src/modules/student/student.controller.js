@@ -221,3 +221,25 @@ export const getMyLibrary = async (req, res) => {
     res.status(400).json({ message: err.message });
   }
 };
+
+
+// ADD THIS TO student.controller.js
+export const updateAvatar = async (req, res) => {
+  try {
+    // Check if the file was successfully uploaded to Cloudinary
+    if (!req.file || !req.file.path) {
+      return res.status(400).json({ message: "File upload to cloud failed" });
+    }
+
+    // Call the service with the new Cloudinary URL
+    const updatedUser = await service.updateProfilePic(req.user.id, req.file.path);
+    
+    res.json({ 
+      success: true,
+      message: "Profile picture updated successfully", 
+      profilePic: updatedUser.profilePic 
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

@@ -229,16 +229,13 @@ export default function EliteLeaderboard() {
 
   const userRankRef = useRef(null);
   const desktopUserRef = useRef(null);
-  const baseURL = import.meta.env.VITE_API_BASE_URL;
 
   useEffect(() => {
     let cancelled = false;
     async function fetchData() {
       setLoading(true);
       try {
-        const token = localStorage.getItem("token");
-        const res = await api.get(`${baseURL}/leaderboard/stats/all`, { headers: { Authorization: `Bearer ${token}` } });
-        const data = res.data;
+        const { data } = await api.get("/leaderboard/stats/all");
         if (!cancelled) {
           setAllRanks(Array.isArray(data) && data.length > 0 ? data : FALLBACK_DATA);
           setUsingFallback(!Array.isArray(data) || data.length === 0);
