@@ -351,6 +351,7 @@ export const generateCustomTest = async (teacher, testId) => {
             return {
               questionId: q._id,
               questionText: q.text,
+              questionImage: q.image || null,
               options: formattedOptions,
               correctAnswer: parseInt(q.answer, 10), // ✅ USE INDEX DIRECTLY
               explanation: q.explanation || ""

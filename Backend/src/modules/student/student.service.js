@@ -40,6 +40,7 @@ export const getMyTests = async (jwtUser) => {
 
 /* ---------------- START ATTEMPT SERVICE ---------------- */
 export const startAttempt = async (student, testId) => {
+    console.log("Starting attempt for student:", student.id || student._id, "Test ID:", testId);
 
     const test = await Test.findById(testId).lean();
 
@@ -123,6 +124,7 @@ export const startAttempt = async (student, testId) => {
             questions: section.questions.map(q => ({
                 questionId: q.questionId,
                 questionText: q.questionText,
+                questionImage: q.questionImage || null,
                 options: q.options,
                 correctAnswer: q.correctAnswer,
                 chosenOption: -1,

@@ -7,338 +7,455 @@ import QuestionSidebar from "./TestEnvironment/QuestionSidebar";
 import ExamFooter from "./TestEnvironment/ExamFooter";
 import ModalComponent from "./TestEnvironment/ModalComponent";
 import ExamLobby from "./TestEnvironment/ExamLobby";
-import { Menu } from "lucide-react";
+import ViolationModal from "./TestEnvironment/ViolationModal";
+import { useViolations } from "./TestEnvironment/ViolationContext";
+import { Menu, Lock } from "lucide-react";
+
+/*
+  BLOCK / SECTION LOCKING RULES
+  • While block1 timer > 0  → block2 sections are LOCKED
+  • Once activeBlock moves to 1 → block1 sections are LOCKED (no going back)
+*/
 
 export default function TestAttempt() {
   const { testId } = useParams();
-  const navigate = useNavigate();
+  const navigate   = useNavigate();
+  const { getViolations, addViolation, clearViolations, MAX_VIOLATIONS } = useViolations();
 
-  /* ================= NESTED STATE (The Snapshot) ================= */
-  const [blocks, setBlocks] = useState([]);
-  const [sectionBlock, setSectionBlock] = useState("block1");
+  /* ── Core Data ── */
+  const [blocks,        setBlocks]        = useState([]);
+  const [activeBlock,   setActiveBlock]   = useState(0);
   const [activeSubject, setActiveSubject] = useState(null);
-  const [index, setIndex] = useState(0);
+  const [qIndex,        setQIndex]        = useState(0);
 
-  /* ================= APP STATE ================= */
-  const [examStarted, setExamStarted] = useState(false);
-  const [hasSubmitted, setHasSubmitted] = useState(false);
-  const [timers, setTimers] = useState({ block1: 0, block2: 0 });
-  const [initialTimes, setInitialTimes] = useState({ block1: 0, block2: 0 });
-  const [testTitle, setTestTitle] = useState("Assessment");
-  const [modal, setModal] = useState(null);
-  const [isSecureMode, setIsSecureMode] = useState(false);
+  /* ── App State ── */
+  const [examStarted,   setExamStarted]   = useState(false);
+  const [isLoading,     setIsLoading]     = useState(false);   // loading after "I'm ready"
+  const [hasSubmitted,  setHasSubmitted]  = useState(false);
+  const [testTitle,     setTestTitle]     = useState("Assessment");
+  const [startError,    setStartError]    = useState(null);
+  const [modal,         setModal]         = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [startError, setStartError] = useState(null);
 
-  // ── per-question mark & visited maps ──────────────────────────────
-  const [marked, setMarked] = useState({});
+  /* ── Timers ── */
+  const [timers,       setTimers]       = useState([0, 0]);
+  const timersRef      = useRef([0, 0]);
+  const initialTimers  = useRef([0, 0]);
+
+  /* ── Per-question state ── */
+  const [marked,  setMarked]  = useState({});
   const [visited, setVisited] = useState({});
 
-  const submitLock = useRef(false);
-  const timersRef = useRef({ block1: 0, block2: 0 });
+  /* ── Violation state ── */
+  const [violationModal,    setViolationModal]    = useState(null);
+  const violationBlockedRef = useRef(false);
+  const examActiveRef       = useRef(false);
+  const hasSubmittedRef     = useRef(false);
+  const submitLock          = useRef(false);
+
+  /* refs that timer tick reads without stale closure */
+  const activeBlockRef = useRef(activeBlock);
+  const blocksRef      = useRef(blocks);
 
   const user = JSON.parse(localStorage.getItem("user") || "null");
 
-  /* ================= 1. DATA HYDRATION ================= */
-  useEffect(() => {
-    api.post(`/student/attempt/start/${testId}`)
-      .then(res => {
-        const { blocks: incomingBlocks, testTitle: title, blockTimers } = res.data;
-        setBlocks(incomingBlocks);
-        setTestTitle(title || "Assessment");
+  /* keep refs in sync */
+  useEffect(() => { examActiveRef.current   = examStarted;  }, [examStarted]);
+  useEffect(() => { hasSubmittedRef.current = hasSubmitted; }, [hasSubmitted]);
+  useEffect(() => { activeBlockRef.current  = activeBlock;  }, [activeBlock]);
+  useEffect(() => { blocksRef.current       = blocks;       }, [blocks]);
 
-        // ✅ Use server-calculated per-block timers — correct even after refresh
-        const times = {};
-        incomingBlocks.forEach((b, i) => {
-          const key = `block${i + 1}`;
-          times[key] = blockTimers?.[key] ?? (b.duration || 0) * 60;
-        });
+  /* ═══════════════════════════════════════════════════════════════
+     1. DATA HYDRATION — only fires when user clicks "I am ready to begin"
+        enterFullscreen() calls this
+     ═══════════════════════════════════════════════════════════════ */
+  const startExam = useCallback(async () => {
+    setIsLoading(true);
+    setStartError(null);
+    try {
+      const res = await api.post(`/student/attempt/start/${testId}`);
+      const { blocks: incoming, testTitle: title, blockTimers } = res.data;
 
-        setTimers(times);
-        timersRef.current = times;
-        setInitialTimes(times);
+      setBlocks(incoming);
+      setTestTitle(title || "Assessment");
 
-        // ✅ Restore active block on refresh
-        // If block1 is already 0 and block2 has time remaining → jump straight to block2
-        if ((blockTimers?.block1 ?? 1) === 0 && (blockTimers?.block2 ?? 0) > 0) {
-          setSectionBlock("block2");
-          const block2 = incomingBlocks[1];
-          if (block2?.sections?.length > 0) {
-            setActiveSubject(block2.sections[0].subjectName);
-          }
-        }
-      })
-      .catch(err => {
-        const message = err.response?.data?.message || "Unable to start test. Please try again.";
-        setStartError(message);
+      const t = incoming.map((b, i) => {
+        const key = `block${i + 1}`;
+        return blockTimers?.[key] ?? (b.duration || 0) * 60;
       });
+
+      setTimers(t);
+      timersRef.current    = [...t];
+      initialTimers.current = [...t];
+
+      // Resume in block2 if block1 already expired (page reload mid-exam)
+      if (t[0] === 0 && (t[1] ?? 0) > 0 && incoming.length > 1) {
+        setActiveBlock(1);
+        const sub = incoming[1]?.sections?.[0]?.subjectName;
+        if (sub) setActiveSubject(sub);
+      } else {
+        const sub = incoming[0]?.sections?.[0]?.subjectName;
+        if (sub) setActiveSubject(sub);
+      }
+
+      setExamStarted(true);
+    } catch (err) {
+      const msg = err.response?.data?.message || "Unable to start test. Please try again.";
+      setStartError(msg);
+    } finally {
+      setIsLoading(false);
+    }
   }, [testId]);
 
-  /* ================= 2. CALCULATED POINTERS ================= */
+  /* ═══════════════════════════════════════════════════════════════
+     2. DERIVED STATE
+     ═══════════════════════════════════════════════════════════════ */
   const currentSubjectQs = useMemo(() => {
-    if (!blocks.length || !activeSubject) return [];
-    const blockIndex = sectionBlock === "block1" ? 0 : 1;
-    const currentBlock = blocks[blockIndex];
-    if (!currentBlock) return [];
-    const section = currentBlock.sections.find(s => s.subjectName === activeSubject);
-    return section ? section.questions : [];
-  }, [blocks, sectionBlock, activeSubject]);
+    const block = blocks[activeBlock];
+    if (!block || !activeSubject) return [];
+    return block.sections.find(s => s.subjectName === activeSubject)?.questions ?? [];
+  }, [blocks, activeBlock, activeSubject]);
 
-  const q = currentSubjectQs[index];
-
+  // Build answers map from questions that have a valid chosenOption
   const answers = useMemo(() => {
     const map = {};
-    currentSubjectQs.forEach(question => {
-      const c = question.chosenOption;
-      if (c !== undefined && c !== null && c !== -1 && !isNaN(c)) {
-        map[question.questionId] = c;
+    currentSubjectQs.forEach(q => {
+      const c = q.chosenOption;
+      if (c !== undefined && c !== null && c !== -1 && !isNaN(Number(c))) {
+        map[q.questionId] = c;
       }
     });
     return map;
   }, [currentSubjectQs]);
 
-  /* ================= 3. STATE UPDATER (Deep Update) ================= */
+  const currentQ = currentSubjectQs[qIndex] ?? null;
+
+  const hasBlock2      = blocks.length > 1;
+  const isBlock2Locked = hasBlock2 && (timers[0] ?? 0) > 0;
+  const isBlock1Locked = activeBlock === 1;
+
+  const block1Subjects = blocks[0]?.sections?.map(s => s.subjectName) ?? [];
+  const block2Subjects = hasBlock2 ? (blocks[1]?.sections?.map(s => s.subjectName) ?? []) : [];
+
+  /* ═══════════════════════════════════════════════════════════════
+     3. VISITED TRACKING
+     ═══════════════════════════════════════════════════════════════ */
+  useEffect(() => {
+    if (currentQ?.questionId) {
+      setVisited(prev => ({ ...prev, [currentQ.questionId]: true }));
+    }
+  }, [currentQ?.questionId]);
+
+  /* ═══════════════════════════════════════════════════════════════
+     4. DEEP STATE UPDATER
+     ═══════════════════════════════════════════════════════════════ */
   const updateChosenOption = useCallback((questionId, optionIndex) => {
-    setBlocks(prevBlocks =>
-      prevBlocks.map(block => ({
+    setBlocks(prev =>
+      prev.map(block => ({
         ...block,
         sections: block.sections.map(section => ({
           ...section,
-          questions: section.questions.map(question =>
-            question.questionId === questionId
-              ? { ...question, chosenOption: optionIndex }
-              : question
-          )
-        }))
+          questions: section.questions.map(q =>
+            q.questionId === questionId ? { ...q, chosenOption: optionIndex } : q
+          ),
+        })),
       }))
     );
   }, []);
 
-  useEffect(() => {
-    if (q?.questionId) {
-      setVisited(prev => ({ ...prev, [q.questionId]: true }));
-    }
-  }, [q?.questionId]);
-
-  /* ================= MARK & CLEAR HANDLERS ================= */
+  /* ═══════════════════════════════════════════════════════════════
+     5. MARK & CLEAR
+     Fixed: mark toggles mark state only (no auto-advance for unmark)
+            mark for review always advances to next question
+            unmark stays on current question
+     ═══════════════════════════════════════════════════════════════ */
   const handleMark = useCallback(() => {
-    if (!q?.questionId) return;
-    setMarked(prev => ({ ...prev, [q.questionId]: !prev[q.questionId] }));
-    setIndex(prev => Math.min(currentSubjectQs.length - 1, prev + 1));
-  }, [q, currentSubjectQs.length]);
+    if (!currentQ?.questionId) return;
+    const id = currentQ.questionId;
+    const isCurrentlyMarked = !!marked[id];
+
+    if (isCurrentlyMarked) {
+      // Unmark — just toggle, stay on current question
+      setMarked(prev => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+    } else {
+      // Mark for review — toggle and advance to next
+      setMarked(prev => ({ ...prev, [id]: true }));
+      setQIndex(prev => Math.min(currentSubjectQs.length - 1, prev + 1));
+    }
+  }, [currentQ, currentSubjectQs.length, marked]);
 
   const handleClear = useCallback(() => {
-    if (!q?.questionId) return;
-    updateChosenOption(q.questionId, -1);
-  }, [q, updateChosenOption]);
+    if (!currentQ?.questionId) return;
+    updateChosenOption(currentQ.questionId, -1);
+  }, [currentQ, updateChosenOption]);
 
-  /* ================= 4. AUTOSAVE HEARTBEAT (Every 30s) ================= */
-  useEffect(() => {
-    if (!examStarted || hasSubmitted) return;
-
-    const interval = setInterval(async () => {
-      const answersForAPI = [];
-      blocks.forEach(b =>
-        b.sections.forEach(s =>
-          s.questions.forEach(question => {
-            const chosen = question.chosenOption;
-            answersForAPI.push({
-              questionId: question.questionId,
-              selectedOption:
-                chosen === undefined || chosen === null || isNaN(chosen) ? -1 : chosen,
-            });
-          })
-        )
-      );
-
-      try {
-        await api.post(`/student/submit/${testId}`, {
-          answers: answersForAPI,
-          timeTaken: 0,
-          isFinal: false
-        });
-        console.log("[AUTOSAVE] Progress saved at", new Date().toLocaleTimeString());
-      } catch (err) {
-        console.error("[AUTOSAVE FAILED]", err.response?.data || err.message);
-      }
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, [examStarted, hasSubmitted, testId, blocks]);
-
-  /* ================= 5. SUBMISSION LOGIC ================= */
-  const handleSubmit = useCallback(async (isAuto = false) => {
-    if (submitLock.current) return;
-
-    const performSubmit = async (silent = false) => {
-      submitLock.current = true;
-
-      const totalAllotted = (initialTimes.block1 || 0) + (initialTimes.block2 || 0);
-      const totalRemaining = (timersRef.current.block1 || 0) + (timersRef.current.block2 || 0);
-      const timeTaken = Math.max(totalAllotted - totalRemaining, 0);
-
-      const answersForAPI = [];
-      blocks.forEach(b =>
-        b.sections.forEach(s =>
-          s.questions.forEach(question => {
-            const chosen = question.chosenOption;
-            answersForAPI.push({
-              questionId: question.questionId,
-              selectedOption:
-                chosen === undefined || chosen === null || isNaN(chosen) ? -1 : chosen,
-            });
-          })
-        )
-      );
-
-      console.log("[SUBMIT] Sending", answersForAPI.length, "answers | timeTaken:", timeTaken);
-
-      try {
-        await api.post(`/student/submit/${testId}`, {
-          answers: answersForAPI,
-          timeTaken,
-          isFinal: true
-        });
-        setHasSubmitted(true);
-        console.log("[SUBMIT SUCCESS] timeTaken:", timeTaken);
-
-        if (!silent) {
-          setModal({
-            type: "score",
-            title: "Exam Completed",
-            message: "Your responses have been secured.",
-            onConfirm: () => navigate("/student"),
-            onCancel: () => navigate("/student"),
-          });
-        } else {
-          console.log("[AUTO-SUBMIT] Silent submission complete. Redirecting...");
-          navigate("/student");
-        }
-      } catch (err) {
-        submitLock.current = false;
-        console.error("[SUBMIT ERROR]", err.response?.data || err.message);
-        if (!silent) {
-          setModal({
-            type: "error",
-            title: "Submission Error",
-            message: "Failed to submit. Please check your connection.",
-            onConfirm: () => setModal(null),
-            onCancel: () => setModal(null),
-          });
-        }
-      }
-    };
-
-    if (isAuto) {
-      console.log("[AUTO-SUBMIT] Timer expired — submitting silently...");
-      performSubmit(true);
+  /* ═══════════════════════════════════════════════════════════════
+     6. NAVIGATION — with lock guards
+     ═══════════════════════════════════════════════════════════════ */
+  const navigateToSubject = useCallback((blockIndex, subjectName) => {
+    if (blockIndex === 0 && isBlock1Locked) {
+      setModal({
+        type: "error",
+        title: "Section 1 Locked",
+        message: "You have already moved to Section 2. Section 1 is now locked.",
+        onConfirm: () => setModal(null),
+        onCancel:  () => setModal(null),
+      });
       return;
     }
-
-    setModal({
-      type: "confirm",
-      title: "End Test?",
-      message: "Are you sure you want to submit the test? You cannot change answers after submission.",
-      onConfirm: () => performSubmit(false),
-      onCancel: () => setModal(null),
-    });
-  }, [blocks, initialTimes, testId, navigate]);
-
-  /* ================= 6. INITIAL SUBJECT SETUP ================= */
-  useEffect(() => {
-    if (blocks.length > 0 && !activeSubject) {
-      const blockIndex = sectionBlock === "block1" ? 0 : 1;
-      const currentBlock = blocks[blockIndex];
-      if (currentBlock?.sections?.length > 0) {
-        setActiveSubject(currentBlock.sections[0].subjectName);
-      }
-    }
-  }, [blocks, activeSubject, sectionBlock]);
-
-  /* ================= 7. TIMER, AUTO-SUBMIT & BLOCK TRANSITION ================= */
-  useEffect(() => {
-    if (!examStarted || hasSubmitted) return;
-
-    const timerId = setInterval(() => {
-      setTimers(prev => {
-        const newVal = Math.max(prev[sectionBlock] - 1, 0);
-        const updated = { ...prev, [sectionBlock]: newVal };
-
-        timersRef.current = updated;
-
-        // ── Block1 expired → auto-transition to block2 ────────────────
-        if (newVal === 0 && sectionBlock === "block1" && (updated.block2 ?? 0) > 0) {
-          setSectionBlock("block2");
-          const block2 = blocks[1];
-          if (block2?.sections?.length > 0) {
-            setActiveSubject(block2.sections[0].subjectName);
-            setIndex(0);
-          }
-        }
-
-        // ── All time expired → auto-submit ────────────────────────────
-        if (newVal === 0 && (sectionBlock === "block2" || (updated.block2 ?? 0) === 0)) {
-          clearInterval(timerId);
-          handleSubmit(true);
-        }
-
-        return updated;
+    if (blockIndex === 1 && isBlock2Locked) {
+      setModal({
+        type: "error",
+        title: "Section 2 Locked",
+        message: "Section 2 is locked until Section 1 time expires.",
+        onConfirm: () => setModal(null),
+        onCancel:  () => setModal(null),
       });
-    }, 1000);
+      return;
+    }
+    setActiveBlock(blockIndex);
+    setActiveSubject(subjectName);
+    setQIndex(0);
+  }, [isBlock1Locked, isBlock2Locked]);
 
-    return () => clearInterval(timerId);
-  }, [examStarted, sectionBlock, hasSubmitted, blocks, handleSubmit]);
-
-  /* ================= DERIVED VALUES ================= */
-  const isBlock1 = sectionBlock === "block1";
-  const hasBlock2 = blocks.length > 1;
-
-  // ✅ Block2 is locked as long as block1 timer is still running
-  const isBlock2Locked = hasBlock2 && timers.block1 > 0;
-
-  /* ================= BLOCK TRANSITION LOGIC (Manual) ================= */
-  const handleMoveToSection = useCallback(() => {
-    // ✅ Hard guard — block2 cannot be entered while block1 is running
+  const handleMoveToBlock2 = useCallback(() => {
     if (isBlock2Locked) {
       setModal({
         type: "error",
-        title: "Section Locked",
-        message: "You cannot move to the next section until the current section's time expires.",
+        title: "Section 2 Locked",
+        message: "You cannot move to Section 2 until Section 1 time expires.",
         onConfirm: () => setModal(null),
-        onCancel: () => setModal(null),
+        onCancel:  () => setModal(null),
       });
       return;
     }
-
     setModal({
       type: "confirm",
-      title: "Move to Next Section?",
-      message: "You will move to the next section. You cannot return to this section.",
+      title: "Move to Section 2?",
+      message: "You will move to Section 2. You CANNOT return to Section 1 after this.",
       onConfirm: () => {
-        setSectionBlock("block2");
-        const block2 = blocks[1];
-        if (block2?.sections?.length > 0) {
-          setActiveSubject(block2.sections[0].subjectName);
-          setIndex(0);
-        }
+        setActiveBlock(1);
+        const sub = blocks[1]?.sections?.[0]?.subjectName;
+        if (sub) setActiveSubject(sub);
+        setQIndex(0);
         setModal(null);
       },
       onCancel: () => setModal(null),
     });
   }, [blocks, isBlock2Locked]);
 
+  /* ═══════════════════════════════════════════════════════════════
+     7. BUILD ANSWERS PAYLOAD
+     ═══════════════════════════════════════════════════════════════ */
+  const buildPayload = useCallback((blocksData) => {
+    const out = [];
+    blocksData.forEach(b =>
+      b.sections.forEach(s =>
+        s.questions.forEach(q => {
+          const c = q.chosenOption;
+          out.push({
+            questionId: q.questionId,
+            selectedOption: (c === undefined || c === null || isNaN(Number(c)) || c === -1) ? -1 : c,
+          });
+        })
+      )
+    );
+    return out;
+  }, []);
+
+  /* ═══════════════════════════════════════════════════════════════
+     8. AUTOSAVE (every 30s)
+     ═══════════════════════════════════════════════════════════════ */
+  useEffect(() => {
+    if (!examStarted || hasSubmitted) return;
+    const id = setInterval(async () => {
+      try {
+        await api.post(`/student/submit/${testId}`, {
+          answers: buildPayload(blocksRef.current),
+          timeTaken: 0,
+          isFinal: false,
+        });
+        console.log("[AUTOSAVE]", new Date().toLocaleTimeString());
+      } catch (err) {
+        console.error("[AUTOSAVE FAILED]", err.response?.data || err.message);
+      }
+    }, 30_000);
+    return () => clearInterval(id);
+  }, [examStarted, hasSubmitted, testId, buildPayload]);
+
+  /* ═══════════════════════════════════════════════════════════════
+     9. SUBMISSION
+     ═══════════════════════════════════════════════════════════════ */
+  const performSubmit = useCallback(async (silent = false) => {
+    if (submitLock.current) return;
+    submitLock.current = true;
+
+    const allotted  = initialTimers.current.reduce((a, v) => a + v, 0);
+    const remaining = timersRef.current.reduce((a, v) => a + v, 0);
+    const timeTaken = Math.max(allotted - remaining, 0);
+
+    try {
+      await api.post(`/student/submit/${testId}`, {
+        answers: buildPayload(blocksRef.current),
+        timeTaken,
+        isFinal: true,
+      });
+      setHasSubmitted(true);
+      clearViolations(testId);
+      if (!silent) {
+        setModal({
+          type: "score",
+          title: "Exam Completed",
+          message: "Your responses have been secured.",
+          onConfirm: () => navigate("/student"),
+          onCancel:  () => navigate("/student"),
+        });
+      } else {
+        navigate("/student");
+      }
+    } catch (err) {
+      submitLock.current = false;
+      console.error("[SUBMIT ERROR]", err.response?.data || err.message);
+      if (!silent) {
+        setModal({
+          type: "error",
+          title: "Submission Error",
+          message: "Failed to submit. Please check your connection.",
+          onConfirm: () => setModal(null),
+          onCancel:  () => setModal(null),
+        });
+      }
+    }
+  }, [testId, navigate, clearViolations, buildPayload]);
+
+  const handleSubmit = useCallback((isAuto = false) => {
+    if (submitLock.current) return;
+    if (isAuto) { performSubmit(true); return; }
+    setModal({
+      type: "confirm",
+      title: "End Test?",
+      message: "Are you sure you want to submit? You cannot change answers after submission.",
+      onConfirm: () => performSubmit(false),
+      onCancel:  () => setModal(null),
+    });
+  }, [performSubmit]);
+
+  /* ═══════════════════════════════════════════════════════════════
+     10. TIMER
+     ═══════════════════════════════════════════════════════════════ */
+  useEffect(() => {
+    if (!examStarted || hasSubmitted) return;
+    const id = setInterval(() => {
+      setTimers(prev => {
+        const cur = activeBlockRef.current;
+        if ((prev[cur] ?? 0) <= 0) return prev;
+        const next = [...prev];
+        next[cur] = prev[cur] - 1;
+        timersRef.current = next;
+        return next;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [examStarted, hasSubmitted]);
+
+  /* React to a block timer hitting 0 */
+  useEffect(() => {
+    if (!examStarted || hasSubmitted) return;
+    const t = timers[activeBlock];
+    if (t !== 0) return;
+
+    if (activeBlock === 0 && hasBlock2 && (timers[1] ?? 0) > 0) {
+      console.log("[TIMER] Block1 expired → moving to Block2");
+      setActiveBlock(1);
+      const sub = blocksRef.current[1]?.sections?.[0]?.subjectName;
+      if (sub) setActiveSubject(sub);
+      setQIndex(0);
+    } else if (activeBlock === 1 || !hasBlock2) {
+      console.log("[TIMER] All blocks expired → auto-submit");
+      handleSubmit(true);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timers, activeBlock]);
+
+  /* ═══════════════════════════════════════════════════════════════
+     11. VIOLATION DETECTION
+     ═══════════════════════════════════════════════════════════════ */
+  const handleViolation = useCallback((type = 'tab_switch') => {
+    if (!examActiveRef.current)      return;
+    if (hasSubmittedRef.current)     return;
+    if (violationBlockedRef.current) return;
+    if (submitLock.current)          return;
+
+    violationBlockedRef.current = true;
+    const currentCount = getViolations(testId).count;
+    const newCount = currentCount + 1;
+    addViolation(testId, type);
+    console.log(`[VIOLATION] #${newCount} — ${type}`);
+
+    if (newCount > MAX_VIOLATIONS) {
+      console.log("[VIOLATION] MAX exceeded → auto-submit");
+      handleSubmit(true);
+      violationBlockedRef.current = false;
+      return;
+    }
+    setViolationModal({ type, count: newCount });
+  }, [testId, getViolations, addViolation, MAX_VIOLATIONS, handleSubmit]);
+
+  const dismissViolationModal = useCallback(() => {
+    setViolationModal(null);
+    setTimeout(() => { violationBlockedRef.current = false; }, 600);
+  }, []);
+
+  useEffect(() => {
+    if (!examStarted || hasSubmitted) return;
+    const onVis  = () => { if (document.visibilityState === 'hidden') handleViolation('visibility'); };
+    const onBlur = () => { setTimeout(() => { if (!document.hasFocus()) handleViolation('window_blur'); }, 200); };
+    const onCtx  = (e) => { e.preventDefault(); handleViolation('right_click'); };
+    const onCP   = (e) => { e.preventDefault(); handleViolation('copy_paste'); };
+    const onKey  = (e) => {
+      const banned = [
+        e.key === 'PrintScreen',
+        e.key === 'F12',
+        (e.ctrlKey || e.metaKey) && e.shiftKey && ['I','J','C'].includes(e.key.toUpperCase()),
+        (e.ctrlKey || e.metaKey) && e.key.toUpperCase() === 'U',
+        e.altKey && e.key === 'Tab',
+      ];
+      if (banned.some(Boolean)) { e.preventDefault(); handleViolation('devtools'); }
+    };
+    document.addEventListener('visibilitychange', onVis);
+    window.addEventListener('blur', onBlur);
+    document.addEventListener('contextmenu', onCtx);
+    ['copy','cut','paste'].forEach(ev => document.addEventListener(ev, onCP));
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('visibilitychange', onVis);
+      window.removeEventListener('blur', onBlur);
+      document.removeEventListener('contextmenu', onCtx);
+      ['copy','cut','paste'].forEach(ev => document.removeEventListener(ev, onCP));
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [examStarted, hasSubmitted, handleViolation]);
+
+  /* ═══════════════════════════════════════════════════════════════
+     12. EXIT
+     ═══════════════════════════════════════════════════════════════ */
   const exitApp = useCallback(() => {
     setModal({
       type: "confirm",
       title: "Exit Exam?",
       message: "Your progress will be saved. Are you sure you want to exit?",
       onConfirm: () => navigate("/student"),
-      onCancel: () => setModal(null),
+      onCancel:  () => setModal(null),
     });
   }, [navigate]);
 
-  /* ================= RENDERING ================= */
-
+  /* ─────────────────────────────────────────────────────────────────
+     EARLY RETURNS
+     ───────────────────────────────────────────────────────────────── */
   if (startError) {
     return (
       <div className="h-screen flex items-center justify-center bg-white font-sans">
@@ -359,117 +476,168 @@ export default function TestAttempt() {
     );
   }
 
+  // Show lobby until user clicks "I am ready to begin"
   if (!examStarted) {
     return (
       <ExamLobby
         testTitle={testTitle}
         userName={user?.name}
-        enterFullscreen={() => {
-          setExamStarted(true);
-          setIsSecureMode(true);
-        }}
+        enterFullscreen={startExam}     // ← API fires HERE, not on mount
+        isLoading={isLoading}
         exitApp={() => navigate("/student")}
       />
     );
   }
 
-  if (!q) return <div className="p-20 text-center text-gray-500">Loading Questions...</div>;
+  // Loading spinner while API is in flight after clicking ready
+  if (isLoading || blocks.length === 0) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-white gap-4">
+        <div className="w-8 h-8 border-4 border-[#337ab7] border-t-transparent rounded-full animate-spin" />
+        <p className="text-gray-500 text-sm font-medium">Loading your exam…</p>
+      </div>
+    );
+  }
 
-  // Only subjects from the currently active block
-  const currentSubjects = blocks[isBlock1 ? 0 : 1]?.sections.map(s => s.subjectName) || [];
+  if (!currentQ) {
+    return (
+      <div className="h-screen flex items-center justify-center text-gray-500 font-sans text-sm">
+        Loading Questions…
+      </div>
+    );
+  }
 
+  /* ─────────────────────────────────────────────────────────────────
+     SUBJECT TABS BAR
+     ───────────────────────────────────────────────────────────────── */
+  const currentViolationData = getViolations(testId);
+
+  const renderSubjectBtn = (blockIdx, sub, subIdx) => {
+    const isActive = activeBlock === blockIdx && activeSubject === sub;
+    const locked   = (blockIdx === 0 && isBlock1Locked) || (blockIdx === 1 && isBlock2Locked);
+
+    return (
+      <button
+        key={`${blockIdx}-${sub}`}
+        onClick={() => navigateToSubject(blockIdx, sub)}
+        title={locked ? (blockIdx === 1 ? "Locked — Section 1 still running" : "Section 1 is locked") : sub}
+        className={`flex items-center gap-1 transition-all whitespace-nowrap border font-semibold rounded-full
+          px-2 py-0.5 text-[11px] md:px-3 md:py-1 md:text-[12px]
+          ${isActive  ? 'bg-[#337ab7] border-[#2e6da4] text-white'
+          : locked    ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed'
+                      : 'bg-white border-gray-300 text-gray-700 hover:border-[#337ab7] hover:text-[#337ab7]'}`}
+      >
+        <span className={`w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center shrink-0
+          ${isActive ? 'bg-white text-[#337ab7]' : locked ? 'bg-gray-200 text-gray-400' : 'bg-gray-200 text-gray-600'}`}>
+          {locked ? <Lock size={7} /> : (subIdx + 1)}
+        </span>
+        <span>{sub}</span>
+      </button>
+    );
+  };
+
+  /* ─────────────────────────────────────────────────────────────────
+     MAIN RENDER
+     ───────────────────────────────────────────────────────────────── */
   return (
     <div className="h-screen flex flex-col bg-white overflow-hidden">
+
+      {/* Violation modal */}
+      {violationModal && (
+        <ViolationModal
+          violationCount={violationModal.count}
+          maxViolations={MAX_VIOLATIONS}
+          violationType={violationModal.type}
+          onDismiss={dismissViolationModal}
+        />
+      )}
+
+      {/* General modal */}
       {modal && <ModalComponent data={modal} />}
 
+      {/* Mobile sidebar backdrop */}
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+          className="fixed inset-0 z-[90] bg-black/40 lg:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
-      <div
-        className={`fixed top-0 right-0 h-full z-50 transform transition-transform duration-300 lg:hidden ${
-          isSidebarOpen ? "translate-x-0" : "translate-x-full"
-        }`}
-      >
+      {/* Mobile sidebar drawer */}
+      <div className={`fixed top-0 right-0 h-full z-[200] transform transition-transform duration-300 lg:hidden
+        ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
         <QuestionSidebar
           questions={currentSubjectQs}
-          currentIndex={index}
+          currentIndex={qIndex}
           answers={answers}
           marked={marked}
           visited={visited}
-          setIndex={i => {
-            setIndex(i);
-            setIsSidebarOpen(false);
-          }}
-          onFinish={() => {
-            setIsSidebarOpen(false);
-            handleSubmit(false);
-          }}
+          setIndex={i => { setQIndex(i); setIsSidebarOpen(false); }}
+          onFinish={() => { setIsSidebarOpen(false); handleSubmit(false); }}
+          violationCount={currentViolationData.count}
+          maxViolations={MAX_VIOLATIONS}
         />
       </div>
 
+      {/* ── Header: dark bar with timer + subject tabs in ONE row ── */}
       <ExamHeader
         testId={testId}
-        timer={timers[sectionBlock]}
-        activeSubject={activeSubject}
-        subjects={currentSubjects}
-        onSubjectChange={s => {
-          setActiveSubject(s);
-          setIndex(0);
-        }}
-        onMoveToSection={handleMoveToSection}
-        isBlock1={isBlock1}
+        timer={timers[activeBlock]}
+        onMoveToSection={handleMoveToBlock2}
+        isBlock1={activeBlock === 0}
         hasBlock2={hasBlock2}
-        isBlock2Locked={isBlock2Locked}   // ✅ header uses this to show lock icon / disable button
+        isBlock2Locked={isBlock2Locked}
         exitApp={exitApp}
+        // subject tab props for desktop single-row
+        block1Subjects={block1Subjects}
+        block2Subjects={block2Subjects}
+        activeBlock={activeBlock}
+        activeSubject={activeSubject}
+        isBlock1Locked={isBlock1Locked}
+        navigateToSubject={navigateToSubject}
+        answeredCount={Object.keys(answers).length}
+        totalCount={currentSubjectQs.length}
+        violationCount={currentViolationData.count}
+        maxViolations={MAX_VIOLATIONS}
+        onOpenSidebar={() => setIsSidebarOpen(true)}
+        qIndex={qIndex}
+        setQIndex={setQIndex}
+        currentSubjectQsLength={currentSubjectQs.length}
       />
 
-      <div className="lg:hidden flex items-center justify-between px-3 py-1.5 bg-gray-100 border-b border-gray-200 shrink-0">
-        <span className="text-[11px] text-gray-500 font-semibold">
-          Q{index + 1} of {currentSubjectQs.length} &nbsp;·&nbsp; {activeSubject}
-        </span>
-        <button
-          onClick={() => setIsSidebarOpen(true)}
-          className="flex items-center gap-1 text-[11px] font-bold text-[#337ab7] border border-[#337ab7] px-2 py-1"
-        >
-          <Menu className="w-3.5 h-3.5" />
-          Questions
-        </button>
-      </div>
-
+      {/* ── Main content ── */}
       <div className="flex-1 flex overflow-hidden">
         <main className="flex-1 flex flex-col overflow-hidden">
           <QuestionDisplay
-            question={q}
-            index={index}
-            currentAnswer={q.chosenOption}
-            setAnswer={val => updateChosenOption(q.questionId, val)}
+            question={currentQ}
+            index={qIndex}
+            currentAnswer={currentQ.chosenOption}
+            setAnswer={val => updateChosenOption(currentQ.questionId, val)}
             activeSubject={activeSubject}
             totalQuestions={currentSubjectQs.length}
           />
-
           <ExamFooter
-            onBack={() => setIndex(Math.max(0, index - 1))}
-            onNext={() => setIndex(Math.min(currentSubjectQs.length - 1, index + 1))}
+            onBack={() => setQIndex(prev => Math.max(0, prev - 1))}
+            onNext={() => setQIndex(prev => Math.min(currentSubjectQs.length - 1, prev + 1))}
             onMark={handleMark}
             onClear={handleClear}
-            isFirst={index === 0}
-            isMarked={!!(q?.questionId && marked[q.questionId])}
+            isFirst={qIndex === 0}
+            isMarked={!!(currentQ?.questionId && marked[currentQ.questionId])}
           />
         </main>
 
-        <aside className="w-80 border-l hidden lg:flex lg:flex-col">
+        {/* Desktop sidebar */}
+        <aside className="hidden lg:flex lg:flex-col" style={{ width: 280, borderLeft: '1px solid #e5e7eb' }}>
           <QuestionSidebar
             questions={currentSubjectQs}
-            currentIndex={index}
+            currentIndex={qIndex}
             answers={answers}
             marked={marked}
             visited={visited}
-            setIndex={setIndex}
+            setIndex={setQIndex}
             onFinish={() => handleSubmit(false)}
+            violationCount={currentViolationData.count}
+            maxViolations={MAX_VIOLATIONS}
           />
         </aside>
       </div>

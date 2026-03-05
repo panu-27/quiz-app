@@ -19,17 +19,26 @@ const sectionSchema = new mongoose.Schema({
   topics: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Topic' }],
   questions: {
     type:[{
-    // ✅ Add this to your schema so it's formally recognized
-    questionId: { type: mongoose.Schema.Types.ObjectId, default: () => new mongoose.Types.ObjectId() },
-    questionText: String,
-    options: [{
-      text: String,
-      image: String,
-      isImageOption: { type: Boolean, default: false }
+      // ✅ Add this to your schema so it's formally recognized
+      questionId: { type: mongoose.Schema.Types.ObjectId, default: () => new mongoose.Types.ObjectId() },
+      questionText: String,
+      questionImage: {
+        type: String,
+        default: null
+      },
+      options: [{
+        text: {
+          type : String ,
+          default : null 
+        },
+        image: {
+          type:String ,
+          default:null
+        },
+      }],
+      correctAnswer: Number,
+      explanation: String,
     }],
-    correctAnswer: Number,
-    explanation: String,  
-  }], 
     default: []
   }
 }, { _id: false });
@@ -51,10 +60,10 @@ const testSchema = new mongoose.Schema(
     // or a global limit for the whole session
     duration: { type: Number, required: true },
 
-    mode: { type: String, enum: ["CUSTOM", "PDF" , "CRAFTED"], required: true },
+    mode: { type: String, enum: ["CUSTOM", "PDF", "CRAFTED"], required: true },
     examType: {
       type: String,
-      enum: ["JEE", "NEET", "PCM" , "PCB" , "OTHER"],
+      enum: ["JEE", "NEET", "PCM", "PCB", "OTHER"],
       required: true
     },
     instituteId: { type: mongoose.Schema.Types.ObjectId, ref: "Institute", required: true },

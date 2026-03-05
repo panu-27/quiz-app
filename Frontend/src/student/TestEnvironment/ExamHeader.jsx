@@ -1,99 +1,166 @@
-import { ClockIcon, MonitorIcon, ChevronRight, PowerIcon, Maximize2 } from 'lucide-react';
+import { Clock, Power, Lock, ArrowRight, Menu } from 'lucide-react';
 import React from 'react';
 
-const ExamHeader = ({ 
-  testId, 
-  timer, 
-  activeSubject, 
-  subjects, 
-  onSubjectChange, 
-  onMoveToSection, 
-  isBlock1, 
-  hasBlock2, 
-  exitApp 
+/*
+  Desktop: ONE single row — logo | subject tabs (scrollable) | answered count | timer | exit
+  Mobile:  ONE single row — logo | timer | hamburger menu
+  Subject tabs are embedded in the header on desktop (not a separate bar)
+*/
+
+const ExamHeader = ({
+  timer,
+  onMoveToSection,
+  isBlock1,
+  hasBlock2,
+  isBlock2Locked,
+  exitApp,
+  // Subject tab props
+  block1Subjects = [],
+  block2Subjects = [],
+  activeBlock,
+  activeSubject,
+  isBlock1Locked,
+  navigateToSubject,
+  answeredCount,
+  totalCount,
+  violationCount = 0,
+  maxViolations = 5,
+  onOpenSidebar,
+  qIndex,
+  setQIndex,
+  currentSubjectQsLength,
 }) => {
-  const minutes = Math.floor(timer / 60);
-  const seconds = (timer % 60).toString().padStart(2, '0');
-  
-  // Logic to show exit only on desktop
-  const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1024;
+  const totalSec  = timer ?? 0;
+  const mins      = Math.floor(totalSec / 60);
+  const secs      = (totalSec % 60).toString().padStart(2, '0');
+  const isCrit    = totalSec > 0 && totalSec <= 60;
+
+  const renderSubjectBtn = (blockIdx, sub, subIdx) => {
+    const isActive = activeBlock === blockIdx && activeSubject === sub;
+    const locked   = (blockIdx === 0 && isBlock1Locked) || (blockIdx === 1 && isBlock2Locked);
+
+    return (
+      <button
+        key={`${blockIdx}-${sub}`}
+        onClick={() => navigateToSubject(blockIdx, sub)}
+        title={locked ? (blockIdx === 1 ? 'Locked — Section 1 still running' : 'Section 1 locked') : sub}
+        className={`flex items-center gap-1 whitespace-nowrap border font-semibold rounded-full transition-colors
+          px-2.5 py-1 text-[11px]
+          ${isActive
+            ? 'bg-[#337ab7] border-[#2e6da4] text-white'
+            : locked
+              ? 'bg-gray-700 border-gray-600 text-gray-500 cursor-not-allowed'
+              : 'bg-transparent border-gray-500 text-gray-300 hover:border-white hover:text-white'
+          }`}
+      >
+        <span className={`w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center shrink-0
+          ${isActive ? 'bg-white text-[#337ab7]' : locked ? 'bg-gray-600 text-gray-400' : 'bg-gray-600 text-gray-300'}`}>
+          {locked ? <Lock size={7} /> : subIdx + 1}
+        </span>
+        <span>{sub}</span>
+      </button>
+    );
+  };
 
   return (
-    <div className="flex flex-col shrink-0 select-none font-sans">
-      {/* 1. Primary Top Bar (Dark Slate) - Matches image_8140b0.png */}
-      <header className="h-10 mr-8 md:mr-0 bg-[#2d3436] flex items-center justify-between px-4 text-white">
-        <div className="flex items-center gap-3">
-          <MonitorIcon className="w-4 h-4 text-gray-400" />
-          <span className="text-[12px] font-bold tracking-tight uppercase">
-            MHT-CET Test: {testId?.slice(-4) || "02"}
-          </span>
+    <div className="shrink-0 select-none font-sans relative z-[100]">
+      {/* ── Single row ── */}
+      <div className="h-12 bg-[#242729] text-white flex items-center px-3 md:px-4 gap-3 border-b border-gray-800 shadow-md">
+
+        {/* LEFT: Logo (desktop) / Logo (mobile) */}
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="bg-[#337ab7] w-6 h-6 flex items-center justify-center rounded-sm shrink-0">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+            </svg>
+          </div>
+          <span className="text-[13px] font-bold tracking-tight hidden md:block">MHT CET</span>
         </div>
 
-        <div className="flex items-center gap-4">
-          {/* Section Transition Logic */}
-          {isBlock1 && hasBlock2 && (
-            <button 
-              onClick={onMoveToSection}
-              className="bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold px-3 py-1 rounded transition-colors uppercase mr-2"
-            >
-              Go to Next Section
-            </button>
+        {/* MIDDLE: Subject tabs — desktop only, scrollable */}
+        <div className="hidden md:flex flex-1 items-center gap-1.5 overflow-x-auto min-w-0" style={{ scrollbarWidth: 'none' }}>
+          {/* Prev question chevron */}
+          <button
+            onClick={() => setQIndex(prev => Math.max(0, prev - 1))}
+            disabled={qIndex === 0}
+            className={`shrink-0 p-1 rounded transition-colors ${qIndex === 0 ? 'opacity-30 cursor-not-allowed text-gray-500' : 'text-gray-300 hover:text-white'}`}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 18l-6-6 6-6"/>
+            </svg>
+          </button>
+
+          {block1Subjects.map((sub, i) => renderSubjectBtn(0, sub, i))}
+
+          {/* Block separator + move-to-section button */}
+          {hasBlock2 && (
+            <>
+              <div className="w-px h-5 bg-gray-600 mx-1 shrink-0" />
+              {block2Subjects.map((sub, i) => renderSubjectBtn(1, sub, i))}
+              {isBlock1 && (
+                <button
+                  onClick={onMoveToSection}
+                  disabled={isBlock2Locked}
+                  className={`shrink-0 p-1 rounded transition-colors ${isBlock2Locked ? 'text-gray-600 opacity-50 cursor-not-allowed' : 'text-yellow-400 hover:text-yellow-300'}`}
+                  title="Move to Section 2"
+                >
+                  {isBlock2Locked ? <Lock size={12} /> : <ArrowRight size={14} />}
+                </button>
+              )}
+            </>
           )}
 
-          <div className="flex items-center gap-4 border-l border-gray-600 pl-4">
-            {/* Fullscreen Icon from Screenshot */}
-            {/* Timer - Exactly like Screenshot 2026-01-30 164451.jpg */}
-            <div className="flex items-center gap-2 text-[14px] font-mono font-medium bg-[#3b4446] px-3 py-0.5 rounded border border-gray-600">
-              <ClockIcon className="w-3.5 h-3.5 text-gray-400" />
-              <span>{minutes.toString().padStart(2, '0')}:{seconds}</span>
-            </div>
+          <button
+            onClick={() => setQIndex(prev => Math.min(currentSubjectQsLength - 1, prev + 1))}
+            disabled={qIndex === currentSubjectQsLength - 1}
+            className={`shrink-0 p-1 rounded transition-colors ${qIndex === currentSubjectQsLength - 1 ? 'opacity-30 cursor-not-allowed text-gray-500' : 'text-gray-300 hover:text-white'}`}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
+          </button>
+        </div>
 
-            {/* Desktop Exit Button */}
-            {isDesktop && (
-              <button 
-                onClick={exitApp}
-                title="Exit Application"
-                className="ml-2 p-1.5 bg-red-900/30 hover:bg-red-600 text-red-400 hover:text-white rounded transition-all"
-              >
-                <PowerIcon className="w-4 h-4" />
-              </button>
-            )}
+        {/* RIGHT: answered count (desktop) + timer + violation badge + exit */}
+        <div className="flex items-center gap-2 ml-auto shrink-0">
+
+          {/* Answered count — desktop */}
+          <span className="hidden md:flex items-center gap-1.5 text-[11px] text-gray-400 font-medium">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
+            {answeredCount}/{totalCount}
+          </span>
+
+          {/* Violation badge — desktop */}
+          {violationCount > 0 && (
+            <span
+              className="hidden md:inline text-white text-[10px] font-bold px-2 py-0.5 rounded"
+              style={{ background: violationCount >= maxViolations ? '#ef4444' : '#f97316' }}
+            >
+              ⚠ {violationCount}/{maxViolations}
+            </span>
+          )}
+
+          {/* Timer */}
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded border font-mono text-[13px] font-bold leading-none
+            ${isCrit ? 'bg-red-600 border-red-700 animate-pulse text-white' : 'bg-[#1a1c1e] border-gray-700 text-white'}`}>
+            <Clock size={12} className={isCrit ? 'text-white' : 'text-gray-500'} />
+            <span>{mins}:{secs}</span>
           </div>
+
+          {/* Hamburger — mobile */}
+          <button
+            onClick={onOpenSidebar}
+            className="md:hidden p-1.5 text-gray-300 hover:text-white border border-gray-600 rounded-sm"
+          >
+            <Menu size={15} />
+          </button>
+
+          {/* Exit */}
+          <button onClick={exitApp} className="p-1.5 text-red-400 hover:text-red-300 transition-colors">
+            <Power size={15} />
+          </button>
         </div>
-      </header>
-
-      {/* 2. Subject Navigation Bar - Matches green tabs from Screenshot */}
-      <nav className="h-12  border-b border-gray-200 flex items-center px-2 gap-2 overflow-x-auto no-scrollbar shadow-sm">
-        {/* Navigation Arrow Left */}
-        
-
-        <div className="flex items-center gap-2">
-          {subjects.map((sub, index) => {
-            const isActive = activeSubject === sub;
-            return (
-              <button 
-                key={sub} 
-                onClick={() => onSubjectChange(sub)} 
-                className={`flex items-center gap-2 px-5 py-1.5 rounded-sm border transition-all text-[12px] font-bold uppercase
-                  ${isActive 
-                    ? 'bg-[#007f5f] text-white border-[#007f5f]' 
-                    : 'bg-white text-[#007f5f] border-gray-300 hover:border-[#007f5f]'
-                  }`}
-              >
-                {/* Subject Index Circle */}
-                <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] 
-                  ${isActive ? 'bg-white text-[#007f5f]' : 'bg-[#007f5f] text-white'}`}>
-                  {index + 1}
-                </div>
-                {sub}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Navigation Arrow Right */}
-        
-      </nav>
+      </div>
     </div>
   );
 };

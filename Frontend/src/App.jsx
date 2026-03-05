@@ -26,10 +26,12 @@ import ViewInstitutes from "./ViewInstitutes";
 import ViewAdmins from "./ViewAdmins";
 import PublicRoute from "./auth/PublicRoute";
 import LeaderboardPage from "./student/LeaderboardPage";
+import { ViolationProvider } from "./student/TestEnvironment/ViolationContext";
 
 
 export default function App() {
   return (
+    <ViolationProvider>
     <AuthProvider>
       <Routes>
         {/* Login */}
@@ -152,5 +154,6 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AuthProvider>
+    </ViolationProvider>
   );
 }

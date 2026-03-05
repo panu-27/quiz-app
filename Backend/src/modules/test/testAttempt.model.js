@@ -10,11 +10,19 @@ const attemptQuestionSchema = new mongoose.Schema({
   },
 
   questionText: String,
-
+  questionImage : {
+    type:String ,
+    default:null 
+  } ,
   options: [{
-    text: String,
-    image: String,
-    isImageOption: Boolean
+    text: {
+      type : String ,
+      default : null 
+    },
+    image: {
+      type: String,
+      default: null
+    },
   }],
 
   correctAnswer: {
