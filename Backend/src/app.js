@@ -19,6 +19,7 @@ const ALLOWED_ORIGINS = [
   "http://localhost:3000",   // fallback dev
   "http://localhost:5000",   // ← Electron interceptor sets Origin to this (the backend URL itself)
   "https://nexus-brave.vercel.app",  // ← add this line
+  "https://quiz-app-oabs.onrender.com", // Electron interceptor spoofs this origin
 
   // Production: add your deployed frontend URL here
   // "https://your-frontend.vercel.app",
