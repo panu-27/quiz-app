@@ -9,7 +9,7 @@ let examActive = false;
    IMPORTANT: Replace this with your actual backend URL
    e.g. "https://your-api.onrender.com" or "http://192.168.1.5:5000"
    ───────────────────────────────────────────────────────────── */
-const BACKEND_URL = "https://quiz-app-oabs.onrender.com";
+const BACKEND_URL = "https://api.pranavzinjad.in";
 
 /* ================= CREATE WINDOW ================= */
 function createWindow() {

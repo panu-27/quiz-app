@@ -14,12 +14,13 @@ import leaderboardRoutes from "./modules/leaderboard/leaderboard.route.js";
 const app = express();
 
 const ALLOWED_ORIGINS = [
-  "http://localhost:5173",   // Vite dev server
+  "http://localhost:5174",   // Vite dev server
   "http://localhost:4173",   // Vite preview
   "http://localhost:3000",   // fallback dev
   "http://localhost:5000",   // ← Electron interceptor sets Origin to this (the backend URL itself)
   "https://nexus-brave.vercel.app",  // ← add this line
   "https://quiz-app-oabs.onrender.com", // Electron interceptor spoofs this origin
+  "https://api.pranavzinjad.in", // added our main deployed backend URL to allowed origins
 
   // Production: add your deployed frontend URL here
   // "https://your-frontend.vercel.app",

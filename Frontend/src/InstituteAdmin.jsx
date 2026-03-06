@@ -7,6 +7,7 @@ import {
   CheckIcon
 } from "@heroicons/react/24/outline";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "./context/AuthContext";
 
 export default function InstituteAdmin() {
   const [activeTab, setActiveTab] = useState("BATCHES");
@@ -14,6 +15,7 @@ export default function InstituteAdmin() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   // Modal & Drawer States
   const [viewingBatch, setViewingBatch] = useState(null);
@@ -160,7 +162,7 @@ export default function InstituteAdmin() {
 
   const handleLogout = () => {
     localStorage.clear();
-    navigate("/");
+    window.location.href = "/";  // ← full reload, works for both web + Electron
   };
 
   const navIcons = [

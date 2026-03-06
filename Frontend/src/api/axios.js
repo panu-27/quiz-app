@@ -7,7 +7,7 @@ import axios from "axios";
 const BASE_URL =
   (typeof window !== "undefined" && window.__API_URL__) ||
   import.meta.env.VITE_API_BASE_URL ||
-  "http://localhost:5000/api";
+  "https://api.pranavzinjad.in/api";
 
 const api = axios.create({
   baseURL: BASE_URL,

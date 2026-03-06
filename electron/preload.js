@@ -5,7 +5,7 @@ const { contextBridge, ipcRenderer } = require("electron");
 // axios.js reads this at runtime so it always has a valid baseURL
 // regardless of what was baked into the Vite build.
 // Change this to your Render URL when deploying to production.
-const API_URL = "https://quiz-app-oabs.onrender.com/api";
+const API_URL = "https://api.pranavzinjad.in/api";
 // ─────────────────────────────────────────────────────────────
 
 // Inject API URL into the page — axios reads window.__API_URL__

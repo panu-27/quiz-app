@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import StudentHeader from "./StudentHeader";
 
+
 /* ══════════════════════════════════════════════════════
    SHIMMER PRIMITIVES  — YouTube-style skeleton loader
 ══════════════════════════════════════════════════════ */
@@ -120,7 +121,7 @@ const MobileTestRowSkeleton = () => (
    MAIN COMPONENT
 ══════════════════════════════════════════════════════ */
 export default function StudentDashboard() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   const resolveMediaUrl = (url) => {
@@ -140,6 +141,7 @@ export default function StudentDashboard() {
 
   const [stats, setStats] = useState({ attempted: "_", scheduled: 0, completed: "_" });
   const [statsLoading, setStatsLoading] = useState(true);
+
 
   /* ── fetches ── */
   useEffect(() => {
@@ -191,7 +193,7 @@ export default function StudentDashboard() {
       } finally {
         setStatsLoading(false);
       }
-    };  
+    };
 
     fetchMyTests();
     fetchMyStats();
@@ -199,9 +201,9 @@ export default function StudentDashboard() {
 
   }, []);
 
-  const handleLogout = () => { 
-    localStorage.clear(); 
-    navigate("/"); 
+  const handleLogout = () => {
+    localStorage.clear();
+    window.location.href = "/";  // ← full reload, works for both web + Electron
   };
 
   const quizzes = [
@@ -225,7 +227,7 @@ export default function StudentDashboard() {
             className="w-full h-full object-cover"
           />
         </div>
-        
+
       </div>
       <div className="text-white min-w-0">
         <p className={`${large ? "text-base" : "text-[15px]"} font-bold truncate`}>{topRankName}</p>

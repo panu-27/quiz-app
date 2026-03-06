@@ -62,7 +62,7 @@ export default function AuthPage() {
               {/* CTA form */}
               <div className="mt-10 max-w-md">
                 <form
-                  onSubmit={(e) => { e.preventDefault(); navigate("/login"); }}
+                  onSubmit={(e) => { e.preventDefault(); navigate("/register"); }}
                   className="space-y-4"
                 >
                   <input

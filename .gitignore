@@ -21,6 +21,8 @@ lerna-debug.log*
 # Build outputs
 # ===============================
 dist/
+dist-electron/
+assets/
 build/
 dist-ssr/
 dev-dist/
