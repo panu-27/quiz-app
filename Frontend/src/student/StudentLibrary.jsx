@@ -127,7 +127,7 @@ const PdfViewerSkeleton = () => (
         </div>
         {/* table-like block */}
         <div className="border border-slate-100 rounded-xl overflow-hidden mt-3">
-          {[0,1,2,3].map(r => (
+          {[0, 1, 2, 3].map(r => (
             <div key={r} className={`flex gap-4 px-4 py-3 ${r % 2 === 0 ? 'bg-slate-50/60' : 'bg-white'}`}>
               <Sk className="h-3 w-1/4" />
               <Sk className="h-3 w-1/3" />
@@ -160,17 +160,17 @@ const FALLBACK_VIDEOS = [
 ];
 
 const SUBJECT_COLORS = {
-  Physics:   { bg: 'bg-blue-50',   text: 'text-blue-600',   dot: 'bg-blue-400'   },
-  Chemistry: { bg: 'bg-amber-50',  text: 'text-amber-600',  dot: 'bg-amber-400'  },
-  Maths:     { bg: 'bg-purple-50', text: 'text-purple-600', dot: 'bg-purple-400' },
-  Biology:   { bg: 'bg-green-50',  text: 'text-green-600',  dot: 'bg-green-400'  },
+  Physics: { bg: 'bg-blue-50', text: 'text-blue-600', dot: 'bg-blue-400' },
+  Chemistry: { bg: 'bg-amber-50', text: 'text-amber-600', dot: 'bg-amber-400' },
+  Maths: { bg: 'bg-purple-50', text: 'text-purple-600', dot: 'bg-purple-400' },
+  Biology: { bg: 'bg-green-50', text: 'text-green-600', dot: 'bg-green-400' },
 };
 
 const SUBJECT_ICONS = {
-  Physics:   <Atom size={14} />,
+  Physics: <Atom size={14} />,
   Chemistry: <FlaskConical size={14} />,
-  Maths:     <Calculator size={14} />,
-  Biology:   <Dna size={14} />,
+  Maths: <Calculator size={14} />,
+  Biology: <Dna size={14} />,
 };
 
 /* ══════════════════════════════════════════════
@@ -180,36 +180,36 @@ export default function StudentLibrary() {
   const navigate = useNavigate();
 
   /* shared */
-  const [searchQuery, setSearchQuery]     = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [selectedSubject, setSelectedSubject] = useState('All');
 
   /* mobile-only */
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [openingFile, setOpeningFile]     = useState(null);
-  const [isDecrypting, setIsDecrypting]   = useState(false);
-  const [showViewer, setShowViewer]       = useState(false);
-  const [viewerReady, setViewerReady]     = useState(false);
+  const [openingFile, setOpeningFile] = useState(null);
+  const [isDecrypting, setIsDecrypting] = useState(false);
+  const [showViewer, setShowViewer] = useState(false);
+  const [viewerReady, setViewerReady] = useState(false);
 
   /* desktop-only */
-  const [activeTab, setActiveTab]         = useState('resources'); // 'resources' | 'videos'
+  const [activeTab, setActiveTab] = useState('resources'); // 'resources' | 'videos'
 
   /* data */
-  const [resources, setResources]         = useState([]);
+  const [resources, setResources] = useState([]);
   const [resourcesLoading, setResourcesLoading] = useState(true);
-  const [videos, setVideos]               = useState([]);
+  const [videos, setVideos] = useState([]);
   const [videosLoading, setVideosLoading] = useState(true);
-  const [activeVideo, setActiveVideo]     = useState(null);
+  const [activeVideo, setActiveVideo] = useState(null);
 
   const categories = ['All', 'Notes', 'PYQs', 'Formulas'];
-  const subjects   = ['All', 'Physics', 'Chemistry', 'Maths', 'Biology'];
+  const subjects = ['All', 'Physics', 'Chemistry', 'Maths', 'Biology'];
 
   // Resolve file URLs — works in both Electron and web
   const resolveFileUrl = (fileUrl) => {
     const base = window.__API_URL__
-      ? window.__API_URL__.replace(/\/api$/, '')
-      : (import.meta.env.VITE_API_BASE_URL || '').replace(/\/api$/, '');
-    return `${base}${fileUrl}`;
+      ? window.__API_URL__
+      : (import.meta.env.VITE_API_BASE_URL || '');
+    return `${base.replace(/\/$/, '')}${fileUrl}`;
   };
 
   /* fetch resources */
@@ -254,10 +254,10 @@ export default function StudentLibrary() {
     document.body.setAttribute('data-hide-nav', 'true');
     setTimeout(() => { setIsDecrypting(false); setShowViewer(true); }, 1200);
   };
-  const handleCloseViewer = () => { 
-    setShowViewer(false); 
-    setOpeningFile(null); 
-    setViewerReady(false); 
+  const handleCloseViewer = () => {
+    setShowViewer(false);
+    setOpeningFile(null);
+    setViewerReady(false);
     document.body.removeAttribute('data-hide-nav');
   };
 
@@ -267,7 +267,7 @@ export default function StudentLibrary() {
       const fullUrl = resolveFileUrl(fileUrl);
       const res = await api.get(fullUrl, { responseType: 'blob', baseURL: '' });
       const blobUrl = URL.createObjectURL(res.data);
-      const link    = document.createElement('a');
+      const link = document.createElement('a');
       link.href = blobUrl; link.download = filename || 'document.pdf';
       document.body.appendChild(link); link.click();
       document.body.removeChild(link); URL.revokeObjectURL(blobUrl);
@@ -278,14 +278,14 @@ export default function StudentLibrary() {
 
   /* filtered lists */
   const filteredResources = resources.filter(r => {
-    const matchCat  = activeCategory === 'All' || r.category === activeCategory;
-    const matchSub  = selectedSubject === 'All' || r.subject === selectedSubject;
+    const matchCat = activeCategory === 'All' || r.category === activeCategory;
+    const matchSub = selectedSubject === 'All' || r.subject === selectedSubject;
     const matchSrch = r.title.toLowerCase().includes(searchQuery.toLowerCase());
     return matchCat && matchSub && matchSrch;
   });
 
   const filteredVideos = videos.filter(v => {
-    const matchSub  = selectedSubject === 'All' || v.subject === selectedSubject;
+    const matchSub = selectedSubject === 'All' || v.subject === selectedSubject;
     const matchSrch = v.title.toLowerCase().includes(searchQuery.toLowerCase());
     return matchSub && matchSrch;
   });
