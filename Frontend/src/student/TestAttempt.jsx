@@ -309,7 +309,7 @@ export default function TestAttempt() {
       } catch (err) {
         console.error("[AUTOSAVE FAILED]", err.response?.data || err.message);
       }
-    }, 30_000);
+    }, 300_000);
     return () => clearInterval(id);
   }, [examStarted, hasSubmitted, testId, buildPayload]);
 
