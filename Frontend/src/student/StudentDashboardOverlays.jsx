@@ -25,12 +25,11 @@ function ProfilePicPopup({ user, resolveMediaUrl }) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    // Only on mobile viewport + no profile pic + not dismissed this session
+    // Only on mobile viewport + no profile pic
     const isMobile = window.innerWidth < 768;
-    const dismissed = sessionStorage.getItem("profilePicPopupDismissed");
     const hasNoPic = !user?.profilePic;
 
-    if (isMobile && hasNoPic && !dismissed) {
+    if (isMobile && hasNoPic) {
       // Small delay so the page paints first
       const t = setTimeout(() => setVisible(true), 900);
       return () => clearTimeout(t);
@@ -38,7 +37,6 @@ function ProfilePicPopup({ user, resolveMediaUrl }) {
   }, [user]);
 
   const dismiss = () => {
-    sessionStorage.setItem("profilePicPopupDismissed", "1");
     setVisible(false);
   };
 
@@ -48,14 +46,14 @@ function ProfilePicPopup({ user, resolveMediaUrl }) {
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-[998] bg-black/40 backdrop-blur-[2px] "
+        className="fixed inset-0 z-[998] bg-black/40 backdrop-blur-[2px]"
         style={{ animation: "fadeInBg 0.25s ease" }}
         onClick={dismiss}
       />
 
       {/* Sheet */}
       <div
-        className="fixed bottom-0 left-0 right-0 z-[999] bg-pink-200 rounded-t-[2.5rem] px-6 pt-6 pb-24 shadow-2xl"
+        className="fixed bottom-0 left-0 right-0 z-[999] bg-amber-50 rounded-t-[2.5rem] px-6 pt-6 pb-24 shadow-2xl"
         style={{ animation: "slideUp 0.35s cubic-bezier(0.34,1.2,0.64,1) both" }}
       >
         {/* Drag handle */}
@@ -91,10 +89,10 @@ function ProfilePicPopup({ user, resolveMediaUrl }) {
             </div>
           </div>
           <h3 className="text-[20px] font-black text-slate-900 text-center leading-tight">
-            add your profile pic
+            Upload your Profile pic
           </h3>
-          <p className="text-[13px] text-slate-400 font-medium text-center mt-1.5 max-w-[260px]">
-            Let your classmates recognise you on the leaderboard!
+          <p className="text-[13px] text-slate-400 font-medium text-center mt-1.5 max-w-[280px]">
+            Make it easier for others to recognize you.
           </p>
         </div>
 
