@@ -145,18 +145,106 @@ const PdfViewerSkeleton = () => (
   </div>
 );
 
-/* ══════════════════════════════════════════════
-   FALLBACK VIDEO DATA
-══════════════════════════════════════════════ */
+// ─── HOW TO FILL THIS IN ───────────────────────────────────────────────────
+// 1. Go to YouTube, search each title below
+// 2. Copy the video ID from the URL: youtube.com/watch?v=XXXXXXXXXXXX
+// 3. Replace the youtubeId and update the thumbnail URL
+// ──────────────────────────────────────────────────────────────────────────
+
 const FALLBACK_VIDEOS = [
-  { _id: 'v1', title: 'Laws of Motion — Complete Chapter', subject: 'Physics', duration: '48:20', thumbnail: 'https://img.youtube.com/vi/kKKM8Y-u7ds/hqdefault.jpg', youtubeId: 'kKKM8Y-u7ds', views: '1.2M', instructor: 'Dr. Sharma' },
-  { _id: 'v2', title: 'Organic Chemistry — Reaction Mechanisms', subject: 'Chemistry', duration: '55:10', thumbnail: 'https://img.youtube.com/vi/vGPaB8cmIEA/hqdefault.jpg', youtubeId: 'vGPaB8cmIEA', views: '890K', instructor: 'Prof. Gupta' },
-  { _id: 'v3', title: 'Calculus — Limits & Continuity', subject: 'Maths', duration: '42:05', thumbnail: 'https://img.youtube.com/vi/riXcZT2ICjA/hqdefault.jpg', youtubeId: 'riXcZT2ICjA', views: '2.1M', instructor: 'Dr. Verma' },
-  { _id: 'v4', title: 'Cell Division — Mitosis & Meiosis', subject: 'Biology', duration: '38:45', thumbnail: 'https://img.youtube.com/vi/L0k-enzoeOM/hqdefault.jpg', youtubeId: 'L0k-enzoeOM', views: '670K', instructor: 'Dr. Mehta' },
-  { _id: 'v5', title: 'Electrostatics — Coulombs Law', subject: 'Physics', duration: '51:30', thumbnail: 'https://img.youtube.com/vi/mdulzEfQXDE/hqdefault.jpg', youtubeId: 'mdulzEfQXDE', views: '540K', instructor: 'Dr. Sharma' },
-  { _id: 'v6', title: 'Periodic Table — Trends & Properties', subject: 'Chemistry', duration: '44:15', thumbnail: 'https://img.youtube.com/vi/0RRVV4Diomg/hqdefault.jpg', youtubeId: '0RRVV4Diomg', views: '1.5M', instructor: 'Prof. Gupta' },
-  { _id: 'v7', title: 'Probability & Statistics — Basics', subject: 'Maths', duration: '39:00', thumbnail: 'https://img.youtube.com/vi/uzkc-qNVoOk/hqdefault.jpg', youtubeId: 'uzkc-qNVoOk', views: '760K', instructor: 'Dr. Verma' },
-  { _id: 'v8', title: 'Human Digestive System — Full Walkthrough', subject: 'Biology', duration: '36:20', thumbnail: 'https://img.youtube.com/vi/Og5FABnTuC4/hqdefault.jpg', youtubeId: 'Og5FABnTuC4', views: '430K', instructor: 'Dr. Mehta' },
+  // ── PHYSICS ─────────────────────────────────────
+  {
+    _id: "v1",
+    title: "Electrostatics One Shot — MHT-CET 2025 | Full Chapter",
+    subject: "Physics",
+    duration: "52:18",
+    youtubeId: "j8m63w99AwQ",
+    thumbnail: "https://img.youtube.com/vi/j8m63w99AwQ/hqdefault.jpg",
+    views: "1.2M",
+    instructor: "Ankit Sir",
+    searchQuery: "MHT CET electrostatics one shot physics",
+  },
+  {
+    _id: "v2",
+    title: "Rotational Dynamics One Shot — MHT-CET | Concepts + PYQs",
+    subject: "Physics",
+    duration: "48:44",
+    youtubeId: "hF08xcWdu1A",
+    thumbnail: "https://img.youtube.com/vi/hF08xcWdu1A/hqdefault.jpg",
+    views: "980K",
+    instructor: "Pradeep Giri",
+    searchQuery: "MHT CET rotational dynamics one shot",
+  },
+  {
+    _id: "v3",
+    title: "Superposition of Waves — MHT-CET | Important Chapter",
+    subject: "Physics",
+    duration: "44:30",
+    youtubeId: "OMZeREzmqPs",
+    thumbnail: "https://img.youtube.com/vi/OMZeREzmqPs/hqdefault.jpg",
+    views: "760K",
+    instructor: "Ajju Sir",
+    searchQuery: "MHT CET superposition of waves one shot",
+  },
+  {
+    _id: "v4",
+    title: "Wave Optics — MHT-CET | Complete Chapter",
+    subject: "Physics",
+    duration: "41:55",
+    youtubeId: "XIXAIUgPGvc",
+    thumbnail: "https://img.youtube.com/vi/XIXAIUgPGvc/hqdefault.jpg",
+    views: "630K",
+    instructor: "Tamanna Mam",
+    searchQuery: "MHT CET wave optics one shot",
+  },
+
+  // ── CHEMISTRY ───────────────────────────────────
+  {
+    _id: "v7",
+    title: "Chemical Bonding One Shot — MHT-CET | Full Chapter",
+    subject: "Chemistry",
+    duration: "50:02",
+    youtubeId: "05Wkk17gxzI",
+    thumbnail: "https://img.youtube.com/vi/05Wkk17gxzI/hqdefault.jpg",
+    views: "890K",
+    instructor: "Vedantu",
+    searchQuery: "MHT CET chemical bonding one shot",
+  },
+
+  // ── MATHS ───────────────────────────────────────
+  {
+    _id: "v11",
+    title: "Integration One Shot — MHT-CET | All Methods + PYQs",
+    subject: "Maths",
+    duration: "58:30",
+    youtubeId: "2zEssFK1cKw",
+    thumbnail: "https://img.youtube.com/vi/2zEssFK1cKw/hqdefault.jpg",
+    views: "1.5M",
+    instructor: "Govind Sir",
+    searchQuery: "MHT CET integration one shot",
+  },
+  {
+    _id: "v12",
+    title: "Differential Equations — MHT-CET | Concepts + Shortcuts",
+    subject: "Maths",
+    duration: "45:12",
+    youtubeId: "wmPrWeFzmwE",
+    thumbnail: "https://img.youtube.com/vi/wmPrWeFzmwE/hqdefault.jpg",
+    views: "820K",
+    instructor: "Harsh Priyam",
+    searchQuery: "MHT CET differential equations one shot",
+  },
+  {
+    _id: "v13",
+    title: "Probability — MHT-CET | Complete Chapter",
+    subject: "Maths",
+    duration: "40:08",
+    youtubeId: "Tq7ZK9COp4Q",
+    thumbnail: "https://img.youtube.com/vi/Tq7ZK9COp4Q/hqdefault.jpg",
+    views: "710K",
+    instructor: "Vedantu",
+    searchQuery: "MHT CET probability one shot",
+  }
 ];
 
 const SUBJECT_COLORS = {
@@ -230,21 +318,26 @@ export default function StudentLibrary() {
   }, []);
 
   /* fetch videos */
-  useEffect(() => {
-    const fetchVideos = async () => {
-      setVideosLoading(true);
-      try {
-        const { data } = await api.get('/student/my-videos');
-        const list = data?.videos || data || [];
-        setVideos(list.length ? list : FALLBACK_VIDEOS);
-      } catch {
-        setVideos(FALLBACK_VIDEOS);
-      } finally {
-        setVideosLoading(false);
-      }
-    };
-    fetchVideos();
-  }, []);
+useEffect(() => {
+  const fetchVideos = async () => {
+    setVideosLoading(true);
+
+    try {
+      const res = await fetch("https://pranavzinjad.in/student/my-videos");
+      const data = await res.json();
+
+      const list = data?.videos || data || [];
+      setVideos(list.length ? list : FALLBACK_VIDEOS);
+
+    } catch (err) {
+      setVideos(FALLBACK_VIDEOS);
+    } finally {
+      setVideosLoading(false);
+    }
+  };
+
+  fetchVideos();
+}, []);
 
   /* file open/close (mobile) */
   const handleOpenFile = (item) => {
@@ -820,36 +913,77 @@ export default function StudentLibrary() {
                     <MobileRowSkeleton />
                   </>
                 ) : filteredVideos.length > 0 ? (
-                  filteredVideos.map(video => {
-                    const subColor = SUBJECT_COLORS[video.subject] || { bg: 'bg-slate-50', text: 'text-slate-500', dot: 'bg-slate-300' };
-                    return (
-                      <div
-                        key={video._id}
-                        onClick={() => window.open(`https://www.youtube.com/watch?v=${video.youtubeId}`, '_blank')}
-                        className="group bg-white border border-slate-100 p-4 rounded-2xl flex items-center gap-4 hover:border-indigo-200 hover:shadow-md transition-all cursor-pointer active:scale-[0.98]"
-                      >
-                        {/* thumbnail tiny */}
-                        <div className="relative w-16 h-12 rounded-xl overflow-hidden flex-shrink-0 bg-slate-100">
-                          <img src={video.thumbnail} alt={video.title} className="w-full h-full object-cover" onError={e => { e.target.src = `https://placehold.co/64x48/1e1b4b/white?text=▶`; }} />
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                            <PlayIcon className="w-4 h-4 text-white fill-white" />
+                  <div className="space-y-0 -mx-4">
+                    {filteredVideos.map((video, idx) => {
+                      const subColor = SUBJECT_COLORS[video.subject] || { bg: 'bg-slate-50', text: 'text-slate-500', dot: 'bg-slate-300' };
+                      return (
+                        <div
+                          key={video._id}
+                          onClick={() => window.open(`https://www.youtube.com/watch?v=${video.youtubeId}`, '_blank')}
+                          className="flex gap-3 px-4 py-3 active:bg-slate-100 transition-colors cursor-pointer"
+                          style={{ animationDelay: `${idx * 40}ms` }}
+                        >
+                          {/* Thumbnail — 16:9 YT ratio */}
+                          <div className="relative flex-shrink-0 w-[160px] h-[90px] rounded-xl overflow-hidden bg-slate-900">
+                            <img
+                              src={video.thumbnail}
+                              alt={video.title}
+                              className="w-full h-full object-cover"
+                              onError={e => { e.target.src = `https://placehold.co/160x90/0f0f0f/white?text=▶`; }}
+                            />
+                            {/* Dark gradient bottom */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                            {/* Duration pill — bottom right exactly like YT */}
+                            <span className="absolute bottom-1.5 right-1.5 bg-black/90 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md tracking-tight leading-none">
+                              {video.duration}
+                            </span>
+                            {/* Play overlay on hover (desktop) */}
+                            <div className="absolute inset-0 flex items-center justify-center opacity-0 active:opacity-100 transition-opacity bg-black/20">
+                              <div className="w-9 h-9 rounded-full bg-black/70 flex items-center justify-center">
+                                <PlayIcon className="w-4 h-4 text-white fill-white ml-0.5" />
+                              </div>
+                            </div>
                           </div>
-                          <span className="absolute bottom-0.5 right-0.5 bg-black/70 text-white text-[8px] font-bold px-1 rounded">{video.duration}</span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-[13px] font-bold text-slate-800 truncate leading-tight">{video.title}</h4>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className={`text-[9px] font-black ${subColor.text} uppercase tracking-tighter`}>{video.subject}</span>
-                            <span className="w-1 h-1 bg-slate-300 rounded-full" />
-                            <span className="text-[9px] font-bold text-slate-400">{video.views} views</span>
+
+                          {/* Meta */}
+                          <div className="flex-1 min-w-0 py-0.5 flex flex-col justify-between">
+                            {/* Title — 2 lines max like YT */}
+                            <h4 className="text-[13px] font-semibold text-[#0f0f0f] leading-[1.35] line-clamp-2 tracking-tight">
+                              {video.title}
+                            </h4>
+
+                            {/* Channel / subject row */}
+                            <div className="mt-1.5 space-y-0.5">
+                              <div className="flex items-center gap-1.5">
+                                {/* Subject dot-badge */}
+                                <span className={`inline-flex items-center gap-1 text-[10px] font-bold ${subColor.text} uppercase tracking-wide`}>
+                                  <span className={`w-1.5 h-1.5 rounded-full ${subColor.dot} inline-block`} />
+                                  {video.subject}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1 text-[11px] text-slate-400 font-medium">
+                                <span>{video.views} views</span>
+                                <span className="text-slate-300">•</span>
+                                <span>HD</span>
+                              </div>
+                            </div>
                           </div>
+
+                          {/* 3-dot menu icon (YT style) */}
+                          <button
+                            onClick={e => e.stopPropagation()}
+                            className="flex-shrink-0 self-start mt-1 p-1 -mr-1 text-slate-400 active:text-slate-700 transition-colors"
+                          >
+                            <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
+                              <circle cx="12" cy="5" r="1.5" />
+                              <circle cx="12" cy="12" r="1.5" />
+                              <circle cx="12" cy="19" r="1.5" />
+                            </svg>
+                          </button>
                         </div>
-                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-sm">
-                          <PlayIcon className="w-4 h-4 fill-current" />
-                        </div>
-                      </div>
-                    );
-                  })
+                      );
+                    })}
+                  </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-20 text-slate-300">
                     <Film size={40} className="mb-4 opacity-30" />
