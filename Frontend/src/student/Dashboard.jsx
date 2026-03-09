@@ -8,6 +8,8 @@ import {
   Trophy, BookOpen, CheckCircle2, PlayCircle, TrendingUp,
 } from "lucide-react";
 import StudentHeader from "./StudentHeader";
+import { FakeStatsBar } from "./StudentDashboardOverlays";
+import StudentDashboardOverlays from "./StudentDashboardOverlays";
 
 
 /* ══════════════════════════════════════════════════════
@@ -179,24 +181,9 @@ export default function StudentDashboard() {
       }
     };
 
-    /* my stats */
-    const fetchMyStats = async () => {
-      try {
-        setStatsLoading(true);
-        const token = localStorage.getItem("token");
-        const res = await api.get("/student/stats", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setStats(res.data || { attempted: 0, scheduled: 0, completed: 0 });
-      } catch (err) {
-        console.error("my-stats failed", err);
-      } finally {
-        setStatsLoading(false);
-      }
-    };
+
 
     fetchMyTests();
-    fetchMyStats();
     fetchTopRank();
 
   }, []);
@@ -429,26 +416,7 @@ export default function StudentDashboard() {
       <div className="hidden md:block max-w-7xl mx-auto px-8 lg:px-8 xl:px-24 2xl:px-20 py-8">
 
         {/* ── Stats Bar ── */}
-        {statsLoading ? (
-          <StatsBarSkeleton />
-        ) : (
-          <div className="grid grid-cols-3 gap-5 mb-8">
-            {[
-              { label: "Tests Attempted", value: stats.attempted, icon: <PlayCircle size={22} className="text-[#7A41F7]" />, bg: "bg-[#F3EBFF]", iconBg: "bg-[#E6D6FF]", sub: "All time" },
-              { label: "Scheduled Tests", value: stats.scheduled, icon: <Clock size={22} className="text-orange-500" />, bg: "bg-orange-50", iconBg: "bg-orange-100", sub: "Live now" },
-              { label: "Tests Completed", value: stats.completed, icon: <CheckCircle2 size={22} className="text-emerald-500" />, bg: "bg-emerald-50", iconBg: "bg-emerald-100", sub: "All time" },
-            ].map((s, i) => (
-              <div key={i} className={`${s.bg} rounded-2xl p-5 flex items-center gap-4`}>
-                <div className={`${s.iconBg} w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0`}>{s.icon}</div>
-                <div>
-                  <p className="text-2xl font-black text-slate-800">{s.value}</p>
-                  <p className="text-[13px] font-semibold text-slate-500">{s.label}</p>
-                  <p className="text-[11px] text-slate-400">{s.sub}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <FakeStatsBar/>
 
         {/* ── Hero + Leaderboard Row ── */}
         {rankLoading ? (
@@ -634,6 +602,8 @@ export default function StudentDashboard() {
 
         </div>
       </div>
+      <StudentDashboardOverlays user={user} resolveMediaUrl={resolveMediaUrl} />
+
 
     </div>
   );
