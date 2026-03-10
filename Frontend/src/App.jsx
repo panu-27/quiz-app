@@ -27,6 +27,8 @@ import ViewAdmins from "./ViewAdmins";
 import PublicRoute from "./auth/PublicRoute";
 import LeaderboardPage from "./student/LeaderboardPage";
 import { ViolationProvider } from "./student/TestEnvironment/ViolationContext";
+import StudentQuizFlow from "./student/StudentQuizFlow";
+import StudentQuizTest from "./student/StudentQuizTest";
 
 
 export default function App() {
@@ -80,6 +82,8 @@ export default function App() {
           <Route path="library" element={<StudentLibrary />} />
           <Route path="personal" element={<StudentPersonalAnalytics />} />
           <Route path="test/:testId" element={<TestAttempt />} />
+          <Route path="quiz/*" element={<StudentQuizFlow/>} />
+          <Route path="quiztest" element={<StudentQuizTest />} />
         </Route>
 
 

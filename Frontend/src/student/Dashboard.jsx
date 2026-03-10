@@ -308,7 +308,7 @@ export default function StudentDashboard() {
         <div className="px-4 mt-6">
           <div
             className="relative bg-[#7A41F7] rounded-3xl p-8 flex items-center min-h-[160px] overflow-hidden cursor-pointer active:scale-[0.98] transition-transform"
-            onClick={() => navigate("/student/profile")}
+            onClick={() => navigate("/student/quiz")}
           >
             <div className="relative z-20 max-w-[60%]">
               <h3 className="text-white text-lg font-bold leading-tight">Test your knowledge <br />and learn new things.</h3>
@@ -327,7 +327,7 @@ export default function StudentDashboard() {
           </div>
           <div className="flex overflow-x-auto gap-4 pb-4 no-scrollbar">
             {quizzes.map((quiz, index) => (
-              <div key={index} onClick={() => navigate("/student/profile")} className={`${quiz.color} min-w-[260px] rounded-[2.5rem] p-7 flex-shrink-0 cursor-pointer transition-transform active:scale-95`}>
+              <div key={index} onClick={() => navigate("/student/quiz")} className={`${quiz.color} min-w-[260px] rounded-[2.5rem] p-7 flex-shrink-0 cursor-pointer transition-transform active:scale-95`}>
                 <div className="flex gap-2 mb-8">
                   <div className={`${quiz.badge} px-4 py-2 rounded-full flex items-center gap-2 text-[12px] font-bold text-slate-500/80`}>{quiz.icon}{quiz.tag}</div>
                   <div className={`${quiz.badge} px-4 py-2 rounded-full text-[12px] font-bold text-slate-500/80 flex items-center gap-1`}><BarChart2 size={16} />Hard</div>
@@ -426,7 +426,7 @@ export default function StudentDashboard() {
             {/* Hero → profile */}
             <div
               className="col-span-2 relative bg-[#7A41F7] rounded-3xl p-10 flex items-center min-h-[220px] overflow-hidden cursor-pointer group"
-              onClick={() => navigate("/student/profile")}
+              onClick={() => navigate("/student/quiz")}
             >
               <div className="relative z-20 max-w-[55%]">
                 <p className="text-white/70 text-sm font-semibold uppercase tracking-widest mb-2">Ready to learn?</p>
@@ -472,7 +472,7 @@ export default function StudentDashboard() {
           {/* Quiz cards don't depend on async data — show immediately */}
           <div className="grid grid-cols-4 gap-5">
             {quizzes.map((quiz, index) => (
-              <div key={index} onClick={() => navigate("/student/profile")} className={`${quiz.color} rounded-3xl p-6 cursor-pointer hover:scale-[1.03] active:scale-95 transition-transform`}>
+              <div key={index} onClick={() => navigate(`/student/quiz/${quiz.name}`)} className={`${quiz.color} rounded-3xl p-6 cursor-pointer hover:scale-[1.03] active:scale-95 transition-transform`}>
                 <div className="flex gap-2 mb-6 flex-wrap">
                   <div className={`${quiz.badge} px-3 py-1.5 rounded-full flex items-center gap-1.5 text-[11px] font-bold text-slate-500/80`}>{quiz.icon}{quiz.tag}</div>
                   <div className={`${quiz.badge} px-3 py-1.5 rounded-full text-[11px] font-bold text-slate-500/80 flex items-center gap-1`}><BarChart2 size={14} />Hard</div>
