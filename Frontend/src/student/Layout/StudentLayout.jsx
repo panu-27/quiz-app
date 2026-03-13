@@ -87,7 +87,7 @@ export default function StudentLayout() {
             <button
               onClick={handlePlusClick}
               style={{
-                background: showCheck ? '#10B981' : '#4F46E5',
+                background: showCheck ? '#4F46E5' : '#4F46E5',
                 transition: 'background 0.3s cubic-bezier(.22,1,.36,1), transform 0.15s ease',
               }}
               className="absolute left-1/2 -translate-x-1/2 -top-5 w-12 h-12

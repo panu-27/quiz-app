@@ -10,33 +10,34 @@
  * which suppresses the bottom bar render.
  *
  * If the user lands here with no state (e.g. direct URL), they are
- * redirected back to the quiz flow start.
+ * redirected back to the quiz flow start (/student/quiz) which shows step 1.
  */
 
 import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { TestAttempt } from './StudentQuizFlow';
+import TestAttempt from './quiz/TestAttempt';
 
 export default function StudentQuizTest() {
-  const location = useLocation();
-  const navigate = useNavigate();
+    const location = useLocation();
+    const navigate  = useNavigate();
 
-  const subjectIds = location.state?.subjectIds;
+    const { subjectIds, chapterIds, topicKeys, questions } = location.state || {};
 
-  useEffect(() => {
-    if (!subjectIds || subjectIds.length === 0) {
-      navigate('/student/quiz', { replace: true });
-    }
-  }, []);
+    useEffect(() => {
+        if (!subjectIds || subjectIds.length === 0) {
+            navigate('/student/quiz', { replace: true });
+        }
+    }, []);
 
-  if (!subjectIds || subjectIds.length === 0) {
-    return null;
-  }
+    if (!subjectIds || subjectIds.length === 0) return null;
 
-  return (
-    <TestAttempt
-      subjectIds={subjectIds}
-      onFinish={() => navigate('/student', { replace: true })}
-    />
-  );
+    return (
+        <TestAttempt
+            subjectIds={subjectIds}
+            chapterIds={chapterIds  || []}
+            topicKeys={topicKeys    || []}
+            questions={questions    || []}   // API-fetched; falls back to [] (TestAttempt handles)
+            onFinish={() => navigate('/student', { replace: true })}
+        />
+    );
 }

@@ -194,10 +194,10 @@ export default function StudentDashboard() {
   };
 
   const quizzes = [
-    { name: "Physics Quiz", color: "bg-[#EBF3FF]", badge: "bg-[#D1E5FF]", tag: "Physics", icon: <Atom size={18} />, questions: 15, players: "20k+" },
-    { name: "Chemistry Quiz", color: "bg-[#FFF4EB]", badge: "bg-[#FFE9D6]", tag: "Chemistry", icon: <FlaskConical size={18} />, questions: 15, players: "12k+" },
-    { name: "Math Quiz", color: "bg-[#F3EBFF]", badge: "bg-[#E6D6FF]", tag: "Math", icon: <Calculator size={18} />, questions: 15, players: "15k+" },
-    { name: "Biology Quiz", color: "bg-[#EBFDEB]", badge: "bg-[#D6F7D6]", tag: "Biology", icon: <Dna size={18} />, questions: 15, players: "8k+" },
+    { name: "Physics Quiz",   color: "bg-[#EBF3FF]", badge: "bg-[#D1E5FF]", tag: "Physics",   icon: <Atom size={18} />,        questions: 15, players: "20k+", subj: "physics"   },
+    { name: "Chemistry Quiz", color: "bg-[#FFF4EB]", badge: "bg-[#FFE9D6]", tag: "Chemistry", icon: <FlaskConical size={18} />, questions: 15, players: "12k+", subj: "chemistry" },
+    { name: "Math Quiz",      color: "bg-[#F3EBFF]", badge: "bg-[#E6D6FF]", tag: "Math",      icon: <Calculator size={18} />,  questions: 15, players: "15k+", subj: "maths"     },
+    { name: "Biology Quiz",   color: "bg-[#EBFDEB]", badge: "bg-[#D6F7D6]", tag: "Biology",   icon: <Dna size={18} />,         questions: 15, players: "8k+",  subj: "biology"   },
   ];
 
   /* ── shared top rank content (real data) ── */
@@ -327,7 +327,7 @@ export default function StudentDashboard() {
           </div>
           <div className="flex overflow-x-auto gap-4 pb-4 no-scrollbar">
             {quizzes.map((quiz, index) => (
-              <div key={index} onClick={() => navigate("/student/quiz")} className={`${quiz.color} min-w-[260px] rounded-[2.5rem] p-7 flex-shrink-0 cursor-pointer transition-transform active:scale-95`}>
+              <div key={index} onClick={() => navigate(`/student/quiz?subj=${quiz.subj}`)} className={`${quiz.color} min-w-[260px] rounded-[2.5rem] p-7 flex-shrink-0 cursor-pointer transition-transform active:scale-95`}>
                 <div className="flex gap-2 mb-8">
                   <div className={`${quiz.badge} px-4 py-2 rounded-full flex items-center gap-2 text-[12px] font-bold text-slate-500/80`}>{quiz.icon}{quiz.tag}</div>
                   <div className={`${quiz.badge} px-4 py-2 rounded-full text-[12px] font-bold text-slate-500/80 flex items-center gap-1`}><BarChart2 size={16} />Hard</div>
@@ -472,7 +472,7 @@ export default function StudentDashboard() {
           {/* Quiz cards don't depend on async data — show immediately */}
           <div className="grid grid-cols-4 gap-5">
             {quizzes.map((quiz, index) => (
-              <div key={index} onClick={() => navigate(`/student/quiz/${quiz.name}`)} className={`${quiz.color} rounded-3xl p-6 cursor-pointer hover:scale-[1.03] active:scale-95 transition-transform`}>
+              <div key={index} onClick={() => navigate(`/student/quiz?subj=${quiz.subj}`)} className={`${quiz.color} rounded-3xl p-6 cursor-pointer hover:scale-[1.03] active:scale-95 transition-transform`}>
                 <div className="flex gap-2 mb-6 flex-wrap">
                   <div className={`${quiz.badge} px-3 py-1.5 rounded-full flex items-center gap-1.5 text-[11px] font-bold text-slate-500/80`}>{quiz.icon}{quiz.tag}</div>
                   <div className={`${quiz.badge} px-3 py-1.5 rounded-full text-[11px] font-bold text-slate-500/80 flex items-center gap-1`}><BarChart2 size={14} />Hard</div>
