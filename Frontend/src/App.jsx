@@ -40,6 +40,7 @@ import CraftPage from "./admin/CraftPage";
 import SchedulePage from "./admin/SchedulePage";
 import Performance from "./admin/Performance";
 import StudyMaterialPage from "./admin/StudyMaterialPage";
+import PYQBook from "./admin/PYQBook";
 
 /* ── legacy redirect: old /admin/create-test?mode=xxx links still work ── */
 function LegacyCreateTestRedirect() {
@@ -90,10 +91,13 @@ export default function App() {
           <Route path="/admin/tests" element={<ProtectedRoute role="TEACHER"><SeeTests /></ProtectedRoute>} />
           <Route path="/admin/pdf" element={<ProtectedRoute role="TEACHER"><PDFPage /></ProtectedRoute>} />
           <Route path="/admin/bank" element={<ProtectedRoute role="TEACHER"><BankPage /></ProtectedRoute>} />
+          
           <Route path="/admin/craft" element={<ProtectedRoute role="TEACHER"><CraftPage /></ProtectedRoute>} />
           <Route path="/admin/schedule" element={<ProtectedRoute role="TEACHER"><SchedulePage /></ProtectedRoute>} />
           <Route path="/admin/study-material" element={<ProtectedRoute role="TEACHER"><StudyMaterialPage /></ProtectedRoute>} />
           <Route path="/admin/performance" element={<ProtectedRoute role="TEACHER"><Performance /></ProtectedRoute>} />
+          <Route path="/admin/pyq/:subject" element={<ProtectedRoute role="TEACHER"><PYQBook /></ProtectedRoute>} />
+
 
           {/* Legacy: /admin/create-test?mode=pdf → /admin/pdf etc. */}
           <Route path="/admin/create-test" element={<ProtectedRoute role="TEACHER"><LegacyCreateTestRedirect /></ProtectedRoute>} />

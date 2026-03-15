@@ -10,6 +10,7 @@ import studentRoutes from "./modules/student/student.routes.js";
 import pdfRoutes from "./modules/pdf/pdf.routes.js";
 import bankQuestionRoutes from "./modules/questionBank/bankQuestions.routes.js";
 import leaderboardRoutes from "./modules/leaderboard/leaderboard.route.js";
+import pyqRoutes from "./modules/pyq/pyq.routes.js";
 
 const app = express();
 
@@ -50,6 +51,7 @@ app.use("/api/auth",         authRoutes);
 app.use("/api/super",        superRoutes);
 app.use("/api/institute",    instituteRoutes);
 app.use("/api/teacher",      teacherRoutes);
+app.use("/api/pyq",      pyqRoutes);
 app.use("/api/student",      studentRoutes);
 app.use("/api/leaderboard",  leaderboardRoutes);
 app.use("/api/pdf",          pdfRoutes);

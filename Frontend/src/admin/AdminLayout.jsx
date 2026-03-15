@@ -66,6 +66,17 @@ const NAV = [
     icon: <BarChart3 size={15} />,
     path: "/admin/performance",
   },
+    {
+    id: "pyq",
+    label: "PYQ Book",
+    icon: <BookOpen size={15} />,
+     children: [
+      { id: "69a6be2794b749c00e88cd23",   label: "Physics",    icon: <FileUp size={13} />,   path: "/admin/pyq/69a6be2794b749c00e88cd23" , badge: "New"},
+      { id: "chem",  label: "Chemistry",  icon: <Database size={13} />, path: "/admin/pyq/chem" , badge: "New"},
+      { id: "math", label: "Mathematics", icon: <PenLine size={13} />,  path: "/admin/pyq/math", badge: "New" },
+      { id: "bio", label: "Biology", icon: <FileUp size={13} />,  path: "/admin/pyq/bio", badge: "New" },
+    ],
+  },
 ];
 
 /* ─── helpers ───────────────────────────────────────────── */
