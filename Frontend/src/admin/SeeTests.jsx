@@ -531,7 +531,7 @@ export default function SeeTests() {
                     <Search size={12} style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", color: "#94a3b8", pointerEvents: "none" }} />
                     <input
                       value={stuSearch} onChange={e => setStuSearch(e.target.value)} placeholder="Filter student…"
-                      style={{ paddingLeft: 28, paddingRight: 10, paddingTop: 6, paddingBottom: 6, background: "transparent", border: "1.5px solid #e5e7eb", borderRadius: 8, fontSize: 11, outline: "none", width: 148, fontWeight: 500, fontFamily: "'DM Sans', sans-serif", transition: "border-color 0.15s" }}
+                      style={{ paddingLeft: 28, paddingRight: 10, paddingTop: 6, paddingBottom: 6, background: "transparent", border: "1.5px solid #e5e7eb", borderRadius: 8, fontSize: 11, outline: "none", width: 348, fontWeight: 800, fontFamily: "'DM Sans', sans-serif", transition: "border-color 0.15s" }}
                       onFocus={e => e.target.style.borderColor = "#a78bfa"}
                       onBlur={e => e.target.style.borderColor = "#e5e7eb"}
                     />
