@@ -9,16 +9,16 @@ import {
 /* ── helpers ── */
 const examBadge = (type = "") => {
   const m = {
-    PCM:  { bg: "#f5f3ff", color: "#7c3aed", border: "#ddd6fe" },
-    PCB:  { bg: "#ecfdf5", color: "#059669", border: "#a7f3d0" },
-    JEE:  { bg: "#eff6ff", color: "#2563eb", border: "#bfdbfe" },
+    PCM: { bg: "#f5f3ff", color: "#7c3aed", border: "#ddd6fe" },
+    PCB: { bg: "#ecfdf5", color: "#059669", border: "#a7f3d0" },
+    JEE: { bg: "#eff6ff", color: "#2563eb", border: "#bfdbfe" },
     NEET: { bg: "#fffbeb", color: "#d97706", border: "#fde68a" },
-    OTHER:{ bg: "#f9fafb", color: "#6b7280", border: "#e5e7eb" },
+    OTHER: { bg: "#f9fafb", color: "#6b7280", border: "#e5e7eb" },
   };
   return m[type] || m.OTHER;
 };
 const medalColor = (i) => ["#f59e0b", "#94a3b8", "#cd7c3e"][i] || "#e5e7eb";
-const AVATAR_COLORS = ["#ede9fe","#dbeafe","#dcfce7","#fef9c3","#ffe4e6"];
+const AVATAR_COLORS = ["#ede9fe", "#dbeafe", "#dcfce7", "#fef9c3", "#ffe4e6"];
 
 /* ── subject chip colors — cycles through a palette ── */
 const CHIP_PALETTE = [
@@ -61,25 +61,25 @@ async function generatePDF(analytics, selectedTest) {
   const coachingName = analytics.coachingName || "Coaching Class";
   const maxScore = analytics.maxScore || 50;
   const avgScoreRounded = Math.round(analytics.stats.averageScore);
-  const purple = [109,40,217], dark = [15,23,42], muted = [148,163,184];
-  const white = [255,255,255], red = [239,68,68], green = [16,185,129], amber = [245,158,11];
+  const purple = [109, 40, 217], dark = [15, 23, 42], muted = [148, 163, 184];
+  const white = [255, 255, 255], red = [239, 68, 68], green = [16, 185, 129], amber = [245, 158, 11];
 
   doc.setFillColor(...purple);
   doc.rect(0, 0, PW, 38, "F");
-  doc.setFont("helvetica","bold"); doc.setFontSize(16); doc.setTextColor(...white);
+  doc.setFont("helvetica", "bold"); doc.setFontSize(16); doc.setTextColor(...white);
   doc.text(coachingName.toUpperCase(), M, 16);
-  doc.setFontSize(8); doc.setTextColor(196,181,253);
+  doc.setFontSize(8); doc.setTextColor(196, 181, 253);
   doc.text("Nexus Assessment Report", M, 22);
-  const dateStr = new Date().toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"});
+  const dateStr = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
   doc.text(`Generated: ${dateStr}`, PW - M, 16, { align: "right" });
-  doc.setFont("helvetica","bold"); doc.setFontSize(13); doc.setTextColor(...white);
+  doc.setFont("helvetica", "bold"); doc.setFontSize(13); doc.setTextColor(...white);
   doc.text(analytics.testTitle || "Test Report", M, 33);
   y = 48;
 
   if (selectedTest) {
-    doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(...muted);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(...muted);
     const meta = [
-      selectedTest.startTime && `Date: ${new Date(selectedTest.startTime).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}`,
+      selectedTest.startTime && `Date: ${new Date(selectedTest.startTime).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}`,
       selectedTest.duration && `Duration: ${selectedTest.duration} min`,
       selectedTest.examType && `Pattern: ${selectedTest.examType}`,
       `Max Marks: ${maxScore}`
@@ -87,52 +87,52 @@ async function generatePDF(analytics, selectedTest) {
     doc.text(meta, M, y); y += 8;
   }
 
-  doc.setDrawColor(235,233,245); doc.setLineWidth(0.3); doc.line(M, y, PW-M, y); y += 10;
+  doc.setDrawColor(235, 233, 245); doc.setLineWidth(0.3); doc.line(M, y, PW - M, y); y += 10;
 
   const stats = [
-    { label:"Attended",   val:String(analytics.stats.attended),             c:purple },
-    { label:"Absent",     val:String(analytics.stats.absent),               c:red    },
-    { label:"Avg Score",  val:`${avgScoreRounded}/${maxScore}`,             c:green  },
-    { label:"Attendance", val:`${analytics.stats.attendancePercentage}`,   c:amber  },
+    { label: "Attended", val: String(analytics.stats.attended), c: purple },
+    { label: "Absent", val: String(analytics.stats.absent), c: red },
+    { label: "Avg Score", val: `${avgScoreRounded}/${maxScore}`, c: green },
+    { label: "Attendance", val: `${analytics.stats.attendancePercentage}`, c: amber },
   ];
-  const boxW = (PW - M*2 - 9) / 4;
-  stats.forEach((s,i) => {
-    const bx = M + i*(boxW+3);
-    doc.setFillColor(248,246,255); doc.roundedRect(bx,y,boxW,22,2,2,"F");
-    doc.setFont("helvetica","bold"); doc.setFontSize(s.val.length>5?11:14); doc.setTextColor(...s.c);
-    doc.text(s.val, bx+boxW/2, y+12, {align:"center"});
+  const boxW = (PW - M * 2 - 9) / 4;
+  stats.forEach((s, i) => {
+    const bx = M + i * (boxW + 3);
+    doc.setFillColor(248, 246, 255); doc.roundedRect(bx, y, boxW, 22, 2, 2, "F");
+    doc.setFont("helvetica", "bold"); doc.setFontSize(s.val.length > 5 ? 11 : 14); doc.setTextColor(...s.c);
+    doc.text(s.val, bx + boxW / 2, y + 12, { align: "center" });
     doc.setFontSize(7); doc.setTextColor(...muted);
-    doc.text(s.label.toUpperCase(), bx+boxW/2, y+18, {align:"center"});
+    doc.text(s.label.toUpperCase(), bx + boxW / 2, y + 18, { align: "center" });
   });
   y += 32;
 
-  const top3 = [...(analytics.leaderboard||[])].filter(e=>!e.isAbsent).sort((a,b)=>b.score-a.score).slice(0,3);
+  const top3 = [...(analytics.leaderboard || [])].filter(e => !e.isAbsent).sort((a, b) => b.score - a.score).slice(0, 3);
   if (top3.length) {
-    if (y>PH-60){doc.addPage();y=M;}
-    doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.setTextColor(...dark);
-    doc.text("Top Performers", M, y); y+=8;
-    const podW=(PW-M*2-6)/3;
-    const medalRGB=[[245,158,11],[148,163,184],[205,124,62]];
-    top3.forEach((e,i)=>{
-      const bx=M+i*(podW+3), isFirst=i===0;
-      doc.setFillColor(...(isFirst?purple:[249,250,251])); doc.roundedRect(bx,y,podW,30,2,2,"F");
-      doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor(...(isFirst?[196,181,253]:medalRGB[i]));
-      doc.text(`#${i+1}`, bx+5, y+7);
-      doc.setFontSize(9); doc.setTextColor(...(isFirst?white:dark));
-      const name=e.studentId?.name||"—";
-      doc.text(doc.getTextWidth(name)>(podW-10)?name.slice(0,12)+"…":name, bx+5, y+16);
-      const scoreVal=String(e.score);
-      doc.setFont("helvetica","bold"); doc.setFontSize(13); doc.setTextColor(...(isFirst?[233,213,255]:purple));
-      doc.text(scoreVal, bx+5, y+25);
-      doc.setFont("helvetica","normal"); doc.setFontSize(12); doc.setTextColor(...(isFirst?[196,181,253]:muted));
-      doc.text(` / ${maxScore}`, bx+5+doc.getTextWidth(scoreVal)+1.5, y+25.5);
+    if (y > PH - 60) { doc.addPage(); y = M; }
+    doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(...dark);
+    doc.text("Top Performers", M, y); y += 8;
+    const podW = (PW - M * 2 - 6) / 3;
+    const medalRGB = [[245, 158, 11], [148, 163, 184], [205, 124, 62]];
+    top3.forEach((e, i) => {
+      const bx = M + i * (podW + 3), isFirst = i === 0;
+      doc.setFillColor(...(isFirst ? purple : [249, 250, 251])); doc.roundedRect(bx, y, podW, 30, 2, 2, "F");
+      doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(...(isFirst ? [196, 181, 253] : medalRGB[i]));
+      doc.text(`#${i + 1}`, bx + 5, y + 7);
+      doc.setFontSize(9); doc.setTextColor(...(isFirst ? white : dark));
+      const name = e.studentId?.name || "—";
+      doc.text(doc.getTextWidth(name) > (podW - 10) ? name.slice(0, 12) + "…" : name, bx + 5, y + 16);
+      const scoreVal = String(e.score);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(13); doc.setTextColor(...(isFirst ? [233, 213, 255] : purple));
+      doc.text(scoreVal, bx + 5, y + 25);
+      doc.setFont("helvetica", "normal"); doc.setFontSize(12); doc.setTextColor(...(isFirst ? [196, 181, 253] : muted));
+      doc.text(` / ${maxScore}`, bx + 5 + doc.getTextWidth(scoreVal) + 1.5, y + 25.5);
     });
-    y+=40;
+    y += 40;
   }
 
-  if (y>PH-40){doc.addPage();y=M;}
-  doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.setTextColor(...dark);
-  doc.text("Detailed Results", M, y); y+=4;
+  if (y > PH - 40) { doc.addPage(); y = M; }
+  doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(...dark);
+  doc.text("Detailed Results", M, y); y += 4;
 
   // ── Build subject columns from blockStructure ──
   const subjectCols = [];
@@ -143,20 +143,20 @@ async function generatePDF(analytics, selectedTest) {
   }
 
   const tableHead = ["#", "Student Name", "Total", "Time", ...subjectCols];
-  const presentRows = (analytics.leaderboard||[]).map((e, idx) => {
+  const presentRows = (analytics.leaderboard || []).map((e, idx) => {
     const subScores = subjectCols.map(subName => {
       const found = (e.subjectScores || []).find(s => s.subjectName === subName);
       return found ? String(found.score) : "—";
     });
     return [
-      idx+1,
+      idx + 1,
       e.studentId?.name || "—",
       `${e.score} / ${maxScore}`,
-      `${(e.timeTaken/60).toFixed(1)} min`,
+      `${(e.timeTaken / 60).toFixed(1)} min`,
       ...subScores,
     ];
   });
-  const absentRows = (analytics.absentees||[]).map((s, idx) => [
+  const absentRows = (analytics.absentees || []).map((s, idx) => [
     presentRows.length + idx + 1,
     s.name || "—",
     "ABSENT",
@@ -168,7 +168,7 @@ async function generatePDF(analytics, selectedTest) {
   // Dynamic column widths: fixed cols + equal split for subjects
   const fixedW = 10 + 50 + 22 + 18; // #, name, total, time
   const subColW = subjectCols.length > 0
-    ? Math.min(20, (PW - M*2 - fixedW) / subjectCols.length)
+    ? Math.min(20, (PW - M * 2 - fixedW) / subjectCols.length)
     : 0;
   const colStyles = {
     0: { cellWidth: 10 },
@@ -184,42 +184,42 @@ async function generatePDF(analytics, selectedTest) {
     startY: y,
     head: [tableHead],
     body: tableBody,
-    margin:{left:M,right:M,bottom:20}, theme:"grid",
-    styles:{font:"helvetica",fontSize:8,cellPadding:2.5},
-    headStyles:{fillColor:purple,textColor:white,fontStyle:"bold",fontSize:7.5},
-    alternateRowStyles:{fillColor:[250,249,255]},
+    margin: { left: M, right: M, bottom: 20 }, theme: "grid",
+    styles: { font: "helvetica", fontSize: 8, cellPadding: 2.5 },
+    headStyles: { fillColor: purple, textColor: white, fontStyle: "bold", fontSize: 7.5 },
+    alternateRowStyles: { fillColor: [250, 249, 255] },
     columnStyles: colStyles,
-    didParseCell:(data)=>{
-      if(data.column.index===2 && data.cell.raw==="ABSENT")
-        data.cell.styles.textColor=red;
+    didParseCell: (data) => {
+      if (data.column.index === 2 && data.cell.raw === "ABSENT")
+        data.cell.styles.textColor = red;
     }
   });
   y = doc.lastAutoTable.finalY + 12;
 
-  const totalPages=doc.internal.getNumberOfPages();
-  for(let i=1;i<=totalPages;i++){
+  const totalPages = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
-    doc.setFillColor(...purple); doc.rect(0,PH-10,PW,10,"F");
-    doc.setFontSize(7); doc.setTextColor(196,181,253);
-    doc.text(`${coachingName} • Powered by Nexus`, M, PH-4);
-    doc.text(`Page ${i} of ${totalPages}`, PW-M, PH-4, {align:"right"});
+    doc.setFillColor(...purple); doc.rect(0, PH - 10, PW, 10, "F");
+    doc.setFontSize(7); doc.setTextColor(196, 181, 253);
+    doc.text(`${coachingName} • Powered by Nexus`, M, PH - 4);
+    doc.text(`Page ${i} of ${totalPages}`, PW - M, PH - 4, { align: "right" });
   }
-  doc.save(`${coachingName.replace(/\s+/g,"_")}_Report.pdf`);
+  doc.save(`${coachingName.replace(/\s+/g, "_")}_Report.pdf`);
 }
 
 /* ═══════════════════════════════════════════════════════ */
 export default function SeeTests() {
   const baseURL = import.meta.env.VITE_API_BASE_URL;
 
-  const [tests,          setTests]          = useState([]);
-  const [loadingTests,   setLoadingTests]   = useState(true);
+  const [tests, setTests] = useState([]);
+  const [loadingTests, setLoadingTests] = useState(true);
   const [selectedTestId, setSelectedTestId] = useState(null);
-  const [selectedTest,   setSelectedTest]   = useState(null);
-  const [analytics,      setAnalytics]      = useState(null);
-  const [loadingAn,      setLoadingAn]      = useState(false);
-  const [testSearch,     setTestSearch]     = useState("");
-  const [stuSearch,      setStuSearch]      = useState("");
-  const [downloading,    setDownloading]    = useState(false);
+  const [selectedTest, setSelectedTest] = useState(null);
+  const [analytics, setAnalytics] = useState(null);
+  const [loadingAn, setLoadingAn] = useState(false);
+  const [testSearch, setTestSearch] = useState("");
+  const [stuSearch, setStuSearch] = useState("");
+  const [downloading, setDownloading] = useState(false);
 
   const selectTest = async (test) => {
     setSelectedTestId(test._id);
@@ -259,7 +259,7 @@ export default function SeeTests() {
     finally { setDownloading(false); }
   };
 
-  const filtered    = tests.filter(t => t.title?.toLowerCase().includes(testSearch.toLowerCase()));
+  const filtered = tests.filter(t => t.title?.toLowerCase().includes(testSearch.toLowerCase()));
   const allStudents = [
     ...(analytics?.leaderboard || []),
     ...(analytics?.absentees || []).map(s => ({
@@ -346,7 +346,7 @@ export default function SeeTests() {
                 <div style={{ fontSize: 12, color: "#94a3b8" }}>No tests found</div>
               </div>
             ) : filtered.map(test => {
-              const badge  = examBadge(test.examType);
+              const badge = examBadge(test.examType);
               const active = selectedTestId === test._id;
               return (
                 <button key={test._id} onClick={() => selectTest(test)} style={{
@@ -440,10 +440,10 @@ export default function SeeTests() {
               {/* Stat cards — unchanged */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10, flexShrink: 0 }}>
                 {[
-                  { label: "Attended",   val: analytics.stats.attended,             icon: <CheckCircle2 size={13} />, color: "#7c3aed", bg: "#f5f3ff", border: "#ddd6fe" },
-                  { label: "Absent",     val: analytics.stats.absent,               icon: <XCircle size={13} />,      color: "#ef4444", bg: "#fff1f2", border: "#fecdd3" },
-                  { label: "Avg Score",  val: analytics.stats.averageScore,         icon: <TrendingUp size={13} />,   color: "#10b981", bg: "#ecfdf5", border: "#a7f3d0" },
-                  { label: "Attendance", val: analytics.stats.attendancePercentage, icon: <Users size={13} />,        color: "#f59e0b", bg: "#fffbeb", border: "#fde68a" },
+                  { label: "Attended", val: analytics.stats.attended, icon: <CheckCircle2 size={13} />, color: "#7c3aed", bg: "#f5f3ff", border: "#ddd6fe" },
+                  { label: "Absent", val: analytics.stats.absent, icon: <XCircle size={13} />, color: "#ef4444", bg: "#fff1f2", border: "#fecdd3" },
+                  { label: "Avg Score", val: analytics.stats.averageScore, icon: <TrendingUp size={13} />, color: "#10b981", bg: "#ecfdf5", border: "#a7f3d0" },
+                  { label: "Attendance", val: analytics.stats.attendancePercentage, icon: <Users size={13} />, color: "#f59e0b", bg: "#fffbeb", border: "#fde68a" },
                 ].map(s => (
                   <div key={s.label} style={{
                     background: "#fff", borderRadius: 13, border: `1.5px solid ${s.border}`,
@@ -484,8 +484,7 @@ export default function SeeTests() {
                       </div>
                       {/* Total score */}
                       <div style={{ fontSize: 17, fontWeight: 800, color: i === 0 ? "#e9d5ff" : "#7c3aed", letterSpacing: "-0.3px" }}>
-                        {e.score} <span style={{ fontSize: 10, fontWeight: 500, opacity: 0.7 }}>pts</span>
-                      </div>
+                        {e.score} <span style={{ fontSize: 18, fontWeight: 500, opacity: 0.7 }}>/</span> {analytics.maxScore || selectedTest.totalMarks}                      </div>
                       {/* ── Per-subject scores inside podium card ── */}
                       {e.subjectScores?.length > 0 && (
                         <div style={{ display: "flex", flexDirection: "column", gap: 3, marginTop: 2 }}>
