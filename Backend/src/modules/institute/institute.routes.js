@@ -14,8 +14,8 @@ router.get("/batch/:batchId/students", auth, role(["INSTITUTE_ADMIN"]), controll
 // --- POST ROUTES ---
 router.post("/create-teacher", auth, role(["INSTITUTE_ADMIN"]), controller.createTeacher);
 router.post("/create-batch", auth, role(["INSTITUTE_ADMIN"]), controller.createBatch);
-router.post("/approve-assign", auth, role(["INSTITUTE_ADMIN"]), controller.approveAndAssign); 
-router.post("/approve-bulk", auth, role(["INSTITUTE_ADMIN"]), controller.approveMultipleStudents);
+router.post("/approve-assign", auth, role(["INSTITUTE_ADMIN"]), controller.approveAndAssign);
+router.post("/reject-delete" , auth , role(["INSTITUTE_ADMIN"]) , controller.rejectAndDelete); 
 router.post("/assign-teacher", auth, role(["INSTITUTE_ADMIN"]), controller.assignTeacherToBatch);
 
 // --- REMOVAL & DELETE ROUTES ---

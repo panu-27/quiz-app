@@ -160,6 +160,26 @@ export default function InstituteAdmin() {
     } catch (err) { alert("APPROVAL_FAILED"); }
   };
 
+  const handleReject = (studentId, studentName) => {
+    setConfirmConfig({
+      show: true,
+      title: "Reject Student",
+      message: `${studentName}'s application will be permanently deleted. This cannot be undone.`,
+      onConfirm: async () => {
+        try {
+          await api.post("/institute/reject-delete", { studentId });
+          setData(prev => ({
+            ...prev,
+            pendingStudents: prev.pendingStudents.filter(s => s._id !== studentId)
+          }));
+          setConfirmConfig(prev => ({ ...prev, show: false }));
+        } catch (err) {
+          alert("REJECT_FAILED");
+        }
+      }
+    });
+  };
+
   const handleLogout = () => {
     localStorage.clear();
     window.location.href = "/";  // ← full reload, works for both web + Electron
@@ -652,18 +672,32 @@ export default function InstituteAdmin() {
                     </div>
 
                     {/* ACTION */}
-                    <div className="md:col-span-3 flex md:justify-end">
+                    <div className="md:col-span-3 flex gap-2 md:justify-end">
+                      <button
+                        onClick={() => handleReject(student._id, student.name)}
+                        className="
+      w-full md:w-auto
+      bg-red-50 text-red-600
+      border border-red-200
+      px-6 py-3 md:py-2.5
+      rounded-xl
+      text-[11px] font-black uppercase tracking-widest
+      hover:bg-red-600 hover:text-white transition-all
+    "
+                      >
+                        Reject
+                      </button>
                       <button
                         onClick={() => handleApprove(student._id)}
                         className="
-            w-full md:w-auto
-            bg-emerald-500 text-white
-            px-6 py-3 md:py-2.5
-            rounded-xl
-            text-[11px] font-black uppercase tracking-widest
-            shadow-md shadow-emerald-100
-            hover:bg-slate-900 transition-all
-          "
+      w-full md:w-auto
+      bg-emerald-500 text-white
+      px-6 py-3 md:py-2.5
+      rounded-xl
+      text-[11px] font-black uppercase tracking-widest
+      shadow-md shadow-emerald-100
+      hover:bg-slate-900 transition-all
+    "
                       >
                         Approve
                       </button>

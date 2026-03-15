@@ -82,6 +82,21 @@ export const removeTeacherFromBatch = async (admin, { batchId, teacherId }) => {
 export const getBatchStudents = (admin, batchId) =>
   User.find({ batchId, instituteId: admin.instituteId }).select("-password");
 
+export const rejectAndDelete = async (admin, { studentId }) => {
+  if (!studentId) throw new Error("studentId is required");
+
+  const student = await User.findOneAndDelete({
+    _id: studentId,
+    instituteId: admin.instituteId,
+    role: "STUDENT",
+    approved: false, 
+  });
+
+  if (!student) throw new Error("Pending student not found or already approved");
+
+  return { message: "Student rejected and removed", studentId };
+};
+
 export const removeStudentFromBatch = async (admin, { batchId, studentId }) => {
 
   // 1️⃣ Remove batchId and set approved to false

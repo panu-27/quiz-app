@@ -2,282 +2,320 @@ import React, { useEffect, useState, useRef } from "react";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import AdminHeader from "./AdminHeader";
-import { 
-  FileText, PlusCircle, BarChart3, 
-  Upload, Wind, Beaker, Binary, Atom, CheckCircle2, File, X, Bell, Loader2,
-  BookOpen, HelpCircle, Sigma, Trash2,
-  CloudAlertIcon, Users
+import AdminLayout, { PageHeader } from "./AdminLayout";
+import {
+  FileText, PlusCircle, BarChart3, Upload,
+  Wind, Beaker, Binary, Atom, CheckCircle2,
+  X, Bell, Loader2, BookOpen, HelpCircle,
+  Sigma, Trash2, Users, ArrowRight,
 } from "lucide-react";
 
+const SUBJECTS = [
+  { id: "phy", name: "Physics",   icon: <Wind size={16} />,   color: "#6366f1", bg: "#eef2ff" },
+  { id: "che", name: "Chemistry", icon: <Beaker size={16} />, color: "#10b981", bg: "#ecfdf5" },
+  { id: "mat", name: "Maths",     icon: <Binary size={16} />, color: "#8b5cf6", bg: "#f5f3ff" },
+  { id: "bio", name: "Biology",   icon: <Atom size={16} />,   color: "#ec4899", bg: "#fdf2f8" },
+];
+
+const RESOURCE_TYPES = [
+  { id: "Notes",    label: "Notes",    icon: <BookOpen size={12} /> },
+  { id: "PYQs",     label: "PYQs",     icon: <HelpCircle size={12} /> },
+  { id: "Formulas", label: "Formulas", icon: <Sigma size={12} /> },
+];
+
+const QUICK_LINKS = [
+  { title: "My Tests",      desc: "View & manage sessions",    icon: <FileText size={18} />,   path: "/admin/tests",       color: "#6366f1", bg: "#eef2ff" },
+  { title: "Create Test",   desc: "AI-powered & manual",       icon: <PlusCircle size={18} />, path: "/admin/pdf",         color: "#7c3aed", bg: "#f5f3ff" },
+  { title: "Performance",   desc: "Grades & analytics",        icon: <BarChart3 size={18} />,  path: "/admin/performance", color: "#10b981", bg: "#ecfdf5" },
+];
+
+function greeting() {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
+}
+
 export default function AdminDashboard() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
-  
-  const [selectedSubject, setSelectedSubject] = useState(null);
-  const [selectedType, setSelectedType] = useState('Notes');
-  const [uploading, setUploading] = useState(false);
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [toast, setToast] = useState(null); 
-  const [progress, setProgress] = useState(0);
-  const [status, setStatus] = useState('idle'); 
-  const fileInputRef = useRef(null);
+  const baseURL  = import.meta.env.VITE_API_BASE_URL;
 
-  // --- BATCH STATE ---
-  const [availableBatches, setAvailableBatches] = useState([]);
-  const [selectedBatchIds, setSelectedBatchIds] = useState([]);
-  const [batchesLoading, setBatchesLoading] = useState(true);
-  const baseURL = import.meta.env.VITE_API_BASE_URL;
-  const subjects = [
-    { id: 'phy', name: 'Physics', icon: <Wind size={24} />, color: 'text-blue-500', bg: 'bg-blue-50' },
-    { id: 'che', name: 'Chemistry', icon: <Beaker size={24} />, color: 'text-emerald-500', bg: 'bg-emerald-50' },
-    { id: 'mat', name: 'Maths', icon: <Binary size={24} />, color: 'text-purple-500', bg: 'bg-purple-50' },
-    { id: 'bio', name: 'Biology', icon: <Atom size={24} />, color: 'text-pink-500', bg: 'bg-pink-50' },
-  ];
+  const [subject,    setSubject]    = useState(null);
+  const [resType,    setResType]    = useState("Notes");
+  const [status,     setStatus]     = useState("idle"); // idle | staged | uploading | success
+  const [progress,   setProgress]   = useState(0);
+  const [file,       setFile]       = useState(null);
+  const [batchIds,   setBatchIds]   = useState([]);
+  const [batches,    setBatches]    = useState([]);
+  const [batchLoad,  setBatchLoad]  = useState(true);
+  const [toast,      setToast]      = useState(null);
+  const fileRef = useRef(null);
 
-  const resourceTypes = [
-    { id: 'Notes', label: 'Notes', icon: <BookOpen size={14} /> },
-    { id: 'PYQs', label: 'PYQs', icon: <HelpCircle size={14} /> },
-    { id: 'Formulas', label: 'Formulas', icon: <Sigma size={14} /> },
-  ];
-
-  const menuItems = [
-    { title: "See Tests", desc: "Manage active sessions", icon: <FileText size={24} className="text-indigo-600" />, path: "/admin/tests", color: "bg-indigo-50" },
-    { title: "Create Test", desc: "AI & Manual Creator", icon: <PlusCircle size={24} className="text-blue-600" />, path: "/admin/create-test", color: "bg-blue-50" },
-    { title: "Performance", desc: "Grades & Analytics", icon: <BarChart3 size={24} className="text-emerald-600" />, path: "/admin/performance", color: "bg-emerald-50" }
-  ];
-
-  // --- FETCH BATCHES ON LOAD ---
   useEffect(() => {
-    const fetchBatches = async () => {
-      try {
-        const res = await api.get("/teacher/my-batches");
-        setAvailableBatches(Array.isArray(res.data) ? res.data : []);
-      } catch (err) {
-        console.error("Batch fetch error:", err);
-      } finally {
-        setBatchesLoading(false);
-      }
-    };
-    fetchBatches();
+    api.get("/teacher/my-batches")
+      .then(r => setBatches(Array.isArray(r.data) ? r.data : []))
+      .catch(console.error)
+      .finally(() => setBatchLoad(false));
   }, []);
 
-  const showNotification = (message, type = "success") => {
-    setToast({ message, type });
+  const notify = (msg, type = "success") => {
+    setToast({ msg, type });
     setTimeout(() => setToast(null), 4000);
   };
 
-  const toggleBatch = (id) => {
-    setSelectedBatchIds(prev => 
-      prev.includes(id) ? prev.filter(bId => bId !== id) : [...prev, id]
-    );
+  const toggleBatch = id =>
+    setBatchIds(p => p.includes(id) ? p.filter(b => b !== id) : [...p, id]);
+
+  const pickFile = () => {
+    if (!subject) return notify("Select a subject first", "error");
+    fileRef.current.click();
   };
 
-  const handleSelectClick = () => {
-    if (!selectedSubject) {
-      showNotification("Please select a subject first", "error");
-      return;
-    }
-    fileInputRef.current.click();
+  const onFileChange = e => {
+    const f = e.target.files[0];
+    if (f) { setFile(f); setStatus("staged"); }
   };
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setSelectedFile(file);
-      setStatus('staged');
-    }
+  const upload = async () => {
+    if (!file || !subject) return;
+    if (!batchIds.length) return notify("Select at least one batch", "error");
+    setStatus("uploading"); setProgress(0);
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("subjectId", subject);
+    fd.append("category", resType);
+    fd.append("batchIds", JSON.stringify(batchIds));
+    const iv = setInterval(() => setProgress(p => p >= 95 ? 95 : p + 5), 150);
+    try {
+      const token = localStorage.getItem("token");
+      const res   = await fetch(`${baseURL}/teacher/upload-material`, {
+        method: "POST", headers: { Authorization: `Bearer ${token}` }, body: fd,
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setProgress(100);
+        setTimeout(() => { setStatus("success"); notify(`${file.name} deployed!`); }, 400);
+      } else throw new Error(data.message || "Upload failed");
+    } catch (err) { notify(err.message || "Network error", "error"); reset(); }
+    finally { clearInterval(iv); }
   };
 
-const startUpload = async () => {
-  if (!selectedFile || !selectedSubject) return;
-  if (selectedBatchIds.length === 0) {
-    showNotification("Select at least one batch", "error");
-    return;
-  }
+  const reset = () => { setFile(null); setBatchIds([]); setStatus("idle"); setProgress(0); };
 
-  setUploading(true);
-  setStatus('uploading');
-  setProgress(0);
-
-  // 1. Prepare FormData (Required for file uploads)
-  const formData = new FormData();
-  formData.append("file", selectedFile);
-  formData.append("subjectId", selectedSubject);
-  formData.append("category", selectedType);
-  // Backend service expects a parsed array or stringified JSON
-  formData.append("batchIds", JSON.stringify(selectedBatchIds));
-
-  // Logging for your debugging
-  console.group("🚀 NEXUS DEPLOYMENT INITIATED");
-
-  console.groupEnd();
-
-  const interval = setInterval(() => {
-    setProgress((prev) => (prev >= 95 ? 95 : prev + 5));
-  }, 150);
-
-  try {
-    const token = localStorage.getItem("token");
-    
-    // 2. Execute Fetch Call with Full URL and Token
-    const res = await fetch(`${baseURL}/teacher/upload-material`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${token}`
-        // NOTE: Do NOT add 'Content-Type': 'multipart/form-data' here. 
-        // Fetch will handle it automatically for FormData.
-      },
-      body: formData
-    });
-
-    const result = await res.json();
-
-    if (res.ok) {
-      setProgress(100);
-      setTimeout(() => {
-        setUploading(false);
-        setStatus('success');
-        showNotification(`${selectedFile.name} deployed successfully!`);
-      }, 500);
-    } else {
-      throw new Error(result.message || "Upload failed");
-    }
-  } catch (err) {
-    console.error("Upload Error:", err);
-    showNotification(err.message || "Network Error", "error");
-    resetState();
-  } finally {
-    clearInterval(interval);
-  }
-};
-
-  const resetState = () => {
-    setSelectedFile(null);
-    setSelectedBatchIds([]);
-    setStatus('idle');
-    setProgress(0);
-    setUploading(false);
+  /* ── styles ── */
+  const S = {
+    card: { background: "#fff", borderRadius: 16, border: "1.5px solid #f0f0f0", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" },
+    label: { fontSize: 10, fontWeight: 700, color: "#94a3b8", letterSpacing: "0.1em", textTransform: "uppercase" },
   };
 
   return (
-    <div className="min-h-screen bg-[#fcfcfc] pb-20 font-sans text-slate-900">
-      <AdminHeader userName={user?.name} onLogout={logout} />
+    <AdminLayout>
+      <PageHeader
+        title={`${greeting()}, ${user?.name?.split(" ")[0] || "Admin"} 👋`}
+        subtitle="Here's your admin overview"
+        right={
+          <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: "5px 12px" }}>
+            <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 0 2px #bbf7d0" }} />
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#166534", textTransform: "uppercase", letterSpacing: "0.06em" }}>Live Sync</span>
+          </div>
+        }
+      />
 
-      <main className="max-w-5xl mx-auto px-6 pt-10">
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          {menuItems.map((item, idx) => (
-            <button key={idx} onClick={() => navigate(item.path)} className="bg-white p-6 rounded-2xl border border-slate-100 flex flex-col items-start gap-4 hover:shadow-xl hover:border-indigo-100 transition-all group shadow-sm">
-              <div className={`${item.color} p-4 rounded-xl transition-transform group-hover:scale-110 duration-300`}>
-                {item.icon}
+      <div style={{ flex: 1, overflowY: "auto", padding: "24px clamp(16px,3vw,28px) 48px" }} className="page-enter">
+
+        {/* ── Quick links ── */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 24 }}>
+          {QUICK_LINKS.map((q, i) => (
+            <button key={i} onClick={() => navigate(q.path)} style={{
+              all: "unset", ...S.card, padding: "18px 20px", cursor: "pointer",
+              display: "flex", alignItems: "center", gap: 14,
+              transition: "all 0.18s",
+            }}
+              onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 6px 24px ${q.color}18`; e.currentTarget.style.borderColor = q.color + "40"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+              onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 1px 4px rgba(0,0,0,0.04)"; e.currentTarget.style.borderColor = "#f0f0f0"; e.currentTarget.style.transform = "translateY(0)"; }}
+            >
+              <div style={{ width: 44, height: 44, borderRadius: 12, background: q.bg, color: q.color, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                {q.icon}
               </div>
-              <div className="text-left">
-                <h3 className="font-bold text-slate-800 uppercase tracking-tight text-sm">{item.title}</h3>
-                <p className="text-[10px] text-slate-400 mt-1 uppercase font-black tracking-widest leading-none">{item.desc}</p>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>{q.title}</div>
+                <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2, fontWeight: 500 }}>{q.desc}</div>
               </div>
+              <ArrowRight size={14} style={{ color: "#d1d5db", marginLeft: "auto", flexShrink: 0 }} />
             </button>
           ))}
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-          <div className="px-8 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/30">
-            <div>
-              <h2 className="font-black text-[10px] text-slate-400 uppercase tracking-[0.3em] mb-1">Asset Pipeline</h2>
-              <p className="text-sm font-bold text-slate-900">Deploy Study Material</p>
+        {/* ── Upload panel ── */}
+        <div style={{ ...S.card, overflow: "hidden" }}>
+          {/* Panel header */}
+          <div style={{ padding: "16px 22px", borderBottom: "1px solid #f5f5f5", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ width: 34, height: 34, borderRadius: 10, background: "#f5f3ff", color: "#7c3aed", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Upload size={16} />
+              </div>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>Deploy Study Material</div>
+                <div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>Upload PDFs to student vaults</div>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-              <span className="text-[9px] font-black text-emerald-600 uppercase">Live Sync</span>
+            {/* Resource type pills */}
+            <div style={{ display: "flex", gap: 6 }}>
+              {RESOURCE_TYPES.map(r => (
+                <button key={r.id} onClick={() => setResType(r.id)} style={{
+                  all: "unset", display: "flex", alignItems: "center", gap: 5,
+                  padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer",
+                  background: resType === r.id ? "#7c3aed" : "#f9fafb",
+                  color:      resType === r.id ? "#fff"    : "#64748b",
+                  border:     `1.5px solid ${resType === r.id ? "#7c3aed" : "#e5e7eb"}`,
+                  boxShadow:  resType === r.id ? "0 2px 8px rgba(124,58,237,0.22)" : "none",
+                  transition: "all 0.15s",
+                }}>
+                  {r.icon} {r.label}
+                </button>
+              ))}
             </div>
           </div>
 
-          <div className="p-8 grid grid-cols-1 lg:grid-cols-2 gap-12">
-            <div className="space-y-8">
-              <div>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">01. Target Subject & Category</p>
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  {subjects.map((s) => (
-                    <button key={s.id} onClick={() => status === 'idle' && setSelectedSubject(s.id)} className={`relative p-5 rounded-xl border-2 transition-all flex flex-col items-center gap-3 ${selectedSubject === s.id ? "bg-indigo-50/50 border-indigo-600 ring-4 ring-indigo-50" : "bg-white border-slate-100 hover:border-slate-200"}`}>
-                      <div className={`${s.bg} ${s.color} p-3 rounded-lg`}>{React.cloneElement(s.icon, { size: 20 })}</div>
-                      <span className="font-bold text-xs">{s.name}</span>
-                    </button>
-                  ))}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {resourceTypes.map((type) => (
-                    <button key={type.id} onClick={() => status !== 'uploading' && setSelectedType(type.id)} className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-tight transition-all border ${selectedType === type.id ? "bg-slate-900 text-white border-slate-900 shadow-lg" : "bg-white text-slate-400 border-slate-200 hover:border-slate-400"}`}>
-                      {type.icon} {type.label}
+          {/* Two-col body */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
+
+            {/* Left: subject + batches */}
+            <div style={{ padding: 22, borderRight: "1px solid #f5f5f5" }}>
+              <div style={{ marginBottom: 22 }}>
+                <div style={{ ...S.label, marginBottom: 10 }}>Subject</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                  {SUBJECTS.map(s => (
+                    <button key={s.id} onClick={() => status === "idle" && setSubject(s.id)} style={{
+                      all: "unset", padding: "10px 12px", borderRadius: 11, cursor: "pointer",
+                      border: `2px solid ${subject === s.id ? s.color : "#e5e7eb"}`,
+                      background: subject === s.id ? s.bg : "#fafafa",
+                      display: "flex", alignItems: "center", gap: 9, transition: "all 0.15s",
+                      boxShadow: subject === s.id ? `0 0 0 3px ${s.color}15` : "none",
+                    }}>
+                      <div style={{ width: 28, height: 28, borderRadius: 7, background: s.bg, color: s.color, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        {s.icon}
+                      </div>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: subject === s.id ? s.color : "#374151" }}>{s.name}</span>
                     </button>
                   ))}
                 </div>
               </div>
-
-              {/* --- NEW BATCH SELECTION UI --- */}
               <div>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                  <Users size={14} /> 02. Shared With (Batches)
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {batchesLoading ? (
-                    <div className="flex items-center gap-2 text-xs text-slate-400 font-bold uppercase tracking-widest">
-                      <Loader2 className="animate-spin" size={14} /> Loading Nexus Batches...
-                    </div>
-                  ) : availableBatches.map(batch => (
-                    <button
-                      key={batch._id}
-                      onClick={() => status === 'idle' || status === 'staged' ? toggleBatch(batch._id) : null}
-                      className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase border transition-all ${
-                        selectedBatchIds.includes(batch._id) 
-                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-100' 
-                        : 'bg-white text-slate-400 border-slate-200 hover:border-indigo-400'
-                      }`}
-                    >
-                      {batch.name}
-                    </button>
-                  ))}
+                <div style={{ ...S.label, marginBottom: 10, display: "flex", alignItems: "center", gap: 5 }}>
+                  <Users size={11} /> Batches
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                  {batchLoad
+                    ? <span style={{ fontSize: 12, color: "#94a3b8", display: "flex", alignItems: "center", gap: 5 }}><Loader2 size={12} style={{ animation: "spin 1s linear infinite" }} />Loading…</span>
+                    : batches.length === 0
+                      ? <span style={{ fontSize: 12, color: "#d1d5db" }}>No batches found</span>
+                      : batches.map(b => (
+                          <button key={b._id} onClick={() => (status === "idle" || status === "staged") && toggleBatch(b._id)} style={{
+                            all: "unset", padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer",
+                            background: batchIds.includes(b._id) ? "#7c3aed" : "#fff",
+                            color:      batchIds.includes(b._id) ? "#fff"    : "#64748b",
+                            border:     `1.5px solid ${batchIds.includes(b._id) ? "#7c3aed" : "#e5e7eb"}`,
+                            boxShadow:  batchIds.includes(b._id) ? "0 2px 8px rgba(124,58,237,0.22)" : "none",
+                            transition: "all 0.15s",
+                          }}>{b.name}</button>
+                        ))
+                  }
                 </div>
               </div>
             </div>
 
-            <div className="flex flex-col justify-center">
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">03. Material Deployment</p>
-              <div className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center text-center transition-all ${status === 'success' ? "bg-emerald-50 border-emerald-200" : status === 'staged' ? "bg-indigo-50 border-indigo-200" : "bg-slate-50 border-slate-200"}`}>
-                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".pdf" />
-                <div className={`w-16 h-16 rounded-xl flex items-center justify-center shadow-sm mb-4 transition-all ${status === 'success' ? 'bg-emerald-500 text-white' : status === 'staged' ? 'bg-indigo-600 text-white animate-bounce' : 'bg-white text-slate-400'}`}>
-                  {status === 'success' ? <CheckCircle2 size={28} /> : uploading ? <Loader2 className="animate-spin" size={28} /> : status === 'staged' ? <FileText size={28} /> : <Upload size={28} />}
-                </div>
-                <h3 className="font-bold text-slate-800 text-sm mb-1 truncate w-full px-6">{status === 'success' ? "Asset Deployed" : selectedFile ? selectedFile.name : "Select PDF Document"}</h3>
-                <p className="text-[10px] text-slate-400 mb-8 uppercase font-bold tracking-widest">{status === 'success' ? "Available in Student Vault" : status === 'staged' ? `Ready for ${selectedBatchIds.length} Batches` : "PDF format only (Max 20MB)"}</p>
+            {/* Right: dropzone */}
+            <div style={{ padding: 22, display: "flex", flexDirection: "column" }}>
+              <div style={{ ...S.label, marginBottom: 10 }}>Upload File</div>
+              <input type="file" ref={fileRef} onChange={onFileChange} style={{ display: "none" }} accept=".pdf" />
 
-                {status === 'uploading' ? (
-                  <div className="w-full space-y-3">
-                    <div className="flex justify-between text-[10px] font-black text-indigo-600 uppercase"><span>Syncing...</span><span>{progress}%</span></div>
-                    <div className="w-full h-1 bg-indigo-100 rounded-full overflow-hidden"><div className="h-full bg-indigo-600 transition-all duration-300" style={{width: `${progress}%`}}></div></div>
+              <div style={{
+                flex: 1, minHeight: 200, borderRadius: 14, transition: "all 0.25s",
+                border: `2px dashed ${status === "success" ? "#22c55e" : status === "staged" ? "#7c3aed" : "#e5e7eb"}`,
+                background: status === "success" ? "#f0fdf4" : status === "staged" ? "#faf5ff" : "#fafafa",
+                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                padding: "24px 20px", textAlign: "center",
+              }}>
+                {/* Icon */}
+                <div style={{
+                  width: 52, height: 52, borderRadius: 14, marginBottom: 14,
+                  background: status === "success" ? "#22c55e" : status === "staged" ? "#7c3aed" : "#f3f4f6",
+                  color: (status === "success" || status === "staged") ? "#fff" : "#94a3b8",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  boxShadow: status === "staged" ? "0 6px 20px rgba(124,58,237,0.3)" : status === "success" ? "0 6px 20px rgba(34,197,94,0.28)" : "none",
+                  transition: "all 0.25s",
+                }}>
+                  {status === "success"  ? <CheckCircle2 size={22} />
+                    : status === "uploading" ? <Loader2 size={22} style={{ animation: "spin 1s linear infinite" }} />
+                    : status === "staged"   ? <FileText size={22} />
+                    : <Upload size={22} />}
+                </div>
+
+                <div style={{ fontWeight: 700, fontSize: 13, color: "#0f172a", marginBottom: 4, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {status === "success" ? "Deployed!" : file ? file.name : "Select a PDF"}
+                </div>
+                <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 18, fontWeight: 500 }}>
+                  {status === "success"  ? "Available in student vault"
+                    : status === "staged" ? `Ready · ${batchIds.length} batch${batchIds.length !== 1 ? "es" : ""}`
+                    : "PDF only · max 20 MB"}
+                </div>
+
+                {status === "uploading" ? (
+                  <div style={{ width: "100%" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, fontWeight: 700, color: "#7c3aed", marginBottom: 8 }}>
+                      <span>Uploading…</span><span>{progress}%</span>
+                    </div>
+                    <div style={{ width: "100%", height: 5, background: "#ede9fe", borderRadius: 99, overflow: "hidden" }}>
+                      <div style={{ height: "100%", background: "linear-gradient(90deg,#7c3aed,#6366f1)", borderRadius: 99, width: `${progress}%`, transition: "width 0.3s" }} />
+                    </div>
                   </div>
                 ) : (
-                  <div className="w-full space-y-3">
-                    <button onClick={() => status === 'staged' ? startUpload() : status === 'success' ? resetState() : handleSelectClick()} className={`w-full py-4 rounded-lg font-black text-[10px] uppercase tracking-[0.2em] transition-all ${status === 'success' ? "bg-emerald-600 text-white" : status === 'staged' ? "bg-indigo-600 text-white shadow-xl shadow-indigo-100" : "bg-slate-900 text-white hover:bg-slate-800 shadow-xl shadow-slate-200"}`}>
-                      {status === 'success' ? "Deploy Another" : status === 'staged' ? "Start Deployment" : "Select File"}
+                  <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 8 }}>
+                    <button onClick={() => status === "staged" ? upload() : status === "success" ? reset() : pickFile()} style={{
+                      all: "unset", width: "100%", padding: 11, borderRadius: 10, cursor: "pointer",
+                      fontWeight: 700, fontSize: 13, textAlign: "center",
+                      background: status === "success" ? "linear-gradient(135deg,#22c55e,#16a34a)" : "linear-gradient(135deg,#7c3aed,#6366f1)",
+                      color: "#fff", boxSizing: "border-box",
+                      boxShadow: status === "success" ? "0 4px 14px rgba(34,197,94,0.3)" : "0 4px 16px rgba(124,58,237,0.35)",
+                      transition: "opacity 0.15s",
+                    }}
+                      onMouseEnter={e => e.currentTarget.style.opacity = "0.9"}
+                      onMouseLeave={e => e.currentTarget.style.opacity = "1"}
+                    >
+                      {status === "success" ? "+ Deploy Another" : status === "staged" ? "🚀 Start Deployment" : "Choose File"}
                     </button>
-                    {status === 'staged' && <button onClick={resetState} className="flex items-center gap-2 mx-auto text-slate-400 hover:text-rose-500 text-[10px] font-bold uppercase transition-colors"><Trash2 size={12} /> Discard</button>}
+                    {status === "staged" && (
+                      <button onClick={reset} style={{ all: "unset", cursor: "pointer", color: "#94a3b8", display: "flex", alignItems: "center", gap: 4, justifyContent: "center", fontSize: 11, fontWeight: 600 }}>
+                        <Trash2 size={11} /> Discard
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
             </div>
           </div>
         </div>
-      </main>
+      </div>
 
+      {/* Toast */}
       {toast && (
-        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] animate-in slide-in-from-bottom-5 fade-in duration-300 px-4 w-full flex justify-center">
-          <div className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl border w-full max-w-[340px] sm:max-w-md ${toast.type === "error" ? "bg-red-50 border-red-100 text-red-700" : "bg-white border-slate-100 text-slate-800"}`}>
-            <div className={`shrink-0 p-2 rounded-xl ${toast.type === "error" ? "bg-red-100" : "bg-indigo-100 text-indigo-600"}`}><Bell size={18} /></div>
-            <div className="min-w-0 flex-1"><p className="text-[11px] font-black uppercase tracking-tight truncate">{toast.message}</p></div>
-            <button onClick={() => setToast(null)} className="shrink-0 ml-1 p-1 hover:bg-slate-100 rounded-lg transition-colors"><X size={14} className="text-slate-400" /></button>
+        <div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", zIndex: 200, minWidth: 280, maxWidth: 380 }}>
+          <div style={{
+            display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderRadius: 14,
+            boxShadow: "0 8px 32px rgba(0,0,0,0.14)", border: "1.5px solid",
+            background: toast.type === "error" ? "#fff1f2" : "#fff",
+            borderColor: toast.type === "error" ? "#fecdd3" : "#e5e7eb",
+          }}>
+            <div style={{ width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", background: toast.type === "error" ? "#fecdd3" : "#ede9fe", flexShrink: 0 }}>
+              <Bell size={14} style={{ color: toast.type === "error" ? "#be123c" : "#7c3aed" }} />
+            </div>
+            <span style={{ fontSize: 12, fontWeight: 600, color: toast.type === "error" ? "#be123c" : "#0f172a", flex: 1 }}>{toast.msg}</span>
+            <button onClick={() => setToast(null)} style={{ all: "unset", cursor: "pointer", color: "#94a3b8", lineHeight: 0 }}><X size={13} /></button>
           </div>
         </div>
       )}
-    </div>
+    </AdminLayout>
   );
 }

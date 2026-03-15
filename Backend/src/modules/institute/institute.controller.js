@@ -20,7 +20,7 @@ export const deleteBatch = (req, res) => execute(req, res, service.deleteBatch, 
 export const deleteTeacher = (req, res) => execute(req, res, service.deleteTeacher, req.params.id);
 
 export const approveAndAssign = (req, res) => execute(req, res, service.approveAndAssign, req.body);
-export const approveMultipleStudents = (req, res) => execute(req, res, service.approveMultipleStudents, req.body);
+export const rejectAndDelete = (req, res) => execute(req, res, service.rejectAndDelete, req.body);
 export const assignTeacherToBatch = (req, res) => execute(req, res, service.assignTeacherToBatch, req.body);
 export const removeStudentFromBatch = (req, res) => execute(req, res, service.removeStudentFromBatch, req.body);
 export const removeTeacherFromBatch = (req, res) => execute(req, res, service.removeTeacherFromBatch, req.body);
