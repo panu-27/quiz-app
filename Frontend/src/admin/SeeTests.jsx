@@ -204,7 +204,8 @@ async function generatePDF(analytics, selectedTest) {
     doc.text(`${coachingName} • Powered by Nexus`, M, PH - 4);
     doc.text(`Page ${i} of ${totalPages}`, PW - M, PH - 4, { align: "right" });
   }
-  doc.save(`${coachingName.replace(/\s+/g, "_")}_Report.pdf`);
+  const fileName = `${analytics.testTitle.replace(/\s+/g, "_")}_Report.pdf`;
+  doc.save(fileName);
 }
 
 /* ═══════════════════════════════════════════════════════ */
