@@ -205,7 +205,8 @@ function drawFooter(doc, PW, ML, MR, PH, MB, pageNum, footerLabel) {
 /* ─────────────────────────────────────────────────────────────────
    CHAPTER OPENER PAGE
 ───────────────────────────────────────────────────────────────── */
-function drawChapterPage(doc, PW, PH, ML, MR, TW, ch, chNum, subLabel, yearFrom, yearTo, footerLabel, pageNum) {
+// REPLACE the entire function with:
+function drawChapterPage(doc, PW, PH, ML, MR, TW, ch, chNum, subLabel, yearFrom, yearTo, footerLabel, pageNum, chapterTopics) {
   doc.setFillColor(...PDF.PUR); doc.rect(0, 0, PW, 3, "F");
 
   doc.setFont("helvetica", "bold"); doc.setFontSize(8);
@@ -227,6 +228,26 @@ function drawChapterPage(doc, PW, PH, ML, MR, TW, ch, chNum, subLabel, yearFrom,
   doc.setFont("helvetica", "normal"); doc.setFontSize(9);
   doc.setTextColor(...PDF.INK2);
   doc.text(`${safeText(subLabel)}   .   ${yearFrom}-${yearTo}`, ML, ruleY + 10);
+
+  if (chapterTopics && chapterTopics.length) {
+    const listTop = ruleY + 22;
+    const listH   = chapterTopics.length * 8 + 20;
+    doc.setFillColor(...PDF.PURLT);
+    doc.roundedRect(ML, listTop, TW, listH, 2, 2, "F");
+
+    doc.setFont("helvetica", "bold"); doc.setFontSize(9);
+    doc.setTextColor(...PDF.PUR);
+    doc.text("TOPICS COVERED IN THIS CHAPTER:", ML + 10, listTop + 12);
+
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9.5);
+    doc.setTextColor(...PDF.INK2);
+    chapterTopics.forEach((t, i) => {
+      const topicY = listTop + 22 + i * 8;
+      doc.setFillColor(...PDF.PURMD);
+      doc.circle(ML + 12, topicY - 1, 0.8, "F");
+      doc.text(safeText(t.topicName), ML + 18, topicY);
+    });
+  }
 
   drawFooter(doc, PW, ML, MR, PH, 14, pageNum, footerLabel);
 }
@@ -302,11 +323,11 @@ async function generatePDF({ subLabel, activeChapters, selectedTopics, topicQues
     if (y + h > MAX_Y) newPage();
   }
 
-  function chapterOpener(ch, n) {
+  function chapterOpener(ch, n, topics) {
     footer();
     doc.addPage(); pageNum++;
     curCh = ch.name; curTopic = "";
-    drawChapterPage(doc, PW, PH, ML, MR, TW, ch, n, subLabel, yearFrom, yearTo, FOOTER_LABEL, pageNum);
+    drawChapterPage(doc, PW, PH, ML, MR, TW, ch, n, subLabel, yearFrom, yearTo, FOOTER_LABEL, pageNum, topics);
     doc.addPage(); pageNum++;
     y = MT + 6;
     header();
@@ -404,7 +425,7 @@ async function generatePDF({ subLabel, activeChapters, selectedTopics, topicQues
     const chTopics = selectedTopics.filter(t => t.chapterId === ch._id);
     if (!chTopics.length) continue;
     chNum++;
-    chapterOpener(ch, chNum);
+    chapterOpener(ch, chNum, chTopics);
 
     for (const sel of chTopics) {
       const qs = (topicQuestions[sel.topicId] || []).filter(q => {
@@ -458,10 +479,10 @@ async function generateAnswerKeyPDF({ subLabel, activeChapters, selectedTopics, 
   function newPage() { footer(); doc.addPage(); pageNum++; y = MT + 6; header(); }
   function ensureSpace(h) { if (y + h > MAX_Y) newPage(); }
 
-  function chapterOpener(ch, n) {
+function chapterOpener(ch, n, topics) {
     footer(); doc.addPage(); pageNum++;
     curCh = ch.name; curTopic = "";
-    drawChapterPage(doc, PW, PH, ML, MR, TW, ch, n, subLabel, yearFrom, yearTo, FOOTER_LABEL, pageNum);
+    drawChapterPage(doc, PW, PH, ML, MR, TW, ch, n, subLabel, yearFrom, yearTo, FOOTER_LABEL, pageNum, topics);
     doc.addPage(); pageNum++;
     y = MT + 6; header();
   }
@@ -545,7 +566,7 @@ async function generateAnswerKeyPDF({ subLabel, activeChapters, selectedTopics, 
     const chTopics = selectedTopics.filter(t => t.chapterId === ch._id);
     if (!chTopics.length) continue;
     chNum++;
-    chapterOpener(ch, chNum);
+    chapterOpener(ch, chNum, chTopics);
 
     for (const sel of chTopics) {
       const qs = (topicQuestions[sel.topicId] || []).filter(q => {
@@ -1241,7 +1262,7 @@ export default function PYQBook() {
             <div style={{ flex: 1, overflowY: "auto", minHeight: 0, padding: "16px 20px 40px" }}>
 
               {/* fullscreen toggle */}
-              <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
+              <div className="fixed z-20 right-8 pt-2">
                 <button
                   onClick={() => setFullscreen(f => !f)}
                   style={{
@@ -1256,7 +1277,7 @@ export default function PYQBook() {
                 </button>
               </div>
 
-              <div style={{ maxWidth: 1100, margin: "0 auto", display: "flex", flexDirection: "column", gap: 24 }}>
+              <div style={{ maxWidth: 1100, margin: "0 auto", display: "flex", flexDirection: "column", gap: 24 }} >
                 {activeChapters.map(ch => {
                   const chTopics = selectedTopics.filter(t => t.chapterId === ch._id);
                   return (
@@ -1279,9 +1300,9 @@ export default function PYQBook() {
                           {ch.name}
                         </span>
                         <span style={{
-                          fontSize: 10, color: "#c4b5fd", fontWeight: 600,
+                          fontSize: 10, fontWeight: 600,
                           background: "rgba(255,255,255,0.12)", padding: "3px 10px", borderRadius: 99,
-                        }}>
+                        }} className="mr-12 text-white">
                           {chTopics.length} topic{chTopics.length !== 1 ? "s" : ""}
                         </span>
                       </div>
