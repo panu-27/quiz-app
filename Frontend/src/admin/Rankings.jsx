@@ -31,60 +31,110 @@ const rankLabel = (rank) => {
   return n + (sfx[(v - 20) % 10] || sfx[v] || sfx[0]);
 };
 
+/* ── Shimmer base ── */
+const Shimmer = ({ w = "100%", h = 14, r = 8, style = {} }) => (
+  <div className="shimmer" style={{ width: w, height: h, borderRadius: r, background: "#e2e8f0", flexShrink: 0, ...style }} />
+);
+
+/* ── YouTube-style skeleton loader ── */
+function SkeletonLoader() {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+
+      {/* Podium skeleton */}
+      <div>
+        <Shimmer w={120} h={11} r={6} style={{ marginBottom: 14 }} />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+          {[0, 1, 2].map(i => (
+            <div key={i} style={{
+              borderRadius: 16,
+              border: "1.5px solid #f1f5f9",
+              overflow: "hidden",
+              background: "#fff",
+              transform: i === 1 ? "translateY(-8px)" : "none",
+            }}>
+              <div style={{ padding: "24px 20px 16px", display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+                <Shimmer w={i === 1 ? 90 : 74} h={i === 1 ? 90 : 74} r="50%" />
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, width: "100%" }}>
+                  <Shimmer w="60%" h={13} r={6} />
+                  <Shimmer w="40%" h={10} r={6} />
+                </div>
+              </div>
+              <div style={{ padding: "12px 20px", background: "#f8fafc", borderTop: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                  <Shimmer w={36} h={9} r={4} />
+                  <Shimmer w={48} h={18} r={6} />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 5 }}>
+                  <Shimmer w={36} h={9} r={4} />
+                  <Shimmer w={36} h={13} r={6} />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* List skeleton */}
+      <div style={{ background: "#fff", borderRadius: 16, border: "1.5px solid #ede9f6", overflow: "hidden" }}>
+        {/* header */}
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid #f3f0ff", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <Shimmer w={130} h={14} r={6} />
+          <Shimmer w={90} h={11} r={6} />
+        </div>
+        {/* column headers */}
+        <div style={{ display: "grid", gridTemplateColumns: "60px 1fr 120px 100px", padding: "10px 20px", background: "#fcfaff", borderBottom: "1px solid #f3f0ff", gap: 0 }}>
+          {[50, 80, 70, 50].map((w, i) => (
+            <Shimmer key={i} w={w} h={10} r={5} />
+          ))}
+        </div>
+        {/* rows */}
+        {Array.from({ length: 7 }).map((_, i) => (
+          <div key={i} style={{
+            display: "grid",
+            gridTemplateColumns: "60px 1fr 120px 100px",
+            alignItems: "center",
+            padding: "14px 20px",
+            borderBottom: "1px solid #f8faff",
+            gap: 0,
+          }}>
+            <Shimmer w={28} h={13} r={6} />
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <Shimmer w={34} h={34} r="50%" />
+              <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                <Shimmer w={90 + (i % 3) * 20} h={13} r={6} />
+                <Shimmer w={55} h={10} r={5} />
+              </div>
+            </div>
+            <Shimmer w={48} h={11} r={6} />
+            <Shimmer w={40} h={13} r={6} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 /* ── Inline Stats Dropdown ── */
 function StatsDropdown({ student }) {
   const stats = student?.stats || {};
 
   const statCards = [
-    {
-      label: "State Rank",
-      val: stats.stateRank,
-      icon: <MapPin size={12} />,
-      color: "#7c3aed", border: "#ddd6fe",
-    },
-    {
-      label: "Percentile",
-      val: stats.percentile != null ? `${stats.percentile}%` : "N/A",
-      icon: <Percent size={12} />,
-      color: "#0891b2", border: "#a5f3fc",
-    },
-    {
-      label: "Inst. Rank",
-      val: rankLabel(stats.instRank ?? null),
-      icon: <Trophy size={12} />,
-      color: "#f59e0b", border: "#fde68a",
-    },
-    {
-      label: "Accuracy",
-      val: stats.accuracy != null ? `${stats.accuracy}%` : "N/A",
-      icon: <Zap size={12} />,
-      color: "#10b981", border: "#a7f3d0",
-    },
+    { label: "State Rank",  val: stats.stateRank,                                       icon: <MapPin size={12} />,  color: "#7c3aed", border: "#ddd6fe" },
+    { label: "Percentile",  val: stats.percentile != null ? `${stats.percentile}%` : "N/A", icon: <Percent size={12} />, color: "#0891b2", border: "#a5f3fc" },
+    { label: "Inst. Rank",  val: rankLabel(stats.instRank ?? null),                      icon: <Trophy size={12} />,  color: "#f59e0b", border: "#fde68a" },
+    { label: "Accuracy",    val: stats.accuracy   != null ? `${stats.accuracy}%`   : "N/A", icon: <Zap size={12} />,    color: "#10b981", border: "#a7f3d0" },
   ];
 
   return (
-    <div style={{
-      padding: "14px 20px 16px 72px",
-      background: "linear-gradient(to bottom, #faf8ff, #ffffff)",
-      borderTop: "1px dashed #ede9f6",
-      animation: "dropIn 0.18s ease-out",
-    }}>
+    <div style={{ padding: "14px 20px 16px 72px", background: "linear-gradient(to bottom, #faf8ff, #ffffff)", borderTop: "1px dashed #ede9f6", animation: "dropIn 0.18s ease-out" }}>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
         {statCards.map(s => (
-          <div key={s.label} style={{
-            borderRadius: 12,
-            border: `1.5px solid ${s.border}`,
-            padding: "12px 14px",
-            background: "#fff",
-            boxShadow: `0 2px 8px ${s.color}10`,
-          }}>
+          <div key={s.label} style={{ borderRadius: 12, border: `1.5px solid ${s.border}`, padding: "12px 14px", background: "#fff", boxShadow: `0 2px 8px ${s.color}10` }}>
             <div style={{ color: s.color, display: "flex", alignItems: "center", gap: 5, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>
               {s.icon} {s.label}
             </div>
-            <div style={{ fontSize: 18, fontWeight: 900, color: s.color, letterSpacing: "-0.5px" }}>
-              {s.val}
-            </div>
+            <div style={{ fontSize: 18, fontWeight: 900, color: s.color, letterSpacing: "-0.5px" }}>{s.val}</div>
           </div>
         ))}
       </div>
@@ -108,83 +158,41 @@ function PodiumCard({ student, rank, isExpanded, onToggle }) {
           background: isFirst ? "#7c3aed" : "#fff",
           borderRadius: 16,
           border: isFirst ? "none" : "1px solid #e2e8f0",
-          boxShadow: isFirst ? "0 10px 25px rgba(124, 58, 237, 0.3)" : "none",
+          boxShadow: isFirst ? "0 10px 25px rgba(124,58,237,0.3)" : "none",
           transition: "all 0.2s ease",
           position: "relative",
         }}
       >
-        {/* Top Header Row */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <span style={{ 
-            fontSize: 10, 
-            fontWeight: 800, 
-            color: isFirst ? "rgba(255,255,255,0.7)" : "#94a3b8", 
-            textTransform: "uppercase",
-            letterSpacing: "0.05em" 
-          }}>
+          <span style={{ fontSize: 10, fontWeight: 800, color: isFirst ? "rgba(255,255,255,0.7)" : "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>
             Rank #{rank}
           </span>
           <span style={{ fontSize: 16 }}>{CROWN_ICONS[rank - 1]}</span>
         </div>
 
-        {/* Student Name */}
-        <div style={{ 
-          fontSize: 15, 
-          fontWeight: 800, 
-          color: isFirst ? "#fff" : "#1e293b", 
-          marginBottom: 16,
-          whiteSpace: "nowrap",
-          overflow: "hidden",
-          textOverflow: "ellipsis"
-        }}>
+        <div style={{ fontSize: 15, fontWeight: 800, color: isFirst ? "#fff" : "#1e293b", marginBottom: 16, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           {student.name}
         </div>
 
-        {/* Bottom Score Row */}
         <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-          <span style={{ 
-            fontSize: 22, 
-            fontWeight: 900, 
-            color: isFirst ? "#fff" : "#7c3aed",
-            letterSpacing: "-0.5px" 
-          }}>
-            {student.points}
-          </span>
-          <span style={{ 
-            fontSize: 10, 
-            fontWeight: 700, 
-            color: isFirst ? "rgba(255,255,255,0.6)" : "#94a3b8",
-            textTransform: "uppercase" 
-          }}>
-            PTS
-          </span>
+          <span style={{ fontSize: 22, fontWeight: 900, color: isFirst ? "#fff" : "#7c3aed", letterSpacing: "-0.5px" }}>{student.points}</span>
+          <span style={{ fontSize: 10, fontWeight: 700, color: isFirst ? "rgba(255,255,255,0.6)" : "#94a3b8", textTransform: "uppercase" }}>PTS</span>
         </div>
       </div>
 
-      {/* Minimalist Expanded Stats (matching your shimmer style) */}
       {isExpanded && (
-        <div style={{
-          padding: "16px",
-          marginTop: 8,
-          background: "#fff",
-          borderRadius: 16,
-          border: "1px solid #f1f5f9",
-          animation: "dropIn 0.2s ease-out",
-          display: "flex",
-          flexDirection: "column",
-          gap: 12
-        }}>
+        <div style={{ padding: "16px", marginTop: 8, background: "#fff", borderRadius: 16, border: "1px solid #f1f5f9", animation: "dropIn 0.2s ease-out", display: "flex", flexDirection: "column", gap: 12 }}>
           {[
-            { label: "Accuracy", val: `${stats.accuracy ?? 0}%`, color: "#10b981", percent: stats.accuracy },
-            { label: "Percentile", val: stats.percentile ? `${stats.percentile}%` : "N/A", color: "#0891b2", percent: stats.percentile },
-            { label: "State Rank", val: rankLabel(stats.stateRank), color: "#7c3aed", percent: 40 },
+            { label: "Accuracy",   val: `${stats.accuracy ?? 0}%`,                              color: "#10b981", percent: stats.accuracy },
+            { label: "Percentile", val: stats.percentile ? `${stats.percentile}%` : "N/A",       color: "#0891b2", percent: stats.percentile },
+            { label: "State Rank", val: rankLabel(stats.stateRank),                              color: "#7c3aed", percent: 40 },
           ].map((s, i) => (
             <div key={i} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase" }}>{s.label}</span>
                 <span style={{ fontSize: 12, fontWeight: 800, color: "#1e293b" }}>{s.val}</span>
               </div>
-              <div style={{ height: 6, background: "#f1f5f9", borderRadius: 99, overflow: "hidden", display: "flex" }}>
+              <div style={{ height: 6, background: "#f1f5f9", borderRadius: 99, overflow: "hidden" }}>
                 <div style={{ width: `${s.percent || 0}%`, height: "100%", background: s.color, borderRadius: 99 }} />
               </div>
             </div>
@@ -299,13 +307,10 @@ export default function Rankings() {
         {/* ── RIGHT PANEL ── */}
         <div style={{ flex: 1, background: "#f8faff", overflowY: "auto", padding: "20px 24px" }}>
           {loading ? (
-            <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Loader2 size={30} className="animate-spin" style={{ color: "#a78bfa" }} />
-            </div>
+            <SkeletonLoader />
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
 
-              {/* ── Podium: classic 2nd · 1st · 3rd layout ── */}
               {top3.length > 0 && activeBatch === "all" && (
                 <div>
                   <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 14 }}>
@@ -331,7 +336,6 @@ export default function Rankings() {
                 </div>
               )}
 
-              {/* ── Main List ── */}
               <div style={{ background: "#fff", borderRadius: 16, border: "1.5px solid #ede9f6", overflow: "hidden" }}>
                 <div style={{ padding: "16px 20px", borderBottom: "1px solid #f3f0ff", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div style={{ fontWeight: 800, color: "#0f172a", fontSize: 14 }}>Class Standings</div>
@@ -352,37 +356,16 @@ export default function Rankings() {
 
                   return (
                     <React.Fragment key={uid}>
-                      {/* Row — no expand arrow, whole row is clickable */}
                       <div
                         onClick={() => toggle(uid)}
                         onMouseEnter={ev => { if (!isOpen) ev.currentTarget.style.background = "#faf8ff"; }}
                         onMouseLeave={ev => { if (!isOpen) ev.currentTarget.style.background = "transparent"; }}
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "60px 1fr 120px 100px",
-                          alignItems: "center",
-                          padding: "14px 20px",
-                          borderBottom: isOpen ? "none" : "1px solid #f8faff",
-                          cursor: "pointer",
-                          transition: "background 0.15s",
-                          background: isOpen ? "#faf8ff" : "transparent",
-                        }}
+                        style={{ display: "grid", gridTemplateColumns: "60px 1fr 120px 100px", alignItems: "center", padding: "14px 20px", borderBottom: isOpen ? "none" : "1px solid #f8faff", cursor: "pointer", transition: "background 0.15s", background: isOpen ? "#faf8ff" : "transparent" }}
                       >
                         <div style={{ fontWeight: 900, color: rankNum <= 3 ? medal.color : "#94a3b8" }}>#{e.rank}</div>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <div style={{
-                            width: 32, height: 32, borderRadius: "50%",
-                            background: AVATAR_COLORS[idx % 5],
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            fontSize: 12, fontWeight: 800, color: "#7c3aed",
-                            border: isOpen ? "2px solid #c4b5fd" : "2px solid transparent",
-                            overflow: "hidden", flexShrink: 0,
-                            transition: "border 0.15s",
-                          }}>
-                            {e.avatar
-                              ? <img src={e.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }} />
-                              : e.name?.[0]
-                            }
+                          <div style={{ width: 32, height: 32, borderRadius: "50%", background: AVATAR_COLORS[idx % 5], display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800, color: "#7c3aed", border: isOpen ? "2px solid #c4b5fd" : "2px solid transparent", overflow: "hidden", flexShrink: 0, transition: "border 0.15s" }}>
+                            {e.avatar ? <img src={e.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }} /> : e.name?.[0]}
                           </div>
                           <div>
                             <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>
@@ -397,7 +380,6 @@ export default function Rankings() {
                         <div style={{ fontWeight: 800, color: "#7c3aed" }}>{e.points}</div>
                       </div>
 
-                      {/* Inline dropdown — slides in below the row */}
                       {isOpen && (
                         <div style={{ borderBottom: "1px solid #ede9f6" }}>
                           <StatsDropdown student={e} />
@@ -407,13 +389,22 @@ export default function Rankings() {
                   );
                 })}
               </div>
-
             </div>
           )}
         </div>
       </div>
 
       <style>{`
+        /* ── YouTube-style shimmer sweep ── */
+        @keyframes shimmer {
+          0%   { background-position: -600px 0; }
+          100% { background-position:  600px 0; }
+        }
+        .shimmer {
+          background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+          background-size: 600px 100%;
+          animation: shimmer 1.4s infinite linear;
+        }
         @keyframes dropIn {
           from { opacity: 0; transform: translateY(-6px); }
           to   { opacity: 1; transform: translateY(0); }
