@@ -270,20 +270,39 @@ export const getWeeklyLeaderboard = async (req, res) => {
     const loggedUserId = (req.user?.id || req.user?._id)?.toString();
 
     const rankings = await WeeklyLeaderboard.find()
-      .populate("studentId", "name profilePic")
+      .populate("studentId", "name profilePic stats") // ✅ added stats
       .sort({ rank: 1 })
       .lean();
 
+    const total = rankings.length;
+
     res.json(
-      rankings.map(entry => ({
-        rank:    entry.rank,
-        name:    entry.studentId?.name        || "Unknown",
-        points:  entry.totalScore.toString(),
-        avatar:  entry.studentId?.profilePic  || null,
-        current: entry.studentId?._id?.toString() === loggedUserId,
-      }))
+      rankings.map(entry => {
+        const userStats = entry.studentId?.stats || {};
+
+        const computedPercentile = total > 1
+          ? parseFloat((((total - entry.rank) / (total - 1)) * 100).toFixed(1))
+          : 100;
+
+        return {
+          studentId: entry.studentId?._id,
+          rank: entry.rank,
+          name: entry.studentId?.name || "Unknown",
+          points: entry.totalScore || 0,
+          avatar: entry.studentId?.profilePic || null,
+          current: entry.studentId?._id?.toString() === loggedUserId,
+          stats: {
+            stateRank:  userStats.stateRank  ?? "N/A",
+            instRank:   userStats.instRank   ?? "N/A",
+            percentile: userStats.percentile ?? computedPercentile,
+            accuracy:   userStats.accuracy   ?? 0,
+            progress:   userStats.progress   ?? 0,
+          }
+        };
+      })
     );
   } catch (err) {
+    console.error("Leaderboard Error:", err);
     res.status(500).json({ message: "Error fetching leaderboard" });
   }
 };

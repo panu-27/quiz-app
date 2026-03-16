@@ -41,6 +41,7 @@ import SchedulePage from "./admin/SchedulePage";
 import Performance from "./admin/Performance";
 import StudyMaterialPage from "./admin/StudyMaterialPage";
 import PYQBook from "./admin/PYQBook";
+import Rankings from "./admin/Rankings";
 
 /* ── legacy redirect: old /admin/create-test?mode=xxx links still work ── */
 function LegacyCreateTestRedirect() {
@@ -97,6 +98,7 @@ export default function App() {
           <Route path="/admin/study-material" element={<ProtectedRoute role="TEACHER"><StudyMaterialPage /></ProtectedRoute>} />
           <Route path="/admin/performance" element={<ProtectedRoute role="TEACHER"><Performance /></ProtectedRoute>} />
           <Route path="/admin/pyq/:subject" element={<ProtectedRoute role="TEACHER"><PYQBook /></ProtectedRoute>} />
+          <Route path="/admin/rankings" element={<ProtectedRoute role="TEACHER"><Rankings /></ProtectedRoute>} />
 
 
           {/* Legacy: /admin/create-test?mode=pdf → /admin/pdf etc. */}

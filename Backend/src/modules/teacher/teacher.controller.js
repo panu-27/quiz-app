@@ -689,6 +689,19 @@ export const getMyBatches = async (req, res) => {
   }
 };
 
+export const getMyBatches2 = async (req, res) => {
+  try {
+    // req.user is populated by your protect/auth middleware
+    const batches = await service.getMyBatches2(req.user);
+    
+    // Return an empty array instead of an error if no batches found
+    res.status(200).json(batches || []); 
+  } catch (err) {
+    res.status(err.message === "Unauthorized" ? 401 : 400).json({
+      message: err.message,
+    });
+  }
+};
 /* ---------------- CREATE PDF TEST (UNCHANGED) ---------------- */
 export const createTest = async (req, res) => {
   try {

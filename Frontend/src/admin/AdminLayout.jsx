@@ -77,6 +77,12 @@ const NAV = [
       { id: "bio", label: "Biology", icon: <FileUp size={13} />,  path: "/admin/pyq/bio", badge: "New" },
     ],
   },
+  {
+    id: "Rankings",
+    label: "Rankings",
+    icon: <BarChart3 size={15} />,
+    path: "/admin/rankings",
+  },
 ];
 
 /* ─── helpers ───────────────────────────────────────────── */

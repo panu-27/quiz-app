@@ -8,6 +8,8 @@ import { uploadPDF } from "../../middlewares/upload.middleware.js";
 
 /* ── Batches ── */
 router.get("/my-batches",          auth, role(["TEACHER"]), controller.getMyBatches);
+router.get("/my-batches2",          auth, role(["TEACHER"]), controller.getMyBatches2);
+
 
 /* ── Tests ── */
 router.post("/create-test",        auth, role(["TEACHER"]), controller.createTest);

@@ -398,6 +398,24 @@ export const getMyBatches = async (teacher) => {
   return batches;
 };
 
+export const getMyBatches2 = async (teacher) => {
+  // Ensure we have a valid ID from the auth middleware
+  const teacherId = teacher._id || teacher.id;
+
+  if (!teacherId) {
+    throw new Error("Unauthorized: Teacher identification missing");
+  }
+
+  // Find batches where the teacher's ID exists in the 'teachers' array
+  const batches = await Batch.find({
+    teachers: teacherId,
+  })
+    .select("_id name students") // Only return necessary fields for the frontend chips
+    .lean(); // Faster execution by returning plain JSON objects
+
+  return batches;
+};
+
 const shuffle = (arr) => {
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
