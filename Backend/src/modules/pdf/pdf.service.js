@@ -625,9 +625,16 @@ body{font-family:'Inter',-apple-system,sans-serif;color:#111827;background:#fff;
 </html>`;
 
   /* ── Puppeteer ────────────────────────────────────────────────── */
-  const browser = await puppeteer.launch({
+const browser = await puppeteer.launch({
     headless: "new",
-    args: ["--no-sandbox","--disable-setuid-sandbox","--disable-dev-shm-usage","--disable-gpu"],
+    // 1. ADD THIS LINE (Verify path with 'which chromium-browser' on VPS)
+    executablePath: '/usr/bin/chromium-browser', 
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage", // Fixes shared memory issues on VPS
+      "--disable-gpu"
+    ],
   });
 
   try {
