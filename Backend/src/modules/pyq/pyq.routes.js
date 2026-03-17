@@ -28,16 +28,16 @@ res.status(500).json({error:err.message})
 })
 router.post("/bulk-add", async (req, res) => {
   try {
-
     const questions = await PYQ.insertMany(req.body);
 
-    res.json({
-      message: "Questions added",
-      count: questions.length,
-      data: questions
-    });
+    // Add these logs 👇
+    console.log("Inserted count:", questions.length);
+    console.log("Collection name:", PYQ.collection.name);       // should be 'pyqs'
+    console.log("DB name:", PYQ.db.name);                       // check this matches Compass
 
+    res.json({ message: "Questions added", count: questions.length });
   } catch (err) {
+    console.error("INSERT ERROR:", err.message);
     res.status(500).json({ error: err.message });
   }
 });

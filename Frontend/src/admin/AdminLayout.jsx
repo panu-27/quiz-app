@@ -72,9 +72,9 @@ const NAV = [
     icon: <BookOpen size={15} />,
      children: [
       { id: "69a6be2794b749c00e88cd23",   label: "Physics",    icon: <FileUp size={13} />,   path: "/admin/pyq/69a6be2794b749c00e88cd23" , badge: "New"},
-      { id: "chem",  label: "Chemistry",  icon: <Database size={13} />, path: "/admin/pyq/chem" , badge: "New"},
-      { id: "math", label: "Mathematics", icon: <PenLine size={13} />,  path: "/admin/pyq/math", badge: "New" },
-      { id: "bio", label: "Biology", icon: <FileUp size={13} />,  path: "/admin/pyq/bio", badge: "New" },
+      { id: "69a6be2794b749c00e88cd24",  label: "Chemistry",  icon: <Database size={13} />, path: "/admin/pyq/69a6be2794b749c00e88cd24" , badge: "New"},
+      { id: "69a6be2794b749c00e88cd25", label: "Mathematics", icon: <PenLine size={13} />,  path: "/admin/pyq/69a6be2794b749c00e88cd25", badge: "New" },
+      { id: "69a6be2794b749c00e88cd26", label: "Biology", icon: <FileUp size={13} />,  path: "/admin/pyq/69a6be2794b749c00e88cd26", badge: "New" },
     ],
   },
   {

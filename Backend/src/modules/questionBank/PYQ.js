@@ -25,19 +25,19 @@ const pyqSchema = new mongoose.Schema(
 
     // ── Content ────────────────────────────────────────────────────────────
     question:      { type: String, required: true },
-    questionImage: { type: String },           // URL for diagrams
-
+    questionImage: { type: String  , default: null },           // URL for diagrams
+    
     options: [
       {
         text:  { type: String },
-        image: { type: String },               // for image-based options
+        image: { type: String , default: null },               // for image-based options
       },
     ],
 
     // ── Answer & Explanation ───────────────────────────────────────────────
     correctOption:    { type: Number, required: true }, // 0 | 1 | 2 | 3
     explanation:      { type: String },
-    explanationImage: { type: String },
+    explanationImage: { type: String , default: null}, // for diagram-based explanations
 
     // ── Analytics Metadata ─────────────────────────────────────────────────
     difficulty: {
