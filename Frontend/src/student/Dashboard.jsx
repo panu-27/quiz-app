@@ -216,10 +216,12 @@ export default function StudentDashboard() {
         </div>
 
       </div>
-      <div className="text-white min-w-0">
-        <p className={`${large ? "text-base" : "text-[15px]"} font-bold truncate`}>{topRankName}</p>
-        <p className="text-[12px] opacity-70 font-medium">Top of the week 🏆</p>
-      </div>
+<div className="text-white min-w-0 flex-1"> {/* Added flex-1 to push the text to fill space */}
+  <p className={`${large ? "text-base" : "text-[15px]"} font-bold truncate max-w-[160px] sm:max-w-none`}>
+    {topRankName}
+  </p>
+  <p className="text-[12px] opacity-70 font-medium">Top of the week 🏆</p>
+</div>
     </div>
   );
 
@@ -285,7 +287,7 @@ export default function StudentDashboard() {
           ) : (
             <div
               className="relative bg-[#7A41F7] rounded-[2rem] p-5 flex items-center justify-between overflow-hidden cursor-pointer active:scale-[0.98] transition-transform"
-              onClick={() => navigate("/student/leaderboard")}
+              onClick={() => navigate("/student/personal")}
             >
               <div className="absolute right-0 bottom-0 opacity-20 pointer-events-none">
                 <svg width="150" height="100" viewBox="0 0 150 100" fill="none">
