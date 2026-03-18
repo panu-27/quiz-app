@@ -176,7 +176,7 @@ export function AdminSidebar({ onClose }) {
       display: "flex", flexDirection: "column",
       overflowY: "auto", flexShrink: 0,
       fontFamily: "'DM Sans', sans-serif",
-    }}>
+    }} className="no-scrollbar">
 
       {/* ── Logo ── */}
       <div style={{
@@ -293,7 +293,7 @@ export default function AdminLayout({ children }) {
 
       {/* Desktop sidebar */}
       {!isMobile && (
-        <div style={{ height: "100vh", position: "sticky", top: 0, flexShrink: 0 }}>
+        <div style={{ height: "100vh", position: "sticky", top: 0, flexShrink: 0 }} >
           <AdminSidebar />
         </div>
       )}
