@@ -91,6 +91,7 @@ export const login = async ({ email, password }) => {
         role: user.role,
         instituteId: user.instituteId,
         batchId: user.batchId || null,
+        profilePic : user.profilePic || null,
       },
     },
   };
