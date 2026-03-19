@@ -198,10 +198,10 @@ export default function StudentDashboard() {
   };
 
   const quizzes = [
-    { name: "Physics Quiz", color: "bg-[#EBF3FF]", badge: "bg-[#D1E5FF]", tag: "Physics", icon: <Atom size={18} />, questions: 15, players: "20k+", subj: "physics" },
-    { name: "Chemistry Quiz", color: "bg-[#FFF4EB]", badge: "bg-[#FFE9D6]", tag: "Chemistry", icon: <FlaskConical size={18} />, questions: 15, players: "12k+", subj: "chemistry" },
-    { name: "Math Quiz", color: "bg-[#F3EBFF]", badge: "bg-[#E6D6FF]", tag: "Math", icon: <Calculator size={18} />, questions: 15, players: "15k+", subj: "maths" },
-    { name: "Biology Quiz", color: "bg-[#EBFDEB]", badge: "bg-[#D6F7D6]", tag: "Biology", icon: <Dna size={18} />, questions: 15, players: "8k+", subj: "biology" },
+    { name: "Physics Quiz", color: "bg-[#EBF3FF]", badge: "bg-[#D1E5FF]", tag: "Physics", icon: <Atom size={18} />, chapters: 28, pyq: "1.2k", subj: "physics" },
+    { name: "Chemistry Quiz", color: "bg-[#FFF4EB]", badge: "bg-[#FFE9D6]", tag: "Chemistry", icon: <FlaskConical size={18} />, chapters: 28, pyq: "1.3k+", subj: "chemistry" },
+    { name: "Math Quiz", color: "bg-[#F3EBFF]", badge: "bg-[#E6D6FF]", tag: "Math", icon: <Calculator size={18} />, chapters: 25, pyq: "1.5k+", subj: "maths" },
+    { name: "Biology Quiz", color: "bg-[#EBFDEB]", badge: "bg-[#D6F7D6]", tag: "Biology", icon: <Dna size={18} />, chapters: 27, pyq: "1.8k+", subj: "biology" },
   ];
 
   /* ── shared top rank content (real data) ── */
@@ -336,12 +336,12 @@ export default function StudentDashboard() {
               <div key={index} onClick={() => navigate(`/student/quiz?subj=${quiz.subj}`)} className={`${quiz.color} min-w-[260px] rounded-[2.5rem] p-7 flex-shrink-0 cursor-pointer transition-transform active:scale-95`}>
                 <div className="flex gap-2 mb-8">
                   <div className={`${quiz.badge} px-4 py-2 rounded-full flex items-center gap-2 text-[12px] font-bold text-slate-500/80`}>{quiz.icon}{quiz.tag}</div>
-                  <div className={`${quiz.badge} px-4 py-2 rounded-full text-[12px] font-bold text-slate-500/80 flex items-center gap-1`}><BarChart2 size={16} />Hard</div>
+                  <div className={`${quiz.badge} px-4 py-2 rounded-full text-[12px] font-bold text-slate-500/80 flex items-center gap-1`}><BarChart2 size={16} />PYQ's</div>
                 </div>
                 <h5 className="text-[22px] font-black text-slate-900 mb-8 tracking-tight">{quiz.name}</h5>
                 <div className="flex items-center gap-8 text-[13px] font-bold text-slate-400">
-                  <span>{quiz.questions} Questions</span>
-                  <span>{quiz.players} Players</span>
+                  <span>{quiz.chapters} Chapters</span>
+                  <span>{quiz.pyq} Questions</span>
                 </div>
               </div>
             ))}
