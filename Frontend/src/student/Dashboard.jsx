@@ -139,6 +139,7 @@ export default function StudentDashboard() {
   const [testsLoading, setTestsLoading] = useState(true);
 
   const [topRankName, setTopRankName] = useState("Brandon Matrovs");
+  const [topRankPic, setTopRankPic] = useState(null);
   const [rankLoading, setRankLoading] = useState(true);
 
   const [stats, setStats] = useState({ attempted: "_", scheduled: 0, completed: "_" });
@@ -173,7 +174,10 @@ export default function StudentDashboard() {
           },
         });
         const name = res.data?.name || res.data?.studentName || res.data?.student?.name;
+        const profilePic = res.data?.avatar || res.data?.student?.avatar;
+        console.log("Top rank data:", res.data);
         if (name) setTopRankName(name);
+        if(profilePic) setTopRankPic(profilePic);
       } catch {
         /* stays "Brandon Matrovs" */
       } finally {
@@ -194,34 +198,34 @@ export default function StudentDashboard() {
   };
 
   const quizzes = [
-    { name: "Physics Quiz",   color: "bg-[#EBF3FF]", badge: "bg-[#D1E5FF]", tag: "Physics",   icon: <Atom size={18} />,        questions: 15, players: "20k+", subj: "physics"   },
+    { name: "Physics Quiz", color: "bg-[#EBF3FF]", badge: "bg-[#D1E5FF]", tag: "Physics", icon: <Atom size={18} />, questions: 15, players: "20k+", subj: "physics" },
     { name: "Chemistry Quiz", color: "bg-[#FFF4EB]", badge: "bg-[#FFE9D6]", tag: "Chemistry", icon: <FlaskConical size={18} />, questions: 15, players: "12k+", subj: "chemistry" },
-    { name: "Math Quiz",      color: "bg-[#F3EBFF]", badge: "bg-[#E6D6FF]", tag: "Math",      icon: <Calculator size={18} />,  questions: 15, players: "15k+", subj: "maths"     },
-    { name: "Biology Quiz",   color: "bg-[#EBFDEB]", badge: "bg-[#D6F7D6]", tag: "Biology",   icon: <Dna size={18} />,         questions: 15, players: "8k+",  subj: "biology"   },
+    { name: "Math Quiz", color: "bg-[#F3EBFF]", badge: "bg-[#E6D6FF]", tag: "Math", icon: <Calculator size={18} />, questions: 15, players: "15k+", subj: "maths" },
+    { name: "Biology Quiz", color: "bg-[#EBFDEB]", badge: "bg-[#D6F7D6]", tag: "Biology", icon: <Dna size={18} />, questions: 15, players: "8k+", subj: "biology" },
   ];
 
   /* ── shared top rank content (real data) ── */
   const TopRankContent = ({ large = false }) => (
-    <div className="flex items-center gap-4 relative z-10">
-      <div className={`${large ? "w-10 h-10 text-sm" : "w-8 h-8 text-xs"} rounded-full border-2 border-white/40 flex items-center justify-center text-white font-bold flex-shrink-0`}>
+    <div className="flex items-center gap-2 relative z-10">
+      <div className={`${large ? "w-10 h-10 text-sm" : "w-7 h-7 text-xs"} rounded-full border-2 border-white/40 flex items-center justify-center text-white font-bold flex-shrink-0 -ml-3`}>
         #1
       </div>
       <div className="relative flex-shrink-0">
         <div className={`${large ? "w-16 h-16" : "w-14 h-14"} rounded-full bg-pink-200 border-2 border-white/20 overflow-hidden`}>
           <img
-            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(topRankName)}`}
+            src={topRankPic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(topRankName)}`}
             alt="Top student"
             className="w-full h-full object-cover"
           />
         </div>
 
       </div>
-<div className="text-white min-w-0 flex-1"> {/* Added flex-1 to push the text to fill space */}
-  <p className={`${large ? "text-base" : "text-[15px]"} font-bold truncate max-w-[160px] sm:max-w-none`}>
-    {topRankName}
-  </p>
-  <p className="text-[12px] opacity-70 font-medium">Top of the week 🏆</p>
-</div>
+      <div className="text-white min-w-0 flex-1 pr-12"> {/* Added flex-1 to push the text to fill space */}
+        <p className={`${large ? "text-base" : "text-[15px]"} font-bold truncate `}>
+          {topRankName}
+        </p>
+        <p className="text-[12px] opacity-70 font-medium">Top of the week 🏆</p>
+      </div>
     </div>
   );
 
@@ -286,7 +290,7 @@ export default function StudentDashboard() {
             <TopRankMobileSkeleton />
           ) : (
             <div
-              className="relative bg-[#7A41F7] rounded-[2rem] p-5 flex items-center justify-between overflow-hidden cursor-pointer active:scale-[0.98] transition-transform"
+              className="relative bg-[#7A41F7] rounded-[2rem] p-5 flex items-center  overflow-hidden cursor-pointer active:scale-[0.98] transition-transform"
               onClick={() => navigate("/student/personal")}
             >
               <div className="absolute right-0 bottom-0 opacity-20 pointer-events-none">
@@ -296,8 +300,8 @@ export default function StudentDashboard() {
                 </svg>
               </div>
               <TopRankContent large={false} />
-              <div className="relative z-10 flex items-center justify-center w-10 h-10 flex-shrink-0">
-                <div className="absolute inset-0 bg-[#FFD700] shadow-lg" style={{ clipPath: "polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)" }} />
+              <div className="absolute bottom-2 right-3 z-20 flex items-center justify-center w-10 h-10">
+                <div className="absolute right-0 inset-0 bg-[#FFD700] shadow-lg" style={{ clipPath: "polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)" }} />
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white relative z-20" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M5 16L3 5L8.5 10L12 4L15.5 10L21 5L19 16H5M19 19C19 19.6 18.6 20 18 20H6C5.4 20 5 19.6 5 19V18H19V19Z" />
                 </svg>
@@ -418,7 +422,7 @@ export default function StudentDashboard() {
       <div className="hidden md:block max-w-7xl mx-auto px-8 lg:px-8 xl:px-24 2xl:px-20 py-8">
 
         {/* ── Stats Bar ── */}
-        <FakeStatsBar/>
+        <FakeStatsBar />
 
         {/* ── Hero + Leaderboard Row ── */}
         {rankLoading ? (
