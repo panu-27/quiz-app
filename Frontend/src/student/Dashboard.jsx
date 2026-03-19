@@ -175,7 +175,6 @@ export default function StudentDashboard() {
         });
         const name = res.data?.name || res.data?.studentName || res.data?.student?.name;
         const profilePic = res.data?.avatar || res.data?.student?.avatar;
-        console.log("Top rank data:", res.data);
         if (name) setTopRankName(name);
         if(profilePic) setTopRankPic(profilePic);
       } catch {
