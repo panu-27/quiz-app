@@ -114,7 +114,7 @@ const TestOverview = ({
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto' }} className="h-[75vh] no-scrollbar">
-        <div style={{ paddingBottom: 16 }}>
+        <div style={{ paddingBottom: 16 }} className='-px-6'>
           {/* Test Type Badge */}
           <div style={{ background: testType === 'pyq' ? '#F3E8FF' : '#EEF2FF', border: testType === 'pyq' ? '1.5px solid #E9D5FF' : '1.5px solid #C7D2FE', borderRadius: 12, padding: '10px 14px', marginBottom: 14, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 12, fontWeight: 800, color: testType === 'pyq' ? '#7C3AED' : '#4F46E5', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
