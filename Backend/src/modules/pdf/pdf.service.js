@@ -628,8 +628,13 @@ body{font-family:'Inter',-apple-system,sans-serif;color:#111827;background:#fff;
 const browser = await puppeteer.launch({
     headless: "new",
     // 1. ADD THIS LINE (Verify path with 'which chromium-browser' on VPS)
-    args: ["--no-sandbox","--disable-setuid-sandbox","--disable-dev-shm-usage","--disable-gpu"],
-
+    executablePath: '/usr/bin/chromium-browser', 
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage", // Fixes shared memory issues on VPS
+      "--disable-gpu"
+    ],
   });
 
   try {
