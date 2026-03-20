@@ -212,7 +212,7 @@ const TestOverview = ({
                     overflow: 'hidden',
                     animation: 'fadeInScale 0.2s ease-out'
                   }}>
-                    {['Easy', 'Med', 'Hard'].map((level) => (
+                    {['Easy', 'Medium', 'Hard'].map((level) => (
                       <button
                         key={level}
                         onClick={() => {
