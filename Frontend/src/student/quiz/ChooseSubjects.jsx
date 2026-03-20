@@ -237,7 +237,7 @@ const ChooseSubjects = ({ onConfirm }) => {
 
             {/* ── FLOATING CTA ── */}
             {picked.length > 0 && (
-                <div className="fixed bottom-8 left-5 right-5 z-30 sm:static sm:mt-4">
+                <div className=" hidden sm:block  fixed bottom-8 left-5 right-5 z-30 sm:static sm:mt-4">
                     <button className="qf-continue-btn w-full" onClick={enterSettings} style={{ borderRadius: '18px' }}>
                         Next <ChevronRight size={18} strokeWidth={2.5} />
                     </button>

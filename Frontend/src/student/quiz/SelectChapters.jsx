@@ -176,13 +176,20 @@ const SelectChapters = ({
 
       {/* ── CTA ── */}
       {canAdvance && (
-        <div className="fixed bottom-6 left-5 right-5 z-50">
+        <div className="hidden sm:block z-20 sm:z-10 fixed bottom-6 left-5 right-5 z-50">
           <button className="qf-continue-btn w-full" style={{ borderRadius: 18 }} onClick={onContinue}>
             Review Overview <ChevronRight size={18} strokeWidth={2.5} />
           </button>
         </div>
       )}
 
+      {canAdvance && (
+        <div className="sm:hidden fixed z-10 sm:z-20  bottom-7 left-5 right-5 z-50">
+          <button className="qf-continue-btn w-full" style={{ borderRadius: 18 }} onClick={onContinue}>
+            <ChevronRight size={18} strokeWidth={2.5} />
+          </button>
+        </div>
+      )}
       {/* Add this CSS to your global stylesheet for the YT bar effect */}
       <style>{`
         @keyframes yt-loader {

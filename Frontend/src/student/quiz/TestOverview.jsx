@@ -17,6 +17,7 @@ const TestOverview = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [selectedDiff, setSelectedDiff] = useState('Medium');
+  const [showDiffMenu, setShowDiffMenu] = useState(false);
 
   const totalQs = subjectIds.reduce((sum, id) => sum + (subjectWiseCounts[id] || 10), 0);
 
@@ -55,49 +56,49 @@ const TestOverview = ({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', position: 'relative' }} className='h-[96vh]'>
-      
-{loading && (
-  <div style={{
-    position: 'fixed', 
-    inset: 0, 
-    zIndex: 1000,
-    display: 'flex', 
-    flexDirection: 'column', 
-    alignItems: 'center', 
-    justifyContent: 'center',
-    background: '#ffffff', // Clean white background
-  }}>
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-      {/* Subtle Gray Loader */}
-      <Loader2 
-        size={28} 
-        strokeWidth={1.5} 
-        style={{ 
-          color: '#E2E8F0', // Very light slate
-          animation: 'spin 1.5s linear infinite' 
-        }} 
-      />
-      
-      {/* Minimalist Text */}
-      <p style={{ 
-        fontSize: 13, 
-        fontWeight: 600, 
-        color: '#94A3B8', 
-        letterSpacing: '0.02em',
-        fontFamily: "inherit"
-      }}>
-        Preparing your test...
-      </p>
-    </div>
 
-    <style>{`
+      {loading && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 1000,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: '#ffffff', // Clean white background
+        }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+            {/* Subtle Gray Loader */}
+            <Loader2
+              size={28}
+              strokeWidth={1.5}
+              style={{
+                color: '#E2E8F0', // Very light slate
+                animation: 'spin 1.5s linear infinite'
+              }}
+            />
+
+            {/* Minimalist Text */}
+            <p style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: '#94A3B8',
+              letterSpacing: '0.02em',
+              fontFamily: "inherit"
+            }}>
+              Preparing your test...
+            </p>
+          </div>
+
+          <style>{`
       @keyframes spin { 
         from { transform: rotate(0deg); } 
         to { transform: rotate(360deg); } 
       }
     `}</style>
-  </div>
-)}
+        </div>
+      )}
 
       {/* ── Heading Desktop ── */}
       <div className="hidden md:block" style={{ flexShrink: 0, marginBottom: 18 }}>
@@ -158,25 +159,88 @@ const TestOverview = ({
                 </div>
               </div>
             ))}
-
-            {/* Difficulty Dropdown */}
-            <div style={{ background: '#F5F3FF', borderRadius: 16, padding: '16px', display: 'flex', alignItems: 'center', gap: 12, position: 'relative', border: '1.5px solid #DDD6FE' }}>
-              <select value={selectedDiff} onChange={(e) => setSelectedDiff(e.target.value)}
-                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', zIndex: 10 }}>
-                <option value="Easy">Easy</option>
-                <option value="Medium">Medium</option>
-                <option value="Hard">Hard</option>
-              </select>
-              <div style={{ background: '#DDD6FE', color: '#6D28D9', width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <BarChart3 size={15} strokeWidth={2.5} />
-              </div>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <p style={{ fontFamily: "'Bricolage Grotesque', sans-serif", color: '#6D28D9', fontSize: 20, fontWeight: 800, lineHeight: 1 }}>{selectedDiff}</p>
-                  <ChevronDown size={14} strokeWidth={3} color="#6D28D9" />
+            <div className="relative">
+              <div
+                onClick={() => setShowDiffMenu(!showDiffMenu)}
+                style={{
+                  background: '#F5F3FF',
+                  borderRadius: 16,
+                  padding: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  cursor: 'pointer',
+                  border: '1.5px solid #DDD6FE',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <div style={{ background: '#DDD6FE', color: '#6D28D9', width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <BarChart3 size={15} strokeWidth={2.5} />
                 </div>
-                <p style={{ fontSize: 11, color: '#6B7280', fontWeight: 600, textTransform: 'uppercase', marginTop: 4 }}>Difficulty</p>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <p style={{ fontFamily: "'Bricolage Grotesque', sans-serif", color: '#6D28D9', fontSize: 20, fontWeight: 800, lineHeight: 1 }}>{selectedDiff}</p>
+                    <ChevronDown
+                      size={14}
+                      strokeWidth={3}
+                      color="#6D28D9"
+                      style={{ transform: showDiffMenu ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
+                    />
+                  </div>
+                  <p style={{ fontSize: 11, color: '#6B7280', fontWeight: 600, textTransform: 'uppercase', marginTop: 4 }}>Difficulty</p>
+                </div>
               </div>
+
+              {/* Custom Menu */}
+              {showDiffMenu && (
+                <>
+                  {/* Backdrop to close menu when clicking outside */}
+                  <div
+                    onClick={() => setShowDiffMenu(false)}
+                    style={{ position: 'fixed', inset: 0, zIndex: 40 }}
+                  />
+                  <div style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 8px)',
+                    left: 0,
+                    right: 0,
+                    background: 'white',
+                    borderRadius: 16,
+                    border: '1.5px solid #F0F0F4',
+                    boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)',
+                    zIndex: 50,
+                    overflow: 'hidden',
+                    animation: 'fadeInScale 0.2s ease-out'
+                  }}>
+                    {['Easy', 'Medium', 'Hard'].map((level) => (
+                      <button
+                        key={level}
+                        onClick={() => {
+                          setSelectedDiff(level);
+                          setShowDiffMenu(false);
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '14px 16px',
+                          textAlign: 'left',
+                          fontSize: 14,
+                          fontWeight: 700,
+                          color: selectedDiff === level ? '#6D28D9' : '#4B5563',
+                          background: selectedDiff === level ? '#F5F3FF' : 'transparent',
+                          border: 'none',
+                          borderBottom: level !== 'Hard' ? '1px solid #F8F8FA' : 'none',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center'
+                        }}
+                      >
+                        {level}
+                        {selectedDiff === level && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#6D28D9' }} />}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -204,17 +268,16 @@ const TestOverview = ({
       </div>
 
       {/* CTA Buttons */}
-      <div className="hidden md:block" style={{ paddingTop: 16, borderTop: '1px solid #F3F4F6' }}>
+      <div className="hidden sm:block z-10 sm:z-20" style={{ paddingTop: 16, borderTop: '1px solid #F3F4F6' }}>
         <button className="qf-continue-btn" onClick={handleBeginTest} disabled={loading} style={{ height: 52, borderRadius: 14 }}>
           <Play size={16} strokeWidth={3} style={{ fill: 'white' }} />
           <span style={{ fontWeight: 800, fontSize: 15 }}>Begin Session</span>
         </button>
       </div>
 
-      <div className="md:hidden fixed bottom-6 left-5 right-5 z-50">
+      <div className="sm:hidden fixed bottom-7 z-20 sm:z-10 left-5 right-5 z-50">
         <button className="qf-continue-btn" onClick={handleBeginTest} disabled={loading} style={{ borderRadius: 18 }}>
           <Play size={16} strokeWidth={3} style={{ fill: 'white' }} />
-          <span style={{ fontWeight: 800, fontSize: 15 }}>Begin Session</span>
         </button>
       </div>
 
@@ -229,6 +292,10 @@ const TestOverview = ({
         @keyframes bounce {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-10px); }
+        }
+        @keyframes fadeInScale {
+          from { opacity: 0; transform: translateY(-10px) scale(0.95); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
         }
       `}</style>
     </div>
