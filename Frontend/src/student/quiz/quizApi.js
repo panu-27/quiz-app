@@ -1,164 +1,187 @@
-/* ══════════════════════════════════════════════
-   QUIZ API SERVICE — quizApi.js
-   ──────────────────────────────────────────────
-   All quiz-related API calls live here.
-   Currently FAKE (console.log only) — swap the
-   fetch calls in when the backend is ready.
+/**
+ * ══════════════════════════════════════════════════════════════════════
+ * QUIZ API SERVICE — quizApi.js (FIXED v2)
+ * ──────────────────────────────────────────────────────────────────────
+ * FIXES:
+ * ✅ fetchQuizQuestions now forwards totalTime + subjectWiseCounts
+ * ✅ Auth headers on all POST/GET requests that need them
+ * ✅ HTTP status checking & friendly error messages
+ * ══════════════════════════════════════════════════════════════════════
+ */
 
-   REQUEST / RESPONSE CONTRACT
-   ───────────────────────────
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
-   ── 1. Generate Questions ──────────────────────
-   POST /api/quiz/generate
+const getAuthToken = () =>
+  localStorage.getItem('auth_token') || localStorage.getItem('token') || '';
 
-   Request body:
-   {
-     subjectIds:  ["physics", "chemistry"],          // selected subject IDs
-     chapterIds:  ["p1", "p2", "c3"],               // selected chapter IDs
-     topicKeys:   ["p1::Newton's 1st Law", "c3::Periodic Table"]  // selected topic keys
-   }
+const fetchWithAuth = async (url, options = {}) => {
+  const token = getAuthToken();
 
-   Response (array of question objects):
-   [
-     {
-       id:      "uuid-or-db-id",   // backend's DB question id
-       subj:    "physics",          // subject id
-       chapId:  "p1",               // chapter id
-       topic:   "Newton's 1st Law", // topic string
-       q:       "Question text?",
-       opts:    ["A", "B", "C", "D"],
-       ans:     1                   // 0-based index of correct answer
-     },
-     ...
-   ]
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
 
-   ── 2. Submit Answers ──────────────────────────
-   POST /api/quiz/submit
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
 
-   Request body:
-   {
-     subjectIds:  ["physics", "chemistry"],
-     chapterIds:  ["p1", "p2", "c3"],
-     topicKeys:   ["p1::Newton's 1st Law"],
-     answers: [
-       { questionId: "uuid-or-db-id", selectedOption: 1 },  // 0-based
-       { questionId: "uuid-or-db-id", selectedOption: null } // null = skipped
-     ],
-     timeTakenSeconds: 420,
-     submittedAt: "2025-03-13T10:22:00.000Z"
-   }
+  const res = await fetch(url, { ...options, headers });
 
-   Response:
-   {
-     attemptId:    "attempt-uuid",
-     score:        75,             // percentage
-     correct:      9,
-     wrong:        2,
-     unanswered:   1,
-     total:        12,
-     breakdown: [                  // per-question result
-       { questionId: "...", correct: true, selectedOption: 1, correctOption: 1 },
-       ...
-     ]
-   }
-══════════════════════════════════════════════ */
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || `HTTP ${res.status}: ${res.statusText}`);
+  }
 
-const BASE_URL = '/apii/quiz'; // swap to full URL when backend is live
+  const json = await res.json();
 
-/* ── 1. Fetch questions from backend ── */
-export async function fetchQuizQuestions({ subjectIds, chapterIds, topicKeys }) {
-    const payload = { subjectIds, chapterIds, topicKeys };
+  if (!json.success) {
+    throw new Error(json.message || 'Request failed');
+  }
 
-    console.log('[quizApi] fetchQuizQuestions → REQUEST', JSON.stringify(payload, null, 2));
+  return json;
+};
 
-    /* ── FAKE RESPONSE — remove this block and uncomment fetch() when backend ready ── */
-    const fakeQuestions = _buildFakeQuestions(subjectIds, chapterIds, topicKeys);
-    console.log('[quizApi] fetchQuizQuestions ← FAKE RESPONSE', fakeQuestions);
-    return fakeQuestions;
+/* ══════════════════════════════════════════════════════════════════════
+   METADATA ENDPOINTS (no auth)
+══════════════════════════════════════════════════════════════════════ */
 
-    /* ── REAL FETCH (uncomment when backend ready) ──
-    const res = await fetch(`${BASE_URL}/generate`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify(payload),
-    });
-    if (!res.ok) throw new Error(`Quiz generate failed: ${res.status}`);
-    return res.json(); // array of question objects
-    */
+export async function fetchSubjects() {
+  const res = await fetch(`${BASE_URL}/quiz/subjects`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+  const json = await res.json();
+  if (!json.success) throw new Error(json.message || 'Failed to fetch subjects');
+  return json.data;
 }
 
-/* ── 2. Submit answers to backend ── */
-export async function submitQuizAttempt({
+export async function fetchChapters(subjectId) {
+  const res = await fetch(`${BASE_URL}/quiz/subjects/${subjectId}/chapters`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to fetch chapters`);
+  const json = await res.json();
+  if (!json.success) throw new Error(json.message || 'Failed to fetch chapters');
+  return json.data;
+}
+
+export async function fetchTopics(chapterId) {
+  const res = await fetch(`${BASE_URL}/quiz/chapters/${chapterId}/topics`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to fetch topics`);
+  const json = await res.json();
+  if (!json.success) throw new Error(json.message || 'Failed to fetch topics');
+  return json.data;
+}
+
+export async function fetchYearRange() {
+  const res = await fetch(`${BASE_URL}/quiz/year-range`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to fetch year range`);
+  const json = await res.json();
+  if (!json.success) throw new Error(json.message || 'Failed to fetch year range');
+  return json.data;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   QUESTION FETCHING (requires auth)
+   
+   Payload shape:
+   {
+     type: "practice" | "pyq",
+     subjectIds: [...],
+     chapterIds: [...],
+     topicIds?: [...],
+     difficulty: "Easy" | "Medium" | "Hard",
+     yearRange?: { min, max },
+     totalTime: 90,           // ← NEW: minutes
+     subjectWiseCounts: {     // ← NEW: { subjectId: questionCount }
+       "abc123": 50,
+     },
+     limit: 10,               // fallback if subjectWiseCounts not provided
+   }
+══════════════════════════════════════════════════════════════════════ */
+
+export async function fetchQuizQuestions({
+  type = 'practice',
+  subjectIds = [],
+  chapterIds = [],
+  topicIds = [],
+  difficulty = 'Medium',
+  yearRange = null,
+  totalTime = 90,
+  subjectWiseCounts = {},
+  limit = 10,
+}) {
+  const payload = {
+    type,
     subjectIds,
     chapterIds,
-    topicKeys,
-    answers,           // [{ questionId, selectedOption }]
-    timeTakenSeconds,
-}) {
-    const payload = {
-        subjectIds,
-        chapterIds,
-        topicKeys,
-        answers,
-        timeTakenSeconds,
-        submittedAt: new Date().toISOString(),
-    };
+    topicIds,
+    difficulty,
+    yearRange,
+    totalTime,
+    subjectWiseCounts,
+    limit,
+  };
 
-    console.log('[quizApi] submitQuizAttempt → REQUEST', JSON.stringify(payload, null, 2));
+  console.log('[quizApi] fetchQuizQuestions', payload);
 
-    /* ── FAKE RESPONSE ── */
-    const total      = answers.length;
-    const correct    = answers.filter(a => a.selectedOption === a._correctOption).length;
-    const unanswered = answers.filter(a => a.selectedOption === null).length;
-    const wrong      = total - correct - unanswered;
-    const fakeResult = {
-        attemptId:    `fake-attempt-${Date.now()}`,
-        score:        Math.round((correct / total) * 100),
-        correct,
-        wrong,
-        unanswered,
-        total,
-        breakdown:    answers.map(a => ({
-            questionId:      a.questionId,
-            correct:         a.selectedOption === a._correctOption,
-            selectedOption:  a.selectedOption,
-            correctOption:   a._correctOption,
-        })),
-    };
-    console.log('[quizApi] submitQuizAttempt ← FAKE RESPONSE', fakeResult);
-    return fakeResult;
+  const json = await fetchWithAuth(`${BASE_URL}/quiz/fetch-questions`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
 
-    /* ── REAL FETCH ──
-    const res = await fetch(`${BASE_URL}/submit`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify(payload),
-    });
-    if (!res.ok) throw new Error(`Quiz submit failed: ${res.status}`);
-    return res.json();
-    */
+  console.log('[quizApi] fetchQuizQuestions success:', json.data);
+  return json.data;
 }
 
-/* ══════════════════════════════════════════════
-   FAKE DATA BUILDER
-   Builds plausible fake questions from the local
-   quizData constants so the UI works end-to-end
-   without a backend. Delete this entire block
-   once the real API is wired up.
-══════════════════════════════════════════════ */
-import { QUESTIONS } from './quizData';
+export async function fetchPYQQuestions({
+  subjectIds = [],
+  chapterIds = [],
+  topicIds = [],
+  difficulty = 'Medium',
+  yearRange = null,
+  totalTime = 90,
+  subjectWiseCounts = {},
+  limit = 10,
+}) {
+  return fetchQuizQuestions({
+    type: 'pyq',
+    subjectIds,
+    chapterIds,
+    topicIds,
+    difficulty,
+    yearRange,
+    totalTime,
+    subjectWiseCounts,
+    limit,
+  });
+}
 
-function _buildFakeQuestions(subjectIds, chapterIds, topicKeys) {
-    return subjectIds.flatMap(sid => {
-        const subjectQs = (QUESTIONS[sid] || []).slice(0, 6);
-        return subjectQs.map((q, i) => ({
-            id:     `fake-${sid}-${q.id}`,
-            subj:   sid,
-            chapId: chapterIds.find(c => c.startsWith(sid[0])) || chapterIds[0] || null,
-            topic:  topicKeys.find(k => k.startsWith(chapterIds[0])) || null,
-            q:      q.q,
-            opts:   q.opts,
-            ans:    q.ans,           // 0-based correct answer index
-        }));
-    });
+/* ══════════════════════════════════════════════════════════════════════
+   ATTEMPT SUBMISSION (requires auth)
+══════════════════════════════════════════════════════════════════════ */
+
+export async function submitQuizAttempt({ blocks = [], timeTakenSeconds = 0 }) {
+  const json = await fetchWithAuth(`${BASE_URL}/quiz/submit-attempt`, {
+    method: 'POST',
+    body: JSON.stringify({ blocks, timeTakenSeconds }),
+  });
+  return json.data;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   RESULTS & HISTORY (requires auth)
+══════════════════════════════════════════════════════════════════════ */
+
+export async function listStudentAttempts({ limit = 10, page = 1 } = {}) {
+  const json = await fetchWithAuth(
+    `${BASE_URL}/quiz/attempts?limit=${limit}&page=${page}`,
+    { method: 'GET' }
+  );
+  return { attempts: json.data, pagination: json.pagination };
+}
+
+export async function getAttemptDetails(attemptId) {
+  const json = await fetchWithAuth(
+    `${BASE_URL}/quiz/attempts/${attemptId}`,
+    { method: 'GET' }
+  );
+  return json.data;
 }

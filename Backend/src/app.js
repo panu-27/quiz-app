@@ -11,6 +11,7 @@ import pdfRoutes from "./modules/pdf/pdf.routes.js";
 import bankQuestionRoutes from "./modules/questionBank/bankQuestions.routes.js";
 import leaderboardRoutes from "./modules/leaderboard/leaderboard.route.js";
 import pyqRoutes from "./modules/pyq/pyq.routes.js";
+import quizRoutes from "./modules/quiz/quiz.routes.js";
 
 const app = express();
 
@@ -56,6 +57,10 @@ app.use("/api/student",      studentRoutes);
 app.use("/api/leaderboard",  leaderboardRoutes);
 app.use("/api/pdf",          pdfRoutes);
 app.use("/api/bankQuestion", bankQuestionRoutes);
+app.use("/api/quiz",         quizRoutes);
+
+
+
 
 app.use((err, req, res, next) => {
   console.error(err);

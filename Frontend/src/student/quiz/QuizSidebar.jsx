@@ -1,11 +1,14 @@
-/* ══════════════════════════════════════════════
-   QUIZ SIDEBAR — Desktop left panel
-   Shows step progress, selected subjects & tips.
-   Extracted from StudentQuizFlow — zero UI changes.
-══════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════════
+   QUIZ SIDEBAR — Desktop left panel (FIXED)
+   ──────────────────────────────────────────────────────────────────────
+   FIXES:
+   ✅ Accepts subjectMap prop
+   ✅ Uses subjectMap instead of hardcoded SUBJECTS
+   ✅ No more name-based lookups
+   ══════════════════════════════════════════════════════════════════════
+*/
 
 import { BookOpen, Layers, BarChart2, Play } from 'lucide-react';
-import { SUBJECTS } from './quizData';
 
 const STEPS = [
     { key: 'subject',  label: 'Choose Subjects', sub: 'Pick what to study',      icon: <BookOpen size={13} strokeWidth={2.5} /> },
@@ -14,9 +17,14 @@ const STEPS = [
     { key: 'test',     label: 'Attempt Test',    sub: 'Focus & perform',         icon: <Play      size={13} strokeWidth={2.5} /> },
 ];
 
-const QuizSidebar = ({ step, subjects, chapCount }) => {
-    const curIdx   = STEPS.findIndex(s => s.key === step);
-    const subjObjs = subjects.map(id => SUBJECTS.find(s => s.id === id)).filter(Boolean);
+// ✅ FIXED: Accept subjectMap prop
+const QuizSidebar = ({ step, subjects, chapCount, subjectMap = {} }) => {
+    const curIdx = STEPS.findIndex(s => s.key === step);
+    
+    // ✅ FIXED: Use subjectMap instead of hardcoded SUBJECTS
+    const subjObjs = subjects
+        .map(id => subjectMap[id])
+        .filter(Boolean);
 
     return (
         <aside style={{
@@ -104,13 +112,16 @@ const QuizSidebar = ({ step, subjects, chapCount }) => {
                     </p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                         {subjObjs.map(s => (
-                            <div key={s.id} style={{
+                            <div key={s._id || s.id} style={{
                                 display: 'flex', alignItems: 'center', gap: 8,
-                                background: s.bg, borderRadius: 9, padding: '6px 10px',
-                                border: `1px solid ${s.border}`,
+                                background: s.bg || '#EEF2FF',
+                                borderRadius: 9, padding: '6px 10px',
+                                border: `1px solid ${s.border || '#C7D2FE'}`
                             }}>
-                                <span style={{ fontSize: 14 }}>{s.emoji}</span>
-                                <span style={{ fontSize: 12, fontWeight: 700, color: s.accent }}>{s.name}</span>
+                                <span style={{ fontSize: 14 }}>{s.emoji || '📚'}</span>
+                                <span style={{ fontSize: 12, fontWeight: 700, color: s.accent || '#4F46E5' }}>
+                                    {s.name || 'Unknown'}
+                                </span>
                             </div>
                         ))}
                         {chapCount > 0 && (

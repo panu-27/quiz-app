@@ -1,42 +1,25 @@
-/**
- * StudentQuizTest.jsx
- *
- * Full-screen quiz test page mounted at /student/quiztest.
- * Receives { subjectIds } via React Router location.state, set by
- * StudentQuizFlow when the user clicks "Start Test" on the overview screen.
- *
- * The bottom nav bar is hidden on this route — StudentLayout checks
- * `location.pathname === "/student/quiztest"` and sets showNavbar = true,
- * which suppresses the bottom bar render.
- *
- * If the user lands here with no state (e.g. direct URL), they are
- * redirected back to the quiz flow start (/student/quiz) which shows step 1.
- */
-
 import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import TestAttempt from './quiz/TestAttempt';
 
 export default function StudentQuizTest() {
     const location = useLocation();
-    const navigate  = useNavigate();
+    const navigate = useNavigate();
 
-    const { subjectIds, chapterIds, topicKeys, questions } = location.state || {};
+    // The 'questions' here is actually the full exam object returned by fetchQuizQuestions
+    const { subjectIds, questions: examData } = location.state || {};
 
     useEffect(() => {
-        if (!subjectIds || subjectIds.length === 0) {
+        if (!subjectIds || subjectIds.length === 0 || !examData) {
             navigate('/student/quiz', { replace: true });
         }
-    }, []);
+    }, [subjectIds, examData, navigate]);
 
-    if (!subjectIds || subjectIds.length === 0) return null;
+    if (!examData) return null;
 
     return (
         <TestAttempt
-            subjectIds={subjectIds}
-            chapterIds={chapterIds  || []}
-            topicKeys={topicKeys    || []}
-            questions={questions    || []}   // API-fetched; falls back to [] (TestAttempt handles)
+            examData={examData}
             onFinish={() => navigate('/student', { replace: true })}
         />
     );

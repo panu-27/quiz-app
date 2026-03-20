@@ -15,6 +15,7 @@ import StudentProfile from "./student/StudentProfile";
 import LeaderboardPage from "./student/LeaderboardPage";
 import StudentQuizFlow from "./student/StudentQuizFlow";
 import StudentQuizTest from "./student/StudentQuizTest";
+import PYQExplorer from "./student/PYQExplorer";   // ← NEW
 
 /* ── super / institute admin ── */
 import SuperAdmin from "./SuperAdmin";
@@ -31,7 +32,7 @@ import HelpCenter from "./auth/HelpCenter";
 import PublicRoute from "./auth/PublicRoute";
 import { ViolationProvider } from "./student/TestEnvironment/ViolationContext";
 
-/* ── admin pages (new flat routes) ── */
+/* ── admin pages ── */
 import AdminDashboard from "./admin/Dashboard";
 import SeeTests from "./admin/SeeTests";
 import PDFPage from "./admin/PDFPage";
@@ -43,20 +44,12 @@ import StudyMaterialPage from "./admin/StudyMaterialPage";
 import PYQBook from "./admin/PYQBook";
 import Rankings from "./admin/Rankings";
 
-/* ── legacy redirect: old /admin/create-test?mode=xxx links still work ── */
 function LegacyCreateTestRedirect() {
   const location = useLocation();
   const mode = new URLSearchParams(location.search).get("mode");
-  const map = {
-    pdf: "/admin/pdf",
-    dynamic: "/admin/bank",
-    craft: "/admin/craft",
-    schedule: "/admin/schedule",
-  };
+  const map = { pdf: "/admin/pdf", dynamic: "/admin/bank", craft: "/admin/craft", schedule: "/admin/schedule" };
   return <Navigate to={map[mode] || "/admin"} replace />;
 }
-
-const T = role => ({ element: <ProtectedRoute role={role} /> });
 
 export default function App() {
   return (
@@ -85,23 +78,20 @@ export default function App() {
             <Route path="test/:testId" element={<TestAttempt />} />
             <Route path="quiz/*" element={<StudentQuizFlow />} />
             <Route path="quiztest" element={<StudentQuizTest />} />
+            <Route path="pyq/:subjectId" element={<PYQExplorer />} />  {/* ← NEW */}
           </Route>
 
-          {/* ── Admin (flat routes, each has its own layout) ── */}
+          {/* ── Admin ── */}
           <Route path="/admin" element={<ProtectedRoute role="TEACHER"><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/tests" element={<ProtectedRoute role="TEACHER"><SeeTests /></ProtectedRoute>} />
           <Route path="/admin/pdf" element={<ProtectedRoute role="TEACHER"><PDFPage /></ProtectedRoute>} />
           <Route path="/admin/bank" element={<ProtectedRoute role="TEACHER"><BankPage /></ProtectedRoute>} />
-          
           <Route path="/admin/craft" element={<ProtectedRoute role="TEACHER"><CraftPage /></ProtectedRoute>} />
           <Route path="/admin/schedule" element={<ProtectedRoute role="TEACHER"><SchedulePage /></ProtectedRoute>} />
           <Route path="/admin/study-material" element={<ProtectedRoute role="TEACHER"><StudyMaterialPage /></ProtectedRoute>} />
           <Route path="/admin/performance" element={<ProtectedRoute role="TEACHER"><Performance /></ProtectedRoute>} />
           <Route path="/admin/pyq/:subject" element={<ProtectedRoute role="TEACHER"><PYQBook /></ProtectedRoute>} />
           <Route path="/admin/rankings" element={<ProtectedRoute role="TEACHER"><Rankings /></ProtectedRoute>} />
-
-
-          {/* Legacy: /admin/create-test?mode=pdf → /admin/pdf etc. */}
           <Route path="/admin/create-test" element={<ProtectedRoute role="TEACHER"><LegacyCreateTestRedirect /></ProtectedRoute>} />
 
           {/* ── Institute Admin ── */}
