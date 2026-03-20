@@ -37,19 +37,16 @@ const ChooseSubjects = ({ onConfirm }) => {
         loadData();
     }, []);
 
-    // ── YT STYLE SKELETON COMPONENT ──
-    const SkeletonCard = () => (
-        <div className="rounded-[24px] border-2 border-[#F3F4F6] bg-white p-5 flex flex-col min-h-[145px] animate-pulse">
-            <div className="flex justify-between items-start mb-4">
-                <div className="w-11 h-11 rounded-[14px] bg-gray-100" />
-                <div className="w-6 h-6 rounded-full bg-gray-50 border-2 border-gray-100" />
-            </div>
-            <div className="mt-auto">
-                <div className="h-5 w-24 bg-gray-100 rounded-md mb-2" />
-                <div className="h-3 w-16 bg-gray-50 rounded-md" />
-            </div>
-        </div>
-    );
+    const toggle = (id) => {
+        setPicked(p => {
+            if (p.includes(id)) return p.filter(x => x !== id);
+            const isMath = subjects.find(s => s._id === id)?.name?.toLowerCase().includes('math');
+            const isBio = subjects.find(s => s._id === id)?.name?.toLowerCase().includes('biol');
+            if (isMath) return [...p.filter(x => !subjects.find(s => s._id === x)?.name?.toLowerCase().includes('biol')), id];
+            if (isBio) return [...p.filter(x => !subjects.find(s => s._id === x)?.name?.toLowerCase().includes('math')), id];
+            return [...p, id];
+        });
+    };
 
     const enterSettings = () => {
         const initialCounts = {};
@@ -68,20 +65,22 @@ const ChooseSubjects = ({ onConfirm }) => {
         });
     };
 
-    const toggle = (id) => {
-        setPicked(p => {
-            if (p.includes(id)) return p.filter(x => x !== id);
-            const isMath = subjects.find(s => s._id === id)?.name?.toLowerCase().includes('math');
-            const isBio = subjects.find(s => s._id === id)?.name?.toLowerCase().includes('biol');
-            if (isMath) return [...p.filter(x => !subjects.find(s => s._id === x)?.name?.toLowerCase().includes('biol')), id];
-            if (isBio) return [...p.filter(x => !subjects.find(s => s._id === x)?.name?.toLowerCase().includes('math')), id];
-            return [...p, id];
-        });
-    };
-
     useQuizNav('subject', picked.length > 0, view === 'grid' ? enterSettings : handleFinalConfirm);
 
-    // ── VIEW 2: FINAL SETTINGS ──
+    // Skeleton Component
+    const SkeletonCard = () => (
+        <div className="rounded-[24px] border-2 border-[#F3F4F6] bg-white p-5 flex flex-col min-h-[145px] animate-pulse">
+            <div className="flex justify-between items-start mb-4">
+                <div className="w-11 h-11 rounded-[14px] bg-gray-100" />
+                <div className="w-6 h-6 rounded-full bg-gray-50 border-2 border-gray-100" />
+            </div>
+            <div className="mt-auto">
+                <div className="h-5 w-24 bg-gray-100 rounded-md mb-2" />
+                <div className="h-3 w-16 bg-gray-50 rounded-md" />
+            </div>
+        </div>
+    );
+
     if (view === 'settings') {
         return (
             <div className="flex flex-col h-full qf-slide-right px-1">
@@ -90,7 +89,8 @@ const ChooseSubjects = ({ onConfirm }) => {
                 </button>
                 <h2 className="qf-display text-2xl font-black text-gray-900 mb-1">Final Settings</h2>
                 <p className="text-gray-400 text-sm mb-6">Set time and question limits</p>
-                <div className="space-y-6 overflow-y-auto no-scrollbar flex-1">
+                <div className="space-y-6 overflow-y-auto no-scrollbar flex-1 pb-24">
+                    {/* Settings Content... */}
                     <div className="p-4 bg-white border-2 border-gray-100 rounded-2xl shadow-sm">
                         <div className="flex items-center gap-2 mb-4 text-indigo-600 font-bold text-xs uppercase tracking-wider">
                             <Clock size={16} /> Total Test Duration
@@ -131,6 +131,7 @@ const ChooseSubjects = ({ onConfirm }) => {
                         })}
                     </div>
                 </div>
+                {/* Desktop CTA */}
                 <div className="hidden sm:block pt-4 pb-6">
                     <button className="qf-continue-btn" onClick={handleFinalConfirm}>
                         Begin Test <ChevronRight size={18} strokeWidth={3} />
@@ -140,24 +141,24 @@ const ChooseSubjects = ({ onConfirm }) => {
         );
     }
 
-    // ── VIEW 1: SUBJECT SELECTION ──
     return (
-        <div className="flex flex-col h-full">
-            <div className="mb-6">
-                <p className="text-[11px] font-semibold text-indigo-500 uppercase tracking-widest mb-1">Step 1 of 3</p>
-                <h2 className="qf-display text-[22px] font-bold text-gray-900 tracking-tight">Choose Subjects</h2>
-            </div>
-
-            {/* 📅 YEAR RANGE SELECTOR */}
-            <div style={{ background: '#F5F3FF', borderRadius: '24px', border: '2px solid #DDD6FE', padding: '16px', marginBottom: '20px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                    <CalendarDays size={18} className="text-indigo-600" />
-                    <span style={{ fontSize: 13, fontWeight: 800, color: '#4F46E5', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        PYQ Year Range (2004-2025)
-                    </span>
+        <div className="flex flex-col h-full relative">
+            {/* ── STICKY HEADER AREA ── */}
+            <div className="sticky top-0 z-20 bg-white pb-4">
+                <div className="mb-5">
+                    <p className="text-[11px] font-semibold text-indigo-500 uppercase tracking-widest mb-1">Step 1 of 3</p>
+                    <h2 className="qf-display text-[22px] font-bold text-gray-900 tracking-tight">Choose Subjects</h2>
                 </div>
-                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    <div className="flex-1" style={{ position: 'relative' }}>
+
+                {/* 📅 YEAR RANGE SELECTOR (Tucks at top) */}
+                <div style={{ background: '#F5F3FF', borderRadius: '24px', border: '2px solid #DDD6FE', padding: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                        <CalendarDays size={18} className="text-indigo-600" />
+                        <span style={{ fontSize: 13, fontWeight: 800, color: '#4F46E5', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            PYQ Year Range (2004-2025)
+                        </span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                         <select
                             value={yearRange.min}
                             disabled={loading}
@@ -165,20 +166,18 @@ const ChooseSubjects = ({ onConfirm }) => {
                                 const newMin = parseInt(e.target.value);
                                 setYearRange({ min: newMin, max: Math.max(newMin, yearRange.max) });
                             }}
-                            className="w-full bg-white border-[1.5px] border-gray-200 rounded-[12px] p-3 text-base font-bold text-center outline-none cursor-pointer appearance-none text-[#1E293B]"
+                            className="flex-1 bg-white border-[1.5px] border-gray-200 rounded-[12px] p-3 text-base font-bold text-center outline-none text-[#1E293B]"
                         >
                             {Array.from({ length: 2025 - 2004 + 1 }, (_, i) => 2004 + i).map(year => (
                                 <option key={year} value={year}>{year}</option>
                             ))}
                         </select>
-                    </div>
-                    <div style={{ fontWeight: 800, color: '#DDD6FE' }}>—</div>
-                    <div className="flex-1">
+                        <div style={{ fontWeight: 800, color: '#DDD6FE' }}>—</div>
                         <select
                             value={yearRange.max}
                             disabled={loading}
                             onChange={(e) => setYearRange({ ...yearRange, max: parseInt(e.target.value) })}
-                            className="w-full bg-white border-[1.5px] border-gray-200 rounded-[12px] p-3 text-base font-bold text-center outline-none cursor-pointer appearance-none text-[#1E293B]"
+                            className="flex-1 bg-white border-[1.5px] border-gray-200 rounded-[12px] p-3 text-base font-bold text-center outline-none text-[#1E293B]"
                         >
                             {Array.from({ length: 2025 - 2004 + 1 }, (_, i) => 2004 + i)
                                 .filter(year => year >= yearRange.min)
@@ -191,52 +190,54 @@ const ChooseSubjects = ({ onConfirm }) => {
                 </div>
             </div>
 
-            {/* ── GRID: DATA OR SKELETON ── */}
-            <div className="grid grid-cols-2 gap-3 overflow-y-auto no-scrollbar pb-24 pt-6 -mt-6">
-                {loading ? (
-                    // Show 4 Skeletons while loading
-                    [...Array(4)].map((_, i) => <SkeletonCard key={i} />)
-                ) : (
-                    subjects.map((subj, i) => {
-                        const isSel = picked.includes(subj._id);
-                        const subjName = subj.name?.toLowerCase() || '';
-                        const hasMath = picked.some(id => subjects.find(x => x._id === id)?.name?.toLowerCase().includes('math'));
-                        const hasBio = picked.some(id => subjects.find(x => x._id === id)?.name?.toLowerCase().includes('biol'));
-                        const isExcluded = (hasMath && subjName.includes('biol')) || (hasBio && subjName.includes('math'));
+            {/* ── SCROLLABLE GRID ── */}
+            <div className="flex-1 overflow-y-auto no-scrollbar pb-32">
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                    {loading ? (
+                        [...Array(4)].map((_, i) => <SkeletonCard key={i} />)
+                    ) : (
+                        subjects.map((subj, i) => {
+                            const isSel = picked.includes(subj._id);
+                            const subjName = subj.name?.toLowerCase() || '';
+                            const hasMath = picked.some(id => subjects.find(x => x._id === id)?.name?.toLowerCase().includes('math'));
+                            const hasBio = picked.some(id => subjects.find(x => x._id === id)?.name?.toLowerCase().includes('biol'));
+                            const isExcluded = (hasMath && subjName.includes('biol')) || (hasBio && subjName.includes('math'));
 
-                        if (isExcluded) return (
-                            <div key={subj._id} className="rounded-[24px] border-2 border-dashed border-gray-100 bg-gray-50/50 flex flex-col items-center justify-center p-4 opacity-40 min-h-[145px]">
-                                <X size={18} className="text-gray-300 mb-2" />
-                                <p className="text-[10px] font-bold text-gray-400 text-center uppercase leading-tight">{subj.name}<br />Excluded</p>
-                            </div>
-                        );
+                            if (isExcluded) return (
+                                <div key={subj._id} className="rounded-[24px] border-2 border-dashed border-gray-100 bg-gray-50/50 flex flex-col items-center justify-center p-4 opacity-40 min-h-[145px]">
+                                    <X size={18} className="text-gray-300 mb-2" />
+                                    <p className="text-[10px] font-bold text-gray-400 text-center uppercase leading-tight">{subj.name}<br />Excluded</p>
+                                </div>
+                            );
 
-                        const accentColor = subj.accent || '#4F46E5';
-                        const bgColor = subj.bg || '#EEF2FF';
-
-                        return (
-                            <button key={subj._id} onClick={() => toggle(subj._id)}
-                                style={{ background: isSel ? accentColor : '#FFF', border: isSel ? `2px solid ${accentColor}` : `2px solid ${bgColor}`, animationDelay: `${i * 50}ms` }}
-                                className={`qf-slide-up relative rounded-[24px] p-5 text-left flex flex-col min-h-[145px] transition-all active:scale-95 duration-200 outline-none ${isSel ? 'translate-y-[-2px] shadow-lg' : 'shadow-sm'}`}>
-                                {isSel && <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 60%)' }} />}
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className={`w-11 h-11 rounded-[14px] flex items-center justify-center text-2xl ${isSel ? 'bg-white/20' : ''}`} style={{ background: isSel ? 'rgba(255,255,255,0.2)' : bgColor }}>{subj.emoji}</div>
-                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${isSel ? 'bg-white/30 scale-110' : 'border-2 border-dashed opacity-20'}`} style={{ borderColor: isSel ? 'transparent' : accentColor }}>
-                                        <Check size={12} color={isSel ? '#fff' : accentColor} strokeWidth={4} />
+                            return (
+                                <button key={subj._id} onClick={() => toggle(subj._id)}
+                                    style={{ 
+                                        background: isSel ? subj.accent : '#FFF', 
+                                        border: isSel ? `2px solid ${subj.accent}` : `2px solid ${subj.bg}`,
+                                        animationDelay: `${i * 50}ms` 
+                                    }}
+                                    className={`qf-slide-up relative rounded-[24px] p-5 text-left flex flex-col min-h-[145px] transition-all active:scale-95 duration-200 ${isSel ? 'translate-y-[-2px] shadow-lg' : 'shadow-sm'}`}>
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div className={`w-11 h-11 rounded-[14px] flex items-center justify-center text-2xl`} style={{ background: isSel ? 'rgba(255,255,255,0.2)' : subj.bg }}>{subj.emoji}</div>
+                                        <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${isSel ? 'bg-white/30 scale-110' : 'border-2 border-dashed opacity-20'}`} style={{ borderColor: isSel ? 'transparent' : subj.accent }}>
+                                            <Check size={12} color={isSel ? '#fff' : subj.accent} strokeWidth={4} />
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="mt-auto">
-                                    <h5 className={`text-[17px] font-extrabold leading-tight mb-1 transition-colors ${isSel ? 'text-white' : 'text-gray-900'}`}>{subj.name}</h5>
-                                    <span className={`text-[10px] font-bold uppercase tracking-wider ${isSel ? 'text-white/80' : 'text-gray-400'}`}>{subj.chapters} chapters</span>
-                                </div>
-                            </button>
-                        );
-                    })
-                )}
+                                    <div className="mt-auto">
+                                        <h5 className={`text-[17px] font-extrabold leading-tight mb-1 ${isSel ? 'text-white' : 'text-gray-900'}`}>{subj.name}</h5>
+                                        <span className={`text-[10px] font-bold uppercase tracking-wider ${isSel ? 'text-white/80' : 'text-gray-400'}`}>{subj.chapters} chapters</span>
+                                    </div>
+                                </button>
+                            );
+                        })
+                    )}
+                </div>
             </div>
 
+            {/* ── FLOATING CTA ── */}
             {picked.length > 0 && (
-                <div className="fixed hidden sm:block bottom-8 left-5 right-5 md:static md:mt-4">
+                <div className="fixed bottom-8 left-5 right-5 z-30 sm:static sm:mt-4">
                     <button className="qf-continue-btn w-full" onClick={enterSettings} style={{ borderRadius: '18px' }}>
                         Next <ChevronRight size={18} strokeWidth={2.5} />
                     </button>
