@@ -44,6 +44,15 @@ import StudyMaterialPage from "./admin/StudyMaterialPage";
 import PYQBook from "./admin/PYQBook";
 import Rankings from "./admin/Rankings";
 
+const isPWA =
+  window.matchMedia('(display-mode: standalone)').matches ||
+  window.navigator.standalone === true;
+
+// ✅ Replace userAgent with screen.width — desktop mode can't spoof this
+const isMobile = window.screen.width < 768;
+
+const isMobilePWA = isPWA && isMobile;
+
 function LegacyCreateTestRedirect() {
   const location = useLocation();
   const mode = new URLSearchParams(location.search).get("mode");
@@ -53,6 +62,19 @@ function LegacyCreateTestRedirect() {
 
 export default function App() {
   return (
+      <div
+    style={
+      isMobilePWA
+        ? {
+            maxWidth: "480px",
+            margin: "0 auto",
+            minHeight: "100vh",
+            overflowX: "hidden",
+            background: "#fff",
+          }
+        : {}
+    }
+  >
     <ViolationProvider>
       <AuthProvider>
         <Routes>
@@ -112,5 +134,6 @@ export default function App() {
         </Routes>
       </AuthProvider>
     </ViolationProvider>
+  </div>
   );
 }
