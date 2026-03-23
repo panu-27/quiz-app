@@ -617,7 +617,7 @@ export default function PYQExplorer() {
 
                 {/* Search — All mode only */}
                 {activeChapter && viewMode === 'all' && (
-                    <div style={{ padding: '0 16px 10px' }}>
+                    <div className='hidden' style={{ padding: '0 16px 10px' }}>
                         <div style={{ position: 'relative' }}>
                             <Search size={13} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#CBD5E1' }} />
                             <input
