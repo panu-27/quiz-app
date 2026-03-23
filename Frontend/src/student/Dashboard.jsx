@@ -366,9 +366,9 @@ export default function StudentDashboard() {
           <div className="px-4 -mb-20">
             <div className="flex items-center justify-between mb-4">
               <h4 className="text-[16px] font-semibold text-[#1E1E2D]">Completed Quizes</h4>
-              <button onClick={() => navigate("/student/history")} className="text-[14px] font-semibold text-[#7A41F7]">See all</button>
+              <button onClick={() => navigate("/")} className="text-[14px] font-semibold text-[#7A41F7]">See all</button>
             </div>
-            <div onClick={() => navigate("/student/history")} className="group relative bg-[#DDCEFD] p-4 rounded-[1.8rem] border border-[#F0F0F5] shadow-sm flex items-center justify-between cursor-pointer active:scale-[0.98] transition-all overflow-hidden">
+            <div onClick={() => navigate("/")} className="group relative bg-[#DDCEFD] p-4 rounded-[1.8rem] border border-[#F0F0F5] shadow-sm flex items-center justify-between cursor-pointer active:scale-[0.98] transition-all overflow-hidden">
               <div className="absolute -right-6 -top-6 w-24 h-24 bg-[#F1EBFE] rounded-full opacity-40" />
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 rounded-[1.2rem] bg-[#7A41F7] flex items-center justify-center flex-shrink-0 shadow-md shadow-purple-200">

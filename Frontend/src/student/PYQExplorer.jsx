@@ -86,7 +86,7 @@ const CHAPTER_PALETTES = [
 const DOT_COLORS = ['#6366F1','#0EA5E9','#10B981','#F59E0B','#EF4444','#EC4899','#8B5CF6','#14B8A6'];
 
 // ════════════════════════════════════════════════════════════════════
-// SKELETON COMPONENTS — YouTube-style shimmer
+// SKELETON COMPONENTS
 // ════════════════════════════════════════════════════════════════════
 const Shimmer = ({ w = '100%', h = 16, r = 8, mb = 0 }) => (
     <div style={{
@@ -166,7 +166,6 @@ const QuestionItem = ({ q, idx, onReport, isOpen, onToggle }) => {
                     }}>
                         <KaTeXSpan html={q.question || q.questionText || ''} />
                     </div>
-                    {/* Question image */}
                     {isOpen && q.questionImage && (
                         <img
                             src={q.questionImage}
@@ -195,7 +194,6 @@ const QuestionItem = ({ q, idx, onReport, isOpen, onToggle }) => {
 
             {isOpen && (
                 <div style={{ padding: '0 16px 16px 16px', animation: 'fadeIn 0.2s ease', minWidth: 0 }}>
-                    {/* Options */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 14 }}>
                         {(q.options || []).map((opt, i) => {
                             const isCorrect = (q.correctOption ?? q.correctAnswer) === i;
@@ -214,7 +212,6 @@ const QuestionItem = ({ q, idx, onReport, isOpen, onToggle }) => {
                                         fontSize: 10, fontWeight: 800,
                                     }}>{String.fromCharCode(65 + i)}</div>
                                     <div style={{ flex: 1, minWidth: 0 }}>
-                                        {/* Option image */}
                                         {opt.image && (
                                             <img
                                                 src={opt.image}
@@ -234,7 +231,6 @@ const QuestionItem = ({ q, idx, onReport, isOpen, onToggle }) => {
                         })}
                     </div>
 
-                    {/* Solution — only the explanation box scrolls horizontally if content overflows */}
                     {showSolution && (q.explanation || q.explanationImage) && (
                         <div style={{ background: '#fff', border: '1px solid #E0E7FF', borderRadius: 12, padding: 14, marginBottom: 12, overflowX: 'auto' }}>
                             <p style={{ fontSize: 9, fontWeight: 800, color: '#4F46E5', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Solution</p>
@@ -248,20 +244,6 @@ const QuestionItem = ({ q, idx, onReport, isOpen, onToggle }) => {
                             )}
                         </div>
                     )}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
                     <div style={{ display: 'flex', gap: 8 }}>
                         <button onClick={() => setShowSolution(s => !s)} style={{
@@ -288,19 +270,15 @@ const QuestionItem = ({ q, idx, onReport, isOpen, onToggle }) => {
 };
 
 // ════════════════════════════════════════════════════════════════════
-// TOPIC SECTION — uses pre-fetched allQuestions, filters by topicId
-// No extra API call per topic — just filters from parent's loaded data
+// TOPIC SECTION
 // ════════════════════════════════════════════════════════════════════
 const TopicSection = ({ topic, topicIdx, accent, filterYear, allQuestions, isExpanded, onToggle, openQuestionId, setOpenQuestionId, onReport }) => {
     const dotColor = DOT_COLORS[topicIdx % DOT_COLORS.length];
 
-    // Filter questions for this topic from the already-loaded allQuestions list
     const topicQuestions = useMemo(() => {
         let qs = allQuestions.filter(q => {
-            // match by topicId field on the question, or _topicName we injected
             return (q.topicId === topic._id) || (q.topicId?._id === topic._id) || (q._topicId === topic._id);
         });
-        // If year filter is set, filter client-side too
         if (filterYear !== 'All') {
             qs = qs.filter(q => String(q.year) === String(filterYear));
         }
@@ -372,44 +350,24 @@ export default function PYQExplorer() {
 
     const [activeChapter, setActiveChapter]     = useState(null);
     const [viewMode, setViewMode]               = useState('all');
-
     const [chapters, setChapters]               = useState([]);
     const [chaptersLoading, setChaptersLoading] = useState(true);
-
-    // Single source of truth for ALL questions in the chapter (fetched once)
     const [allQuestions, setAllQuestions]       = useState([]);
     const [questionsLoading, setQLoading]       = useState(false);
     const [openQuestionId, setOpenQuestionId]   = useState(null);
     const [searchQ, setSearchQ]                 = useState('');
-
-    // Topics list (fetched once per chapter entry)
     const [topics, setTopics]                   = useState([]);
     const [topicsLoading, setTopicsLoading]     = useState(false);
     const [expandedTopicId, setExpandedTopicId] = useState(null);
     const [topicOpenQId, setTopicOpenQId]       = useState(null);
-
     const [filterYear, setFilterYear]           = useState('All');
     const [yearPickerOpen, setYearPickerOpen]   = useState(false);
-
     const [reportTarget, setReportTarget]       = useState(null);
     const [reportDone, setReportDone]           = useState(false);
-
-    const [headerVisible, setHeaderVisible]     = useState(true);
-    const lastScrollY = useRef(0);
-
-    useEffect(() => {
-        const fn = () => {
-            const cur = window.scrollY;
-            setHeaderVisible(cur <= lastScrollY.current || cur <= 100);
-            lastScrollY.current = cur;
-        };
-        window.addEventListener('scroll', fn, { passive: true });
-        return () => window.removeEventListener('scroll', fn);
-    }, []);
+    const [selectedReason, setSelectedReason]   = useState(null); // ← NEW
 
     useEffect(() => { loadKaTeX(); }, []);
 
-    // Fetch chapter list
     useEffect(() => {
         if (!subjectId) return;
         setChaptersLoading(true);
@@ -418,8 +376,6 @@ export default function PYQExplorer() {
             .finally(() => setChaptersLoading(false));
     }, [subjectId]);
 
-    // Fetch topics + all questions in one go when entering chapter
-    // Questions are fetched per-topic in parallel and merged with topicId attached
     const loadChapterData = useCallback(async (chap) => {
         if (!chap) return;
         setQLoading(true);
@@ -431,15 +387,12 @@ export default function PYQExplorer() {
             const topicList = topicsRes.data || [];
             setTopics(topicList);
             setTopicsLoading(false);
-
-            // Fetch questions for all topics in parallel — NO year filter here, load everything
-            // Year filtering is done client-side so we never re-fetch
             const allQs = await Promise.all(
                 topicList.map(t =>
                     api.get(`/pyq/${subjectId}/chapters/${chap._id}/topics/${t._id}/questions`)
                         .then(r => (r.data || []).map(q => ({
                             ...q,
-                            topicId: t._id,        // attach topicId for client-side grouping
+                            topicId: t._id,
                             _topicName: t.name,
                         })))
                         .catch(() => [])
@@ -462,7 +415,6 @@ export default function PYQExplorer() {
         loadChapterData(chap);
     };
 
-    // All Questions: client-side filter by year + search (no re-fetch)
     const filteredQuestions = useMemo(() => {
         let qs = allQuestions;
         if (filterYear !== 'All') qs = qs.filter(q => String(q.year) === String(filterYear));
@@ -476,8 +428,8 @@ export default function PYQExplorer() {
         try {
             await api.post('/quiz/question-report', { questionId: reportTarget._id, reason: reasonKey });
             setReportDone(true);
-            setTimeout(() => { setReportTarget(null); setReportDone(false); }, 1600);
-        } catch { setReportTarget(null); }
+            setTimeout(() => { setReportTarget(null); setReportDone(false); setSelectedReason(null); }, 1600);
+        } catch { setReportTarget(null); setSelectedReason(null); }
     };
 
     const goBack = () => {
@@ -506,19 +458,18 @@ export default function PYQExplorer() {
                 @keyframes scaleIn   { from{opacity:0;transform:scale(0.95)} to{opacity:1;transform:scale(1)} }
                 @keyframes fadeIn    { from{opacity:0} to{opacity:1} }
                 @keyframes slideDown { from{opacity:0;transform:translateY(-7px)} to{opacity:1;transform:translateY(0)} }
+                @keyframes slideUp   { from{opacity:0;transform:translateY(100%)} to{opacity:1;transform:translateY(0)} }
                 @keyframes spin      { to{transform:rotate(360deg)} }
             `}</style>
 
             <div className="hidden md:block"><StudentHeader /></div>
 
-            {/* ══════════ STICKY HEADER ══════════ */}
+            {/* ══════════ STICKY HEADER — always visible ══════════ */}
             <div style={{
                 position: 'sticky', top: 0, zIndex: 100,
                 background: 'rgba(255,255,255,0.93)',
                 backdropFilter: 'blur(16px)',
                 borderBottom: '1px solid #F1F5F9',
-                transform: headerVisible ? 'translateY(0)' : 'translateY(-100%)',
-                transition: 'transform 0.3s cubic-bezier(0.4,0,0.2,1)',
             }}>
                 {/* Row 1 — back + title + year btn */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px' }}>
@@ -735,39 +686,119 @@ export default function PYQExplorer() {
                 )}
             </div>
 
-            {/* Report Modal */}
+            {/* ══════════ REPORT MODAL — professional bottom sheet ══════════ */}
             {reportTarget && (
                 <div
-                    onClick={() => setReportTarget(null)}
+                    onClick={() => { setReportTarget(null); setSelectedReason(null); setReportDone(false); }}
                     style={{
                         position: 'fixed', inset: 0, zIndex: 1000,
-                        background: 'rgba(255,255,255,0.72)', backdropFilter: 'blur(12px)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        padding: 24, animation: 'fadeIn 0.25s ease',
+                        background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(8px)',
+                        display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+                        animation: 'fadeIn 0.2s ease',
                     }}
                 >
-                    <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 340, animation: 'scaleIn 0.35s cubic-bezier(0.16,1,0.3,1)' }}>
+                    <div
+                        onClick={e => e.stopPropagation()}
+                        style={{
+                            width: '100%', maxWidth: 480,
+                            background: '#fff', borderRadius: '24px 24px 0 0',
+                            padding: '8px 0 40px',
+                            animation: 'slideUp 0.3s cubic-bezier(0.16,1,0.3,1)',
+                        }}
+                    >
+                        {/* Handle bar */}
+                        <div style={{ width: 36, height: 4, borderRadius: 99, background: '#E2E8F0', margin: '8px auto 20px' }} />
+
                         {reportDone ? (
-                            <div style={{ textAlign: 'center' }}>
-                                <CheckCircle2 size={32} strokeWidth={1.5} color={accent} style={{ margin: '0 auto 16px' }} />
-                                <p style={{ fontSize: 14, fontWeight: 600, color: '#0F172A' }}>Received</p>
+                            <div style={{ textAlign: 'center', padding: '32px 24px' }}>
+                                <div style={{
+                                    width: 56, height: 56, borderRadius: '50%',
+                                    background: '#F0FDF4', display: 'flex', alignItems: 'center',
+                                    justifyContent: 'center', margin: '0 auto 16px',
+                                }}>
+                                    <CheckCircle2 size={28} color="#16A34A" strokeWidth={1.8} />
+                                </div>
+                                <p style={{ fontSize: 16, fontWeight: 700, color: '#0F172A', marginBottom: 6 }}>Report Submitted</p>
+                                <p style={{ fontSize: 13, color: '#94A3B8', fontWeight: 500 }}>Thanks for helping us improve!</p>
                             </div>
                         ) : (
                             <>
-                                <p style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 20, textAlign: 'center' }}>Report Issue</p>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                                {/* Header */}
+                                <div style={{ padding: '0 20px 16px', borderBottom: '1px solid #F1F5F9' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                        <div style={{
+                                            width: 36, height: 36, borderRadius: 10,
+                                            background: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        }}>
+                                            <AlertTriangle size={16} color="#EF4444" />
+                                        </div>
+                                        <div>
+                                            <p style={{ fontSize: 15, fontWeight: 700, color: '#0F172A', margin: 0 }}>Report an Issue</p>
+                                            <p style={{ fontSize: 11, color: '#94A3B8', margin: 0, fontWeight: 500 }}>Select the issue you found</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Reasons with checkbox */}
+                                <div style={{ padding: '8px 16px' }}>
                                     {REPORT_REASONS.map(r => (
                                         <button
-                                            key={r.key} onClick={() => handleReport(r.key)}
-                                            style={{ textAlign: 'center', padding: '14px 10px', borderRadius: 12, background: 'transparent', border: 'none', fontSize: 14, fontWeight: 500, color: '#334155', cursor: 'pointer', transition: 'all 0.15s' }}
-                                            onMouseEnter={e => { e.currentTarget.style.background = '#F1F5F9'; e.currentTarget.style.color = '#0F172A'; }}
-                                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#334155'; }}
-                                        >{r.label}</button>
+                                            key={r.key}
+                                            onClick={() => setSelectedReason(r.key)}
+                                            style={{
+                                                width: '100%', display: 'flex', alignItems: 'center',
+                                                gap: 12, padding: '13px 12px', borderRadius: 12,
+                                                border: 'none', cursor: 'pointer', marginBottom: 4,
+                                                background: selectedReason === r.key ? '#EEF2FF' : 'transparent',
+                                                transition: 'all 0.15s',
+                                            }}
+                                        >
+                                            <div style={{
+                                                width: 20, height: 20, borderRadius: 6, flexShrink: 0,
+                                                border: selectedReason === r.key ? 'none' : '2px solid #E2E8F0',
+                                                background: selectedReason === r.key ? '#4F46E5' : 'transparent',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                transition: 'all 0.15s',
+                                            }}>
+                                                {selectedReason === r.key && (
+                                                    <svg width="11" height="9" viewBox="0 0 11 9" fill="none">
+                                                        <path d="M1 4L4 7.5L10 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                    </svg>
+                                                )}
+                                            </div>
+                                            <span style={{
+                                                fontSize: 13.5, fontWeight: selectedReason === r.key ? 600 : 500,
+                                                color: selectedReason === r.key ? '#4F46E5' : '#374151',
+                                                transition: 'all 0.15s',
+                                            }}>{r.label}</span>
+                                        </button>
                                     ))}
                                 </div>
-                                <button onClick={() => setReportTarget(null)} style={{ width: '100%', marginTop: 10, padding: '12px', background: 'none', border: 'none', fontSize: 12, color: '#CBD5E1', cursor: 'pointer', fontWeight: 600 }}>
-                                    Dismiss
-                                </button>
+
+                                {/* Submit button */}
+                                <div style={{ padding: '4px 20px 0' }}>
+                                    <button
+                                        onClick={() => selectedReason && handleReport(selectedReason)}
+                                        style={{
+                                            width: '100%', padding: '12px', borderRadius: 14,
+                                            border: 'none', fontSize: 14, fontWeight: 700,
+                                            cursor: selectedReason ? 'pointer' : 'not-allowed',
+                                            background: selectedReason ? '#4F46E5' : '#F1F5F9',
+                                            color: selectedReason ? '#fff' : '#CBD5E1',
+                                            transition: 'all 0.2s',
+                                        }}
+                                    >
+                                        Submit Report
+                                    </button>
+                                    <button
+                                        onClick={() => { setReportTarget(null); setSelectedReason(null); }}
+                                        style={{
+                                            width: '100%', marginTop: 8, padding: '12px',
+                                            background: 'none', border: 'none', fontSize: 13,
+                                            color: '#94A3B8', cursor: 'pointer', fontWeight: 600,
+                                        }}
+                                    >Cancel</button>
+                                </div>
                             </>
                         )}
                     </div>
