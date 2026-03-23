@@ -640,7 +640,7 @@ export default function PYQExplorer() {
             </div>
 
             {/* ══════════ BODY ══════════ */}
-            <div className="pb-24" style={{ maxWidth: 600, margin: '0 auto' }}>
+            <div className="pb-18" style={{ maxWidth: 600, margin: '0 auto' }}>
 
                 {/* Chapter grid */}
                 {!activeChapter && (
