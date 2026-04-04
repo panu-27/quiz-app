@@ -8,6 +8,14 @@ import Leaderboard from "../test/leaderboard.model.js";
 import TestAttempt from "../test/testAttempt.model.js";
 import Resource from "./Resource.js";
 
+const SUBJECT_MAP = {
+  phy: "Physics",
+  che: "Chemistry",
+  mat: "Maths",
+  bio: "Biology",
+};
+
+
 export const getMyTests = async (req, res) => {
   try {
     // Only fetch necessary fields: Title, startTime, and mode
@@ -745,23 +753,22 @@ export const generateCustomTest = async (req, res) => {
 };
 
 
-export const deployMaterial = async (req, res) => {
+export const deployMaterialCtrl = async (req, res) => {
   try {
-    const { subjectId, category, batchIds } = req.body;
+    const { subjectId, chapterId, category, batchIds } = req.body;
     const file = req.file;
-
-    if (!file) return res.status(400).json({ message: "No file provided" });
+ 
+    if (!file)     return res.status(400).json({ message: "No file provided" });
     if (!batchIds) return res.status(400).json({ message: "Please select at least one batch" });
-
-    // FormData sends arrays as strings, we parse it back to an array
-    const parsedBatchIds = typeof batchIds === 'string' ? JSON.parse(batchIds) : batchIds;
-
+ 
+    const parsedBatchIds = typeof batchIds === "string" ? JSON.parse(batchIds) : batchIds;
+ 
     const result = await service.deployMaterial(
       req.user,
-      { subjectId, category, batchIds: parsedBatchIds },
+      { subjectId, chapterId, category, batchIds: parsedBatchIds },
       file
     );
-
+ 
     res.status(201).json(result);
   } catch (err) {
     res.status(400).json({ message: err.message });

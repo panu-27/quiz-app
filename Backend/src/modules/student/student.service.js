@@ -2,16 +2,13 @@ import Test from "../test/test.model.js";
 import TestAttempt from "../test/testAttempt.model.js";
 import User from "../user/user.model.js";
 import Leaderboard from "../test/leaderboard.model.js";
+import Resource from "../teacher/Resource.js";   // ← moved to top (was mid-file, breaking ESM)
 import mongoose from "mongoose";
 
 
 /* ---------------- GET MY TESTS ---------------- */
-
-
 export const getMyTests = async (jwtUser) => {
     const userId = jwtUser.id || jwtUser._id;
-
-    // 1. Fetch student data
     const student = await User.findById(userId);
 
     if (!student || !student.batchId) {
@@ -21,47 +18,36 @@ export const getMyTests = async (jwtUser) => {
 
     const now = new Date();
 
-    // 2. The "Active Window" Query
-    // - Batch matches student's assigned batch
-    // - Current time is GREATER THAN OR EQUAL to Start Time
-    // - Current time is LESS THAN OR EQUAL to End Time
     return Test.find({
         batches: student.batchId,
-        startTime: { $lte: now }, // Test has already started
-        endTime: { $gte: now }    // Test has not yet ended
+        startTime: { $lte: now },
+        endTime:   { $gte: now }
     })
         .select("_id title startTime endTime mode duration")
-        .sort({ endTime: 1 }); // Sort by what's ending soonest (Urgency)
+        .sort({ endTime: 1 });
 };
 
 
-// ADD THIS TO student.service.js
+/* ---------------- UPDATE PROFILE PIC ---------------- */
 export const updateProfilePic = async (userId, imageUrl) => {
-    // 1. Find the user by ID and update the profilePic field
     const user = await User.findByIdAndUpdate(
         userId,
-        { profilePic: imageUrl }, // This updates the URL from Cloudinary
-        { new: true } // Returns the updated document instead of the old one
+        { profilePic: imageUrl },
+        { new: true }
     ).select("profilePic");
 
-    if (!user) {
-        throw new Error("User not found");
-    }
-
+    if (!user) throw new Error("User not found");
     return user;
 };
 
 
-/* ---------------- START ATTEMPT SERVICE ---------------- */
+/* ---------------- START ATTEMPT ---------------- */
 export const startAttempt = async (student, testId) => {
-
     const test = await Test.findById(testId).lean();
+    if (!test) throw new Error("Test not found");
 
-    if (!test)
-        throw new Error("Test not found");
-
-    const studentId = new mongoose.Types.ObjectId(student.id || student._id);
-    const testObjId = new mongoose.Types.ObjectId(testId);
+    const studentId    = new mongoose.Types.ObjectId(student.id || student._id);
+    const testObjId    = new mongoose.Types.ObjectId(testId);
     const studentBatchId = student.batchId?.toString();
 
     if (!test.batches.some(b => b.toString() === studentBatchId))
@@ -69,61 +55,33 @@ export const startAttempt = async (student, testId) => {
 
     const now = new Date();
 
-    // ── START TIME CHECK ───────────────────────────────
     if (test.startTime && now < new Date(test.startTime))
         throw new Error("Test has not started yet");
 
-
-    // ── RETURN ACTIVE ATTEMPT IF EXISTS (MOVED UP) ─────
     const activeAttempt = await TestAttempt.findOne({
-        testId: testObjId,
-        studentId,
-        status: "started"
+        testId: testObjId, studentId, status: "started"
     });
+    if (activeAttempt) return activeAttempt;
 
-    if (activeAttempt)
-        return activeAttempt;
-    // ───────────────────────────────────────────────────
-
-
-    // ── CHECK COMPLETED ATTEMPT ────────────────────────
     const completedAttempt = await TestAttempt.findOne({
-        testId: testObjId,
-        studentId,
-        status: "completed"
+        testId: testObjId, studentId, status: "completed"
     }).sort({ attemptNumber: -1 });
 
-
-    // During active window → only 1 attempt allowed
     if (test.endTime && now <= new Date(test.endTime)) {
-        if (completedAttempt) {
-            throw new Error(
-                "You have already attempted this test. Re-attempt allowed after test window closes."
-            );
-        }
+        if (completedAttempt)
+            throw new Error("You have already attempted this test. Re-attempt allowed after test window closes.");
     }
-    // ───────────────────────────────────────────────────
-
 
     const attemptNumber = completedAttempt ? completedAttempt.attemptNumber + 1 : 1;
 
-    // ── ASSIGNED SET ───────────────────────────────────
     let assignedSet = null;
-
     if (test.metadata?.distribution === "4 Sets" && test.sets) {
         const setKeys = Array.from(test.sets.keys());
         assignedSet = setKeys[Math.floor(Math.random() * setKeys.length)];
     }
 
-    const sourceBlocks = assignedSet
-        ? test.sets.get(assignedSet)
-        : test.blocks;
-    // ───────────────────────────────────────────────────
+    const sourceBlocks = assignedSet ? test.sets.get(assignedSet) : test.blocks;
 
-
-    // ── SNAPSHOT BLOCKS ────────────────────────────────
-
-    // Fisher-Yates shuffle — each student gets their own random order
     const shuffleArray = (arr) => {
         const a = [...arr];
         for (let i = a.length - 1; i > 0; i--) {
@@ -135,183 +93,112 @@ export const startAttempt = async (student, testId) => {
 
     const attemptBlocks = sourceBlocks.map(block => ({
         blockName: block.blockName,
-        duration: block.duration,
-        score: 0,
-        sections: block.sections.map(section => ({
-            subjectName: section.subjectName,
-            subject: section.subject,
+        duration:  block.duration,
+        score:     0,
+        sections:  block.sections.map(section => ({
+            subjectName:  section.subjectName,
+            subject:      section.subject,
             numQuestions: section.numQuestions,
-            score: 0,
-            correct: 0,
-            wrong: 0,
-            unattempted: section.numQuestions,
-            questions: shuffleArray(section.questions).map(q => ({  // ← only change
-                questionId: q.questionId,
+            score:        0,
+            correct:      0,
+            wrong:        0,
+            unattempted:  section.numQuestions,
+            questions:    shuffleArray(section.questions).map(q => ({
+                questionId:   q.questionId,
                 questionText: q.questionText,
                 questionImage: q.questionImage || null,
-                options: q.options,
+                options:      q.options,
                 correctAnswer: q.correctAnswer,
                 chosenOption: -1,
-                explanation: q.explanation
+                explanation:  q.explanation
             }))
         }))
     }));
 
     const totalUnattempted = attemptBlocks.reduce(
-        (sum, b) => sum + b.sections.reduce((s, sec) => s + sec.numQuestions, 0),
-        0
+        (sum, b) => sum + b.sections.reduce((s, sec) => s + sec.numQuestions, 0), 0
     );
-    // ───────────────────────────────────────────────────
 
-
-    // ── ATOMIC UPSERT ──────────────────────────────────
     const attempt = await TestAttempt.findOneAndUpdate(
-        {
-            testId: testObjId,
-            studentId,
-            attemptNumber
-        },
+        { testId: testObjId, studentId, attemptNumber },
         {
             $setOnInsert: {
-                testId: testObjId,
-                studentId,
-                attemptNumber,
-                assignedSet,
-                blocks: attemptBlocks,
-                status: "started",
-                totalScore: 0,
-                totalCorrect: 0,
-                totalWrong: 0,
-                totalUnattempted,
-                startedAt: new Date()
+                testId: testObjId, studentId, attemptNumber,
+                assignedSet, blocks: attemptBlocks,
+                status: "started", totalScore: 0,
+                totalCorrect: 0, totalWrong: 0,
+                totalUnattempted, startedAt: new Date()
             }
         },
-        {
-            upsert: true,
-            new: true,
-            setDefaultsOnInsert: true
-        }
+        { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
     return attempt;
 };
 
-/* ---------------- SUBMIT TEST SERVICE ---------------- */
+
+/* ---------------- SUBMIT TEST ---------------- */
 export const submitTest = async (student, testId, data) => {
     const { answers = [], timeTaken = 0, isFinal } = data;
-
     const studentId = student.id || student._id;
 
-    const attempt = await TestAttempt.findOne({
-        testId,
-        studentId,
-        status: "started"
-    });
-
-    if (!attempt)
-        throw new Error("Active attempt not found");
-
+    const attempt = await TestAttempt.findOne({ testId, studentId, status: "started" });
+    if (!attempt) throw new Error("Active attempt not found");
 
     const test = await Test.findById(testId).lean();
-
-
-    /* convert answers array to map */
-
     const answerMap = new Map();
+    answers.forEach(a => answerMap.set(a.questionId, Number(a.selectedOption)));
 
-    answers.forEach(a =>
-        answerMap.set(a.questionId, Number(a.selectedOption))
-    );
-
-
-    let totalScore = 0;
-    let totalCorrect = 0;
-    let totalWrong = 0;
-    let totalUnattempted = 0;
-
+    let totalScore = 0, totalCorrect = 0, totalWrong = 0, totalUnattempted = 0;
 
     attempt.blocks.forEach(block => {
-
         block.score = 0;
-
         block.sections.forEach(section => {
+            section.score = 0; section.correct = 0; section.wrong = 0; section.unattempted = 0;
 
-            section.score = 0;
-            section.correct = 0;
-            section.wrong = 0;
-            section.unattempted = 0;
-
-            const subjectRule =
-                test.markingScheme.subjectWise.find(
-                    s => s.subjectId.toString() === section.subject.toString()
-                ) || {
-
-                    correctMarks: test.markingScheme.defaultCorrect,
-                    negativeMarks: test.markingScheme.defaultNegative
-                };
-
+            const subjectRule = test.markingScheme.subjectWise.find(
+                s => s.subjectId.toString() === section.subject.toString()
+            ) || {
+                correctMarks:  test.markingScheme.defaultCorrect,
+                negativeMarks: test.markingScheme.defaultNegative
+            };
 
             section.questions.forEach(q => {
-
-                const selected =
-                    answerMap.has(q.questionId.toString())
-                        ? answerMap.get(q.questionId.toString())
-                        : -1;
-
-
+                const selected = answerMap.has(q.questionId.toString())
+                    ? answerMap.get(q.questionId.toString()) : -1;
                 q.chosenOption = selected;
 
-
                 if (selected === -1) {
-
-                    section.unattempted++;
-                    totalUnattempted++;
-
-                }
-                else if (selected === q.correctAnswer) {
-
-                    section.correct++;
-                    totalCorrect++;
-
+                    section.unattempted++; totalUnattempted++;
+                } else if (selected === q.correctAnswer) {
+                    section.correct++; totalCorrect++;
                     section.score += subjectRule.correctMarks;
-                    block.score += subjectRule.correctMarks;
-                    totalScore += subjectRule.correctMarks;
-
-                }
-                else {
-
-                    section.wrong++;
-                    totalWrong++;
-
+                    block.score   += subjectRule.correctMarks;
+                    totalScore    += subjectRule.correctMarks;
+                } else {
+                    section.wrong++; totalWrong++;
                     section.score -= subjectRule.negativeMarks;
-                    block.score -= subjectRule.negativeMarks;
-                    totalScore -= subjectRule.negativeMarks;
-
+                    block.score   -= subjectRule.negativeMarks;
+                    totalScore    -= subjectRule.negativeMarks;
                 }
-
             });
-
         });
-
     });
 
-
-    attempt.totalScore = totalScore;
-    attempt.totalCorrect = totalCorrect;
-    attempt.totalWrong = totalWrong;
+    attempt.totalScore       = totalScore;
+    attempt.totalCorrect     = totalCorrect;
+    attempt.totalWrong       = totalWrong;
     attempt.totalUnattempted = totalUnattempted;
 
     if (isFinal) {
-        attempt.status = "completed";
+        attempt.status      = "completed";
         attempt.submittedAt = new Date();
-        attempt.timeTaken = timeTaken;
+        attempt.timeTaken   = timeTaken;
     }
 
     attempt.markModified("blocks");
     await attempt.save();
 
-
-    /* leaderboard */
     if (isFinal && attempt.attemptNumber === 1) {
         await Leaderboard.findOneAndUpdate(
             { testId, studentId },
@@ -320,70 +207,67 @@ export const submitTest = async (student, testId, data) => {
         );
     }
 
-    return {
-
-        totalScore,
-        totalCorrect,
-        totalWrong,
-        totalUnattempted
-
-    };
-
+    return { totalScore, totalCorrect, totalWrong, totalUnattempted };
 };
 
 
-// ... existing imports
-import Resource from "../teacher/Resource.js";
-
+/* ---------------- GET MY LIBRARY ---------------- */
 /**
- * @desc    Fetch resources assigned to the student's batch
- * @param   {Object} jwtUser - The user object from the token
+ * GET /student/my-library
+ * Query params (all optional):
+ *   subjectId  — "phy" | "che" | "mat" | "bio"
+ *   chapterId  — "phy-01" … "bio-13"
+ *   category   — "notes" | "pyqs" | "boards" | "formulas" | etc.
+ *
+ * With params  → returns flat array  (mobile drill-down)
+ * Without params → returns grouped object by category  (desktop legacy)
  */
-export const getMyLibrary = async (jwtUser) => {
-    // 1. Find the student to get their batch assignment
+export const getMyLibrary = async (jwtUser, queryParams = {}) => {
     const student = await User.findById(jwtUser.id);
 
-    if (!student || !student.batchId) {
+    if (!student || !student.batchId)
         throw new Error("Student not assigned to any batch. Access denied.");
+
+    const { subjectId, chapterId, category } = queryParams;
+
+    // Build filter — always scope to student's batch
+    const filter = { batchIds: student.batchId };
+    if (subjectId) filter.subjectId = subjectId;
+    if (chapterId) filter.chapterId = chapterId;
+    if (category)  filter.category  = category;
+
+    const resources = await Resource.find(filter)
+        .select("title subjectId chapterId category subject fileUrl fileSize createdAt")
+        .sort({ createdAt: -1 });
+
+    // Mobile drill-down → flat array
+    if (subjectId || chapterId || category) {
+        return resources;
     }
 
-    // 2. Query Resources
-    // We look for resources where the student's batchId exists in the batchIds array
-    const resources = await Resource.find({
-        batchIds: student.batchId
-    })
-        .select("title category subject fileUrl fileSize createdAt")
-        .sort({ createdAt: -1 }); // Newest first
-
-    // 3. Optional: Grouping logic (If you want the frontend to receive categorized data)
+    // Desktop legacy → grouped by category
     const categorized = resources.reduce((acc, res) => {
-        const cat = res.category; // "Notes", "PYQs", "Formulas"
+        const cat = res.category;
         if (!acc[cat]) acc[cat] = [];
         acc[cat].push(res);
         return acc;
     }, {});
 
-
     return categorized;
 };
 
 
-
-
+/* ---------------- GET PROFILE ---------------- */
 export const getProfile = async (userId) => {
     const user = await User.findById(userId)
         .select("-password")
         .populate({
             path: "batchId",
             select: "name teachers",
-            populate: {
-                path: "teachers",
-                select: "name" // Only grab teacher names
-            }
+            populate: { path: "teachers", select: "name" }
         })
         .populate("instituteId", "name");
 
     if (!user) throw new Error("Record not found");
-
     return user;
 };

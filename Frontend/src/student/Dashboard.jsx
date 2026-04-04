@@ -10,7 +10,15 @@ import {
 import StudentHeader from "./StudentHeader";
 import { FakeStatsBar } from "./StudentDashboardOverlays";
 import StudentDashboardOverlays from "./StudentDashboardOverlays";
-import { PYQ_SUBJECTS } from "./pyqData";   // ← NEW
+import { PYQ_SUBJECTS } from "./pyqData";
+
+/* ══════════════════════════════════════════════════════
+   MODULE-LEVEL CACHE  (survives re-mounts, cleared on hard refresh)
+══════════════════════════════════════════════════════ */
+const _cache = {
+  tests: null,       // [] | null
+  topRank: null,     // { name, pic } | null
+};
 
 /* ══════════════════════════════════════════════════════
    SHIMMER PRIMITIVES
@@ -100,52 +108,79 @@ export default function StudentDashboard() {
     return `${base}${url}`;
   };
 
-  const [tests, setTests] = useState([]);
-  const [testsLoading, setTestsLoading] = useState(true);
-  const [topRankName, setTopRankName] = useState("Brandon Matrovs");
-  const [topRankPic, setTopRankPic] = useState(null);
-  const [rankLoading, setRankLoading] = useState(true);
-  const [stats, setStats] = useState({ attempted: "_", scheduled: 0, completed: "_" });
-  const [statsLoading, setStatsLoading] = useState(true);
+  // Initialise from cache immediately — no flicker on re-mount
+  const [tests, setTests] = useState(_cache.tests ?? []);
+  const [testsLoading, setTestsLoading] = useState(_cache.tests === null);
+  const [topRankName, setTopRankName] = useState(_cache.topRank?.name ?? "Brandon Matrovs");
+  const [topRankPic, setTopRankPic] = useState(_cache.topRank?.pic ?? null);
+  const [rankLoading, setRankLoading] = useState(_cache.topRank === null);
+  const [stats, setStats] = useState({ attempted: "_", scheduled: _cache.tests?.length ?? 0, completed: "_" });
+  const [statsLoading, setStatsLoading] = useState(_cache.tests === null);
 
   useEffect(() => {
-    const fetchMyTests = async () => {
-      try {
-        setTestsLoading(true);
-        const res = await api.get("/student/my-tests");
-        const list = res.data?.tests || res.data || [];
-        setTests(list);
-        setStats(prev => ({ ...prev, scheduled: list.length }));
-      } catch (err) {
-        console.error("my-tests failed", err);
-      } finally {
-        setTestsLoading(false);
-      }
-    };
-    const fetchTopRank = async () => {
-      try {
-        setRankLoading(true);
-        const token = localStorage.getItem("token");
-        const res = await api.get("/leaderboard/stats/top-one", { headers: { Authorization: `Bearer ${token}` } });
-        const name = res.data?.name || res.data?.studentName || res.data?.student?.name;
-        const profilePic = res.data?.avatar || res.data?.student?.avatar;
-        if (name) setTopRankName(name);
-        if (profilePic) setTopRankPic(profilePic);
-      } catch { /* stays default */ } finally {
-        setRankLoading(false);
-      }
-    };
-    fetchMyTests();
-    fetchTopRank();
+    // ── Tests ──────────────────────────────────────────
+    if (_cache.tests !== null) {
+      // Already cached — skip fetch entirely
+      setTests(_cache.tests);
+      setTestsLoading(false);
+      setStatsLoading(false);
+    } else {
+      const fetchMyTests = async () => {
+        try {
+          const res = await api.get("/student/my-tests");
+          const list = res.data?.tests || res.data || [];
+          _cache.tests = list;                          // store in cache
+          setTests(list);
+          setStats(prev => ({ ...prev, scheduled: list.length }));
+        } catch (err) {
+          console.error("my-tests failed", err);
+          _cache.tests = [];                            // cache empty on error too
+        } finally {
+          setTestsLoading(false);
+          setStatsLoading(false);
+        }
+      };
+      fetchMyTests();
+    }
+
+    // ── Top Rank ───────────────────────────────────────
+    if (_cache.topRank !== null) {
+      setTopRankName(_cache.topRank.name);
+      setTopRankPic(_cache.topRank.pic);
+      setRankLoading(false);
+    } else {
+      const fetchTopRank = async () => {
+        try {
+          const token = localStorage.getItem("token");
+          const res = await api.get("/leaderboard/stats/top-one", { headers: { Authorization: `Bearer ${token}` } });
+          const name = res.data?.name || res.data?.studentName || res.data?.student?.name;
+          const pic  = res.data?.avatar || res.data?.student?.avatar;
+          _cache.topRank = { name: name || "Brandon Matrovs", pic: pic || null };
+          if (name) setTopRankName(name);
+          if (pic)  setTopRankPic(pic);
+        } catch {
+          _cache.topRank = { name: "Brandon Matrovs", pic: null };
+        } finally {
+          setRankLoading(false);
+        }
+      };
+      fetchTopRank();
+    }
   }, []);
 
-  const handleLogout = () => { localStorage.clear(); window.location.href = "/"; };
+  const handleLogout = () => {
+    // Clear module cache on logout so next login gets fresh data
+    _cache.tests    = null;
+    _cache.topRank  = null;
+    localStorage.clear();
+    window.location.href = "/";
+  };
 
   const quizzes = [
-    { name: "Physics Quiz", color: "bg-[#EBF3FF]", badge: "bg-[#D1E5FF]", tag: "Physics", icon: <Atom size={18} />, chapters: 28, pyq: "1.2k", subj: "physics" },
+    { name: "Physics Quiz",   color: "bg-[#EBF3FF]", badge: "bg-[#D1E5FF]", tag: "Physics",   icon: <Atom size={18} />,        chapters: 28, pyq: "1.2k",  subj: "physics"   },
     { name: "Chemistry Quiz", color: "bg-[#FFF4EB]", badge: "bg-[#FFE9D6]", tag: "Chemistry", icon: <FlaskConical size={18} />, chapters: 28, pyq: "1.3k+", subj: "chemistry" },
-    { name: "Math Quiz", color: "bg-[#F3EBFF]", badge: "bg-[#E6D6FF]", tag: "Math", icon: <Calculator size={18} />, chapters: 25, pyq: "1.5k+", subj: "maths" },
-    { name: "Biology Quiz", color: "bg-[#EBFDEB]", badge: "bg-[#D6F7D6]", tag: "Biology", icon: <Dna size={18} />, chapters: 27, pyq: "1.8k+", subj: "biology" },
+    { name: "Math Quiz",      color: "bg-[#F3EBFF]", badge: "bg-[#E6D6FF]", tag: "Math",      icon: <Calculator size={18} />,  chapters: 25, pyq: "1.5k+", subj: "maths"     },
+    { name: "Biology Quiz",   color: "bg-[#EBFDEB]", badge: "bg-[#D6F7D6]", tag: "Biology",   icon: <Dna size={18} />,         chapters: 27, pyq: "1.8k+", subj: "biology"   },
   ];
 
   const TopRankContent = ({ large = false }) => (
@@ -164,37 +199,45 @@ export default function StudentDashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-[#F6F8FC] pb-24">
+    <div className="min-h-screen bg-[#F6F8FC]">
       <ShimmerCSS />
 
-      {/* DESKTOP HEADER */}
+      {/* ══════════════════════════════════════════
+          DESKTOP HEADER (unchanged)
+      ══════════════════════════════════════════ */}
       <div className="hidden md:block"><StudentHeader /></div>
 
-      {/* MOBILE HEADER */}
-      <div className="md:hidden px-4 pt-6">
+      {/* ══════════════════════════════════════════
+          MOBILE FIXED HEADER
+          — position: sticky, bg white, sits above scroll content
+      ══════════════════════════════════════════ */}
+      <div className="md:hidden  top-0 z-50 bg-[#F6F8FC] backdrop-blur-md px-4 pt-5 pb-2">
         <div className="flex items-center justify-between">
+          {/* Left: avatar + name */}
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-100 flex items-center justify-center">
+            <div className="w-11 h-11 rounded-full overflow-hidden flex items-center justify-center ">
               {user?.profilePic
                 ? <img src={resolveMediaUrl(user.profilePic)} alt="Profile" className="w-full h-full object-cover" />
                 : <div className="text-[#7A41F7] font-bold text-lg">{user?.name?.charAt(0)?.toUpperCase() || "S"}</div>
               }
             </div>
             <div>
-              <p className="text-[13px] text-slate-500 font-medium leading-tight">Welcome</p>
+              <p className="text-[13px] text-slate-400 font-medium leading-tight">Welcome</p>
               <h2 className="text-[16px] font-bold text-slate-900 leading-tight">{user?.name || "Student"}</h2>
             </div>
           </div>
+
+          {/* Right: bell + logout */}
           <div className="flex items-center gap-2">
-            <button className="relative p-2.5 bg-slate-50 rounded-full text-slate-600 active:bg-slate-200 transition-colors">
+            <button className="relative p-2.5  rounded-full text-slate-600 transition-colors ">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
               </svg>
               {!testsLoading && tests.length > 0 && (
-                <div className="absolute -top-1 -right-1 w-5 h-5 bg-orange-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white animate-bounce">{tests.length}</div>
+                <div className="absolute -top-1 -right-1 w-5 h-5 bg-orange-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-[#F6F8FC] animate-bounce">{tests.length}</div>
               )}
             </button>
-            <button onClick={handleLogout} className="p-2.5 bg-slate-50 rounded-full text-[#7A41F7] active:bg-slate-200 transition-colors">
+            <button onClick={handleLogout} className="p-2.5 rounded-full text-[#7A41F7] transition-colors ">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
               </svg>
@@ -204,12 +247,13 @@ export default function StudentDashboard() {
       </div>
 
       {/* ══════════════════════════════════════════
-          MOBILE LAYOUT
+          MOBILE SCROLLABLE CONTENT
+          (flows under the fixed header above)
       ══════════════════════════════════════════ */}
-      <div className="md:hidden flex flex-col pb-24">
+      <div className="md:hidden flex flex-col pb-48">
 
         {/* Top Rank */}
-        <div className="px-4 mt-8">
+        <div className="px-4 mt-6">
           <h4 className="text-[16px] font-bold text-slate-800 mb-3">Top rank of the week</h4>
           {rankLoading ? <TopRankMobileSkeleton /> : (
             <div className="relative bg-[#7A41F7] rounded-[2rem] p-5 flex items-center overflow-hidden cursor-pointer active:scale-[0.98] transition-transform" onClick={() => navigate("/student/personal")}>
@@ -259,16 +303,14 @@ export default function StudentDashboard() {
           </div>
         </div>
 
-        {/* ── PYQ Books (MOBILE) ── */}
+        {/* PYQ Books (MOBILE) */}
         <div className="px-4 mt-8">
           <div className="flex items-center justify-between mb-4">
             <h4 className="text-[16px] font-bold text-slate-800">PYQ Books</h4>
-            {/* Added "See all" to match the Discover Quiz header style if needed */}
             <button onClick={() => navigate("/student/library")} className="text-xs font-semibold text-[#7A41F7] flex items-center gap-1">
               See all <ChevronRight size={14} />
             </button>
           </div>
-
           <div className="flex overflow-x-auto gap-4 pb-4 no-scrollbar">
             {PYQ_SUBJECTS.map((subj) => (
               <div
@@ -276,7 +318,6 @@ export default function StudentDashboard() {
                 onClick={() => navigate(`/student/pyq/${subj._id}`)}
                 className={`${subj.color} min-w-[260px] rounded-[2.5rem] p-7 flex-shrink-0 cursor-pointer transition-transform active:scale-95`}
               >
-                {/* Top Badges Row */}
                 <div className="flex gap-2 mb-8">
                   <div className={`${subj.badge} px-4 py-2 rounded-full flex items-center gap-2 text-[12px] font-bold text-slate-500/80`}>
                     <span>{subj.emoji}</span>{subj.name}
@@ -285,13 +326,9 @@ export default function StudentDashboard() {
                     <BarChart2 size={16} />PYQ's
                   </div>
                 </div>
-
-                {/* Title */}
                 <h5 className="text-[22px] font-black text-slate-900 mb-8 tracking-tight leading-tight">
                   {subj.name}<br />PYQ Book
                 </h5>
-
-                {/* Footer Info */}
                 <div className="flex items-center gap-8 text-[13px] font-bold text-slate-400">
                   <span>Previous Year Questions</span>
                 </div>
@@ -340,7 +377,7 @@ export default function StudentDashboard() {
           )}
         </div>
 
-        {/* Completed Tests CTA */}
+        {/* History CTAs */}
         <div className="flex flex-col gap-24">
           <div className="px-4 -mb-20">
             <div className="flex items-center justify-between mb-4">
@@ -362,7 +399,6 @@ export default function StudentDashboard() {
             </div>
           </div>
 
-          {/* Completed Tests CTA */}
           <div className="px-4 -mb-20">
             <div className="flex items-center justify-between mb-4">
               <h4 className="text-[16px] font-semibold text-[#1E1E2D]">Completed Quizes</h4>
@@ -386,7 +422,7 @@ export default function StudentDashboard() {
       </div>
 
       {/* ══════════════════════════════════════════
-          DESKTOP LAYOUT
+          DESKTOP LAYOUT (unchanged)
       ══════════════════════════════════════════ */}
       <div className="hidden md:block max-w-7xl mx-auto px-8 lg:px-8 xl:px-24 2xl:px-20 py-8">
 
@@ -443,8 +479,6 @@ export default function StudentDashboard() {
             ))}
           </div>
         </div>
-
-
 
         {/* Scheduled Tests + Sidebar */}
         <div className="grid grid-cols-3 gap-6">
@@ -512,11 +546,10 @@ export default function StudentDashboard() {
               <p className="text-xs font-bold text-slate-400 mb-3 uppercase tracking-widest">Quick Links</p>
               <div className="space-y-1">
                 {[
-                  { label: "My Library", icon: <BookOpen size={16} />, path: "/student/library" },
-                  { label: "Leaderboard", icon: <Trophy size={16} />, path: "/student/leaderboard" },
-                  { label: "My Progress", icon: <TrendingUp size={16} />, path: "/student/history" },
-                  { label: "Quiz History", icon: <History size={16} />, path: "/student/history" },
-
+                  { label: "My Library",   icon: <BookOpen size={16} />,   path: "/student/library"     },
+                  { label: "Leaderboard",  icon: <Trophy size={16} />,     path: "/student/leaderboard" },
+                  { label: "My Progress",  icon: <TrendingUp size={16} />, path: "/student/history"     },
+                  { label: "Quiz History", icon: <History size={16} />,    path: "/student/history"     },
                 ].map((link, i) => (
                   <button key={i} onClick={() => navigate(link.path)} className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-slate-600 hover:bg-[#F3EBFF] hover:text-[#7A41F7] transition-all text-sm font-semibold group/link">
                     <span className="text-slate-400 group-hover/link:text-[#7A41F7] transition-colors">{link.icon}</span>
@@ -529,16 +562,14 @@ export default function StudentDashboard() {
           </div>
         </div>
 
-
-        {/* ── PYQ Books (DESKTOP) ── */}
-        <div className="mt-8">
+        {/* PYQ Books (DESKTOP) */}
+        <div className="mt-8 pb-10">
           <div className="flex items-center justify-between mb-5">
             <h4 className="text-xl font-bold text-slate-800">PYQ Books</h4>
             <button onClick={() => navigate("/student/library")} className="text-sm font-semibold text-[#7A41F7] flex items-center gap-1 hover:gap-2 transition-all">
               See all <ChevronRight size={16} />
             </button>
           </div>
-
           <div className="grid grid-cols-4 gap-5">
             {PYQ_SUBJECTS.map((subj) => (
               <div
@@ -546,7 +577,6 @@ export default function StudentDashboard() {
                 onClick={() => navigate(`/student/pyq/${subj._id}`)}
                 className={`${subj.color} rounded-3xl p-6 cursor-pointer hover:scale-[1.03] active:scale-95 transition-all duration-200`}
               >
-                {/* Standardized Badge Row */}
                 <div className="flex gap-2 mb-6 flex-wrap">
                   <div className={`${subj.badge} px-3 py-1.5 rounded-full flex items-center gap-1.5 text-[11px] font-bold text-slate-500/80`}>
                     <span>{subj.emoji}</span>{subj.name}
@@ -555,13 +585,9 @@ export default function StudentDashboard() {
                     <BarChart2 size={14} />PYQs
                   </div>
                 </div>
-
-                {/* Standardized Title */}
                 <h5 className="text-xl font-black text-slate-900 mb-5 tracking-tight leading-tight">
                   {subj.name}<br />PYQ Book
                 </h5>
-
-                {/* Standardized Footer Info */}
                 <div className="flex flex-col gap-1 text-[12px] font-bold text-slate-400">
                   <span>Official Questions</span>
                   <span>Exam Preparation</span>

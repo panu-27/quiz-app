@@ -25,7 +25,7 @@ router.post("/schedule",           auth, role(["TEACHER"]), controller.scheduleT
 router.get("/performance-overview", auth, role(["TEACHER"]), controller.getPerformanceOverview);
 
 /* ── Study Material ── */
-router.post("/upload-material",    auth, role(["TEACHER"]), uploadPDF.single("file"), controller.deployMaterial);
+router.post("/upload-material",    auth, role(["TEACHER"]), uploadPDF.single("file"), controller.deployMaterialCtrl);
 router.get("/study-materials",     auth, role(["TEACHER"]), controller.getStudyMaterials);
 router.get("/study-material/:id",  auth, role(["TEACHER"]), controller.getStudyMaterialById);
 router.delete("/study-material/:id", auth, role(["TEACHER"]), controller.deleteStudyMaterial);

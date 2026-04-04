@@ -424,31 +424,46 @@ const shuffle = (arr) => {
   return arr;
 };
 
+
+const SUBJECT_MAP = {
+  phy: "Physics",
+  che: "Chemistry",
+  mat: "Maths",
+  bio: "Biology",
+};
+
+
 export const deployMaterial = async (teacher, metadata, file) => {
   const teacherId = teacher._id || teacher.id;
-  const { subjectId, category, batchIds } = metadata;
-
-  const subjectMap = { phy: "Physics", che: "Chemistry", mat: "Maths", bio: "Biology" };
-
-  // 1. Save File to Disk
+  const { subjectId, chapterId, category, batchIds } = metadata;
+ 
+  // Validate required fields
+  if (!subjectId) throw new Error("subjectId is required");
+  if (!chapterId) throw new Error("chapterId is required");
+  if (!category)  throw new Error("category is required");
+  if (!batchIds || !batchIds.length) throw new Error("At least one batch required");
+ 
+  // Save file to disk
   const uploadDir = path.join(process.cwd(), "uploads", "vault");
   if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-
+ 
   const uniqueName = `${Date.now()}-${file.originalname.replace(/\s+/g, "_")}`;
-  const filePath = path.join(uploadDir, uniqueName);
+  const filePath   = path.join(uploadDir, uniqueName);
   fs.writeFileSync(filePath, file.buffer);
-
-  // 2. Create Resource with Batch Access
+ 
+  // Create Resource document
   const newResource = await Resource.create({
-    title: file.originalname,
-    category,
-    subject: subjectMap[subjectId] || subjectId,
-    fileUrl: `/uploads/vault/${uniqueName}`,
-    batchIds, // Only students in these batches will see this
+    title:      file.originalname,
+    subjectId,                                    // "phy"
+    chapterId,                                    // "phy-01"
+    category,                                     // "notes"
+    subject:    SUBJECT_MAP[subjectId] || subjectId, // legacy display name
+    fileUrl:    `/uploads/vault/${uniqueName}`,
+    fileSize:   (file.size / 1024 / 1024).toFixed(2) + " MB",
+    batchIds,
     uploadedBy: teacherId,
-    fileSize: (file.size / 1024 / 1024).toFixed(2) + " MB"
   });
-
+ 
   return { success: true, resource: newResource };
 };
 
