@@ -42,8 +42,9 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// ✅ FIX HERE
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ limit: "1mb", extended: true }));
 app.use('/api/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 app.get("/", (req, res) => res.send("API running 🚀"));
