@@ -66,7 +66,7 @@ export default function LoginPage() {
                     </h1>
 
                     <p className="mt-2 text-sm text-slate-600">
-                        Log in to continue to Nexus
+                        Log in to continue
                     </p>
                     {status.message && (
                         <div

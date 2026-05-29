@@ -141,8 +141,12 @@ const TestAttempt = ({ examData, onFinish }) => {
     );
     const visiblePool = (reviewMode || submitted) ? flattenedPool : blockQuestions;
 
+    const isUnlimited = useMemo(() => {
+        return blocks[activeBlockIdx]?.duration >= 9999;
+    }, [blocks, activeBlockIdx]);
+
     useEffect(() => {
-        if (submitted || reviewMode) return;
+        if (submitted || reviewMode || isUnlimited) return;
         const timer = setInterval(() => {
             setTimeLeft(prev => {
                 if (prev <= 1) {
@@ -164,7 +168,7 @@ const TestAttempt = ({ examData, onFinish }) => {
             });
         }, 1000);
         return () => clearInterval(timer);
-    }, [submitted, reviewMode, activeBlockIdx, blocks.length]);
+    }, [submitted, reviewMode, activeBlockIdx, blocks.length, isUnlimited]);
 
     const navigate = (targetGlobalIdx) => {
         const pool = visiblePool;
@@ -215,9 +219,9 @@ const TestAttempt = ({ examData, onFinish }) => {
     };
 
     const q = flattenedPool[cur];
-    const mm = String(Math.floor(timeLeft / 60)).padStart(2, '0');
-    const ss = String(timeLeft % 60).padStart(2, '0');
-    const isCritical = timeLeft <= 300 && !submitted && !reviewMode;
+    const mm = isUnlimited ? 'Unlimited' : String(Math.floor(timeLeft / 60)).padStart(2, '0');
+    const ss = isUnlimited ? '' : String(timeLeft % 60).padStart(2, '0');
+    const isCritical = !isUnlimited && timeLeft <= 300 && !submitted && !reviewMode;
 
     const getBtnStatus = (idx) => {
         if (reviewMode) {
@@ -421,7 +425,9 @@ const TestAttempt = ({ examData, onFinish }) => {
                         )}
                         <div style={{ background: isCritical ? '#FEF2F2' : '#F8FAFC', padding: '6px 14px', borderRadius: 20, border: `1.5px solid ${isCritical ? '#FECACA' : '#E2E8F0'}`, display: 'flex', alignItems: 'center', gap: 6 }}>
                             <Clock size={16} color={isCritical ? '#DC2626' : '#4F46E5'} />
-                            <span style={{ fontSize: 15, fontWeight: 800, color: isCritical ? '#DC2626' : '#1E293B', fontVariantNumeric: 'tabular-nums' }}>{mm}:{ss}</span>
+                            <span style={{ fontSize: 15, fontWeight: 800, color: isCritical ? '#DC2626' : '#1E293B', fontVariantNumeric: 'tabular-nums' }}>
+                                {isUnlimited ? 'Unlimited' : `${mm}:${ss}`}
+                            </span>
                         </div>
                     </div>
                 ) : (

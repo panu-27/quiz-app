@@ -82,7 +82,7 @@ export default function Register() {
                         </h1>
 
                         <p className="mt-2 text-sm text-slate-600">
-                            Join Nexus and start your preparation journey
+                            Join Us and start your preparation journey
                         </p>
 
                         {/* Status message */}

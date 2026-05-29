@@ -9,10 +9,8 @@ export const CATEGORIES = [
   { id: "pyqs",      label: "PYQ's",          icon: "📋", color: "#F59E0B" },
   { id: "boards",    label: "Board Papers",   icon: "🏫", color: "#10B981" },
   { id: "formulas",  label: "Formulas",       icon: "⚡", color: "#3B82F6" },
-  { id: "lectures",  label: "Video Lectures", icon: "🎬", color: "#EF4444" },
   { id: "mindmaps",  label: "Mind Maps",      icon: "🧠", color: "#8B5CF6" },
   { id: "revision",  label: "Revision",       icon: "🔁", color: "#EC4899" },
-  { id: "practice",  label: "Practice Sheets",icon: "✏️", color: "#14B8A6" },
 ];
 
 export const SUBJECTS = [

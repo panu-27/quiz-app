@@ -45,14 +45,7 @@ export const login = async ({ email, password }) => {
     };
   }
 
-  // Approval check
-  if (user.role === "STUDENT" && !user.approved) {
-    return {
-      status: 403,
-      success: false,
-      message: "Your account is pending approval from the institute.",
-    };
-  }
+
 
   if (!process.env.JWT_SECRET) {
     console.error("JWT_SECRET is missing in .env file");
@@ -68,6 +61,7 @@ export const login = async ({ email, password }) => {
     id: user._id,
     role: user.role,
     instituteId: user.instituteId,
+    approved: user.approved,
   };
 
   if (user.role === "STUDENT" && user.batchId) {
@@ -92,6 +86,7 @@ export const login = async ({ email, password }) => {
         instituteId: user.instituteId,
         batchId: user.batchId || null,
         profilePic : user.profilePic || null,
+        approved: user.approved,
       },
     },
   };

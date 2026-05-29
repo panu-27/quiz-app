@@ -35,6 +35,13 @@ router.get(
 );
 
 router.get(
+  "/all-tests-with-attempts",
+  auth,
+  role(["STUDENT"]),
+  controller.getAllTestsWithAttempts
+);
+
+router.get(
   "/test-analysis/:testId/attempt/:attemptNumber", 
   auth, 
   role(["STUDENT"]), 

@@ -430,7 +430,7 @@ export const listStudentAttempts = asyncHandler(async (req, res) => {
   const skip = (page - 1) * limit;
 
   const attempts = await TestAttempt.find({ studentId })
-    .select('_id status totalScore totalCorrect totalWrong totalUnattempted timeTaken createdAt')
+    .select('_id status totalScore totalCorrect totalWrong totalUnattempted timeTaken createdAt blocks')
     .sort({ [sortBy]: -1 })
     .skip(skip)
     .limit(parseInt(limit));

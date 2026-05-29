@@ -225,8 +225,10 @@ export const submitTest = async (student, testId, data) => {
 export const getMyLibrary = async (jwtUser, queryParams = {}) => {
     const student = await User.findById(jwtUser.id);
 
-    if (!student || !student.batchId)
-        throw new Error("Student not assigned to any batch. Access denied.");
+    if (!student || !student.batchId) {
+        console.warn(`Student ${jwtUser.id} has no batch assigned.`);
+        return (queryParams.subjectId || queryParams.chapterId || queryParams.category) ? [] : {};
+    }
 
     const { subjectId, chapterId, category } = queryParams;
 
@@ -270,4 +272,62 @@ export const getProfile = async (userId) => {
 
     if (!user) throw new Error("Record not found");
     return user;
+};
+
+
+/* ---------------- GET ALL TESTS WITH ATTEMPTS ---------------- */
+export const getAllTestsWithAttempts = async (jwtUser) => {
+    const userId = jwtUser.id || jwtUser._id;
+    const student = await User.findById(userId);
+
+    if (!student || !student.batchId) {
+        console.warn(`Student ${userId} has no batch assigned.`);
+        return [];
+    }
+
+    const tests = await Test.find({ batches: student.batchId })
+        .populate("teacherId", "name")
+        .lean();
+
+    const attempts = await TestAttempt.find({ studentId: userId, status: "completed" })
+        .select("_id testId attemptNumber totalScore totalCorrect totalWrong submittedAt createdAt")
+        .sort({ attemptNumber: -1 })
+        .lean();
+
+    // Group attempts by testId
+    const attemptsMap = {};
+    attempts.forEach(att => {
+        const tId = att.testId.toString();
+        if (!attemptsMap[tId]) {
+            attemptsMap[tId] = [];
+        }
+        attemptsMap[tId].push(att);
+    });
+
+    // Map tests and calculate totalQuestions
+    return tests.map(test => {
+        let totalQuestions = 0;
+        if (test.blocks) {
+            test.blocks.forEach(b => {
+                if (b.sections) {
+                    b.sections.forEach(s => {
+                        totalQuestions += s.numQuestions || 0;
+                    });
+                }
+            });
+        }
+
+        return {
+            _id: test._id,
+            title: test.title,
+            startTime: test.startTime,
+            endTime: test.endTime,
+            mode: test.mode,
+            duration: test.duration,
+            examType: test.examType,
+            totalQuestions,
+            teacherName: test.teacherId?.name || "Educator",
+            attempts: attemptsMap[test._id.toString()] || []
+        };
+    });
 };

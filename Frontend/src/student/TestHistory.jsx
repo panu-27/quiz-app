@@ -1,583 +1,343 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import {
-  ChevronRight, ArrowLeft, Clock, Inbox, Search,
-  Zap, Layers, Target, Activity, Loader2, Calendar,
-  ClipboardList, TrendingUp, BarChart2, Trophy
+  ChevronRight, ArrowLeft, Search, Trophy, ChevronDown,
+  Phone, Languages, Zap, Loader2, Target, Calendar, AlignLeft
 } from "lucide-react";
-import StudentHeader from "./StudentHeader";
-import NexusLoader from "./NexusLoader";
+import { useTheme } from "../context/ThemeContext";
+import { useAuth } from "../context/AuthContext";
 
-/* ── Fonts ── */
-const GlobalStyles = () => (
-  <style>{`
-    @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,700&display=swap');
-    * { font-family: 'DM Sans', sans-serif; }
-    .font-display { font-family: 'Sora', sans-serif; }
-    @keyframes yt-shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-    .shimmer {
-      background-image: linear-gradient(90deg, #e2e8f0 0%, #f8fafc 50%, #e2e8f0 100%);
-      background-size: 200% 100%;
-      animation: yt-shimmer 1.5s infinite linear;
-      border-radius: 0.75rem;
-    }
-  `}</style>
-);
+const STATUS_BAR_H = 43.5;
 
-const Sk = ({ className = "" }) => <div className={`shimmer ${className}`} />;
-
-/* ── Desktop skeletons ── */
-const DesktopStatSkeleton = () => (
-  <div className="grid grid-cols-2 gap-5 mb-8">
-    {[0, 1].map(i => (
-      <div key={i} className="bg-white rounded-2xl p-5 flex items-center gap-4 border border-slate-100">
-        <Sk className="w-12 h-12 rounded-xl flex-shrink-0" />
-        <div className="flex-1 space-y-2">
-          <Sk className="h-6 w-14" />
-          <Sk className="h-3 w-28" />
-        </div>
-      </div>
-    ))}
-  </div>
-);
-
-const DesktopRowSkeleton = () => (
-  <div className="bg-white rounded-2xl p-5 flex items-center gap-4 border border-slate-100">
-    <Sk className="w-11 h-11 rounded-xl flex-shrink-0" />
-    <div className="flex-1 space-y-2">
-      <Sk className="h-4 w-2/3" />
-      <Sk className="h-3 w-1/3" />
-    </div>
-    <Sk className="w-20 h-9 rounded-xl flex-shrink-0" />
-  </div>
-);
-
-/* ════════════════════════════════════════════════════
-   DESKTOP HISTORY ROW
-════════════════════════════════════════════════════ */
-function DesktopHistoryRow({ record, isExpanded, onToggle, navigate }) {
-  return (
-    <div className={`bg-white border transition-all duration-300 overflow-hidden ${isExpanded
-      ? 'rounded-3xl border-purple-100 shadow-lg shadow-purple-50'
-      : 'rounded-2xl border-slate-100 shadow-sm hover:shadow-md hover:border-purple-100'
-      }`}>
-      <button
-        onClick={onToggle}
-        className="w-full p-5 flex items-center justify-between group"
-      >
-        <div className="flex items-center gap-4 text-left min-w-0">
-          <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-300 ${isExpanded ? 'bg-[#7A41F7] text-white shadow-md shadow-purple-200' : 'bg-[#F3EBFF] text-[#7A41F7]'
-            }`}>
-            <Target size={18} />
-          </div>
-          <div className="min-w-0">
-            <h3 className="text-[15px] font-bold text-slate-900 truncate font-display group-hover:text-[#7A41F7] transition-colors">
-              {record.testDetails?.title || "Standardized Test"}
-            </h3>
-            <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-[11px] font-semibold text-slate-400">
-                {record.attempts?.length} {record.attempts?.length === 1 ? 'Attempt' : 'Attempts'}
-              </span>
-              <span className="w-1 h-1 bg-slate-200 rounded-full" />
-              <span className="text-[11px] font-bold text-[#7A41F7] bg-purple-50 px-2 py-0.5 rounded-full">Online Exam</span>
-            </div>
-          </div>
-        </div>
-        <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300 ${isExpanded ? 'bg-[#7A41F7] text-white' : 'bg-slate-50 text-slate-300 group-hover:text-slate-500'
-          }`}>
-          <ChevronRight size={16} className={`transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`} />
-        </div>
-      </button>
-
-      {/* Expanded attempts */}
-      {isExpanded && (
-        <div className="px-5 pb-5 space-y-3">
-
-          {/* 🔥 Re-Attempt Banner */}
-          <div className="space-y-4">
-
-            {/* Reattempt Card */}
-            <div className="bg-gradient-to-r from-[#7A41F7] to-[#5B2ED6] rounded-2xl p-5 flex items-center justify-between text-white shadow-md shadow-purple-100">
-
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-white/70">
-                  Want to practice again?
-                </p>
-                <h4 className="text-sm font-bold">
-                  Re-Attempt This Test
-                </h4>
-              </div>
-
-              <button
-                onClick={() => navigate(`/student/test/${record._id}`)}
-                className="flex items-center gap-2 px-5 py-2 bg-white text-[#7A41F7] rounded-xl text-xs font-bold hover:scale-105 active:scale-95 transition-all shadow-sm"
-              >
-                Start Again <ChevronRight size={14} />
-              </button>
-            </div>
-
-            {/* Leaderboard Card */}
-            <div
-              onClick={() => navigate(`/student/leaderboard/${record._id}`)}
-              className="bg-white border border-slate-100 rounded-2xl p-5 flex items-center justify-between hover:bg-slate-50 transition-all shadow-sm cursor-pointer active:scale-[0.98]"
-            >
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
-                  Compare performance
-                </p>
-                <h4 className="text-sm font-bold text-slate-900">
-                  View Leaderboard
-                </h4>
-              </div>
-
-              <div className="w-10 h-10 rounded-xl bg-[#F1EBFE] flex items-center justify-center text-[#7A41F7]">
-                <Trophy size={18} />
-              </div>
-            </div>
-
-          </div>
-
-          <div className="h-px bg-slate-100 my-3" />
-
-          {/* Attempts List */}
-          {record.attempts?.map((attempt) => (
-            <div
-              key={attempt._id}
-              className="flex items-center justify-between bg-slate-50 hover:bg-white p-4 rounded-2xl border border-transparent hover:border-slate-100 hover:shadow-sm transition-all"
-            >
-              <div className="flex items-center gap-5">
-                <div className="text-center">
-                  <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">
-                    Attempt
-                  </p>
-                  <p className="text-sm font-bold text-slate-700 font-display">
-                    #{String(attempt.attemptNumber).padStart(2, '0')}
-                  </p>
-                </div>
-
-                <div className="w-px h-6 bg-slate-200" />
-
-                <div>
-                  <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">
-                    Score
-                  </p>
-                  <div className="flex items-center gap-1">
-                    <Zap size={12} className="text-orange-400" />
-                    <p className="text-sm font-bold text-[#7A41F7] font-display">
-                      +{attempt.score}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <button
-                onClick={() =>
-                  navigate(`/student/analytics/${record._id}/attempt/${attempt.attemptNumber}`)
-                }
-                className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-[#7A41F7] hover:text-white hover:border-[#7A41F7] rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95"
-              >
-                Analyze <ChevronRight size={13} />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ════════════════════════════════════════════════════
-   MOBILE CARD (original, unchanged)
-════════════════════════════════════════════════════ */
-function HistoryLogItem({ record, isExpanded, onToggle, navigate }) {
-  return (
-    <div className={`bg-white transition-all duration-500 ease-in-out overflow-hidden border ${isExpanded
-      ? 'rounded-[2rem] border-slate-100 shadow-xl shadow-purple-900/10'
-      : 'rounded-[1.5rem] border-slate-50 shadow-sm hover:shadow-md'
-      }`}>
-      <button
-        onClick={onToggle}
-        className="w-full p-4 flex items-center justify-between group transition-colors"
-      >
-        <div className="flex items-center gap-4 text-left">
-          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 ${isExpanded
-            ? 'bg-[#7A41F7] text-white shadow-lg shadow-purple-200'
-            : 'bg-slate-50 text-slate-400 group-hover:bg-[#F1EBFE] group-hover:text-[#7A41F7]'
-            }`}>
-            <Target size={20} className={isExpanded ? 'rotate-[360deg] transition-transform duration-700' : ''} />
-          </div>
-          <div className="min-w-0">
-            <h3 className="font-black text-[14px] text-slate-800 truncate leading-tight uppercase tracking-tight">
-              {record.testDetails?.title || "Standardized Test"}
-            </h3>
-            <div className="flex items-center gap-2 mt-1">
-              <div className="flex -space-x-1">
-                {[...Array(Math.min(record.attempts?.length, 3))].map((_, i) => (
-                  <div key={i} className="w-3 h-3 rounded-full border border-white bg-slate-200" />
-                ))}
-              </div>
-              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
-                {record.attempts?.length} Previous {record.attempts?.length === 1 ? 'Attempt' : 'Attempts'}
-              </p>
-            </div>
-          </div>
-        </div>
-        <div className={`p-1.5 rounded-lg transition-all duration-300 ${isExpanded ? 'bg-[#7A41F7] text-white' : 'bg-slate-50 text-slate-300 group-hover:text-slate-500'
-          }`}>
-          <ChevronRight size={16} className={isExpanded ? 'rotate-90' : ''} />
-        </div>
-      </button>
-
-      {isExpanded && (
-        <div className="px-4 pb-5 pt-0 space-y-3 animate-in fade-in slide-in-from-top-3 duration-500">
-
-          {/* 🔥 Re-Attempt Banner */}
-          <div className="bg-gradient-to-r from-[#7A41F7] to-[#5B2ED6] rounded-2xl p-5 text-white shadow-md space-y-4">
-
-            {/* Text Section */}
-            <div>
-              <p className="text-[9px] font-black uppercase tracking-widest text-white/60">
-                Ready Again?
-              </p>
-              <p className="text-[14px] font-black tracking-tight mt-1">
-                Re-Attempt This Test
-              </p>
-            </div>
-
-            {/* Buttons Section */}
-            <div className="flex flex-col gap-3">
-
-              {/* Primary Action */}
-              <button
-                onClick={() => navigate(`/student/test/${record._id}`)}
-                className="w-full py-3 bg-white text-[#7A41F7] rounded-xl text-[11px] font-black uppercase tracking-widest shadow-sm active:scale-95 transition-all"
-              >
-                Start Test
-              </button>
-
-              {/* Secondary Action */}
-              <button
-                onClick={() => navigate(`/student/leaderboard/${record._id}`)}
-                className="w-full py-3 bg-white/20 border border-white/30 backdrop-blur-sm text-white rounded-xl text-[11px] font-black uppercase tracking-widest active:scale-95 transition-all"
-              >
-                View Leaderboard
-              </button>
-
-            </div>
-          </div>
-
-          <div className="h-px bg-slate-50 my-3 mx-2" />
-
-          {/* Attempts List */}
-          {record.attempts?.map((attempt) => (
-            <div
-              key={attempt._id}
-              className="bg-slate-50/50 p-4 rounded-2xl border border-transparent hover:border-slate-100 hover:bg-white hover:shadow-sm transition-all flex items-center justify-between"
-            >
-              <div className="flex items-center gap-5">
-                <div className="text-center">
-                  <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-0.5">
-                    Attempt
-                  </p>
-                  <p className="text-[12px] font-black text-slate-700">
-                    #{String(attempt.attemptNumber).padStart(2, "0")}
-                  </p>
-                </div>
-
-                <div className="w-px h-6 bg-slate-200" />
-
-                <div>
-                  <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-0.5">
-                    Performance
-                  </p>
-                  <div className="flex items-center gap-1">
-                    <Zap size={10} className="text-orange-400" />
-                    <p className="text-[12px] font-black text-[#7A41F7]">
-                      +{attempt.score}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <button
-                onClick={() =>
-                  navigate(`/student/analytics/${record._id}/attempt/${attempt.attemptNumber}`)
-                }
-                className="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-[#7A41F7] hover:text-white hover:border-[#7A41F7] rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shadow-sm active:scale-95"
-              >
-                Analyze
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ════════════════════════════════════════════════════
-   MAIN COMPONENT
-════════════════════════════════════════════════════ */
 export default function TestHistory() {
-  const [history, setHistory] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedId, setSelectedId] = useState(null);
-  const [searchQuery, setSearchQuery] = useState("");
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+  const { user } = useAuth();
   const navigate = useNavigate();
 
+  const [activeMainTab, setActiveMainTab] = useState("Tests");
+  const [activeSubTab, setActiveSubTab] = useState("Upcoming Tests");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [testsData, setTestsData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showCounsellorModal, setShowCounsellorModal] = useState(false);
+  const [expandedTestId, setExpandedTestId] = useState(null);
+
+  const resolveMediaUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+      return url;
+    }
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    const cleanBaseUrl = baseUrl.endsWith('/api') ? baseUrl.slice(0, -4) : baseUrl;
+    return `${cleanBaseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+  };
+
+  // Fetch actual data
   useEffect(() => {
-    const fetchHistory = async () => {
+    const fetchData = async () => {
       setLoading(true);
       try {
-        const { data } = await api.get("/student/my-history");
-        setHistory(Array.isArray(data) ? data : []);
+        const { data } = await api.get("/student/all-tests-with-attempts");
+        setTestsData(Array.isArray(data) ? data : []);
       } catch (err) {
-        console.error("Archive Sync Error", err);
+        console.error("Fetch tests error", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchHistory();
+    fetchData();
   }, []);
 
-  const filteredHistory = history.filter(record => {
-    const title = record.testDetails?.title || "";
-    return title.toLowerCase().includes(searchQuery.toLowerCase().trim());
+  const name = user?.name || "Student";
+  const avatar = resolveMediaUrl(user?.profilePic) || `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}&backgroundColor=b6e3f4`;
+
+  // Filter based on active tab and search query
+  const displayedTests = testsData.filter(test => {
+    const matchesSearch = test.title?.toLowerCase().includes(searchQuery.toLowerCase());
+    const isQuiz = test.examType?.toLowerCase().includes("quiz");
+    const matchesTab = activeMainTab === "Quizzes" ? isQuiz : !isQuiz;
+    return matchesSearch && matchesTab;
   });
 
-  const totalTests = history.length;
-  const totalAttempts = history.reduce((acc, curr) => acc + (curr.attempts?.length || 0), 0);
+  const toggleExpand = (id) => {
+    setExpandedTestId(expandedTestId === id ? null : id);
+  };
 
-  /* ── Loading ── */
-  if (loading) return (
-    <>
-      <GlobalStyles />
-      {/* Desktop loading */}
-      <div className="hidden md:flex flex-col min-h-screen bg-[#F6F8FC]">
-        <StudentHeader />
-        <div className="max-w-7xl mx-auto w-full px-8 xl:px-12 py-8">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-40 h-8 shimmer rounded-xl" />
+  const renderCard = (test) => {
+    const isCompleted = test.attempts && test.attempts.length > 0;
+    const isExpanded = expandedTestId === test._id;
+
+    return (
+      <div key={test._id} className={`rounded-xl p-4 shadow-sm border transition-all ${isDark ? 'bg-[#151E2E] border-slate-800' : 'bg-white border-slate-200'}`}>
+        <div className="flex items-center justify-between mb-2">
+          <span className={`text-[10px] font-bold tracking-wider uppercase ${isDark ? 'text-[#25D3A4]' : 'text-[#1EBA9B]'}`}>
+            {test.examType || "FULL SYLLABUS"}
+          </span>
+          <ChevronRight size={16} className={isDark ? 'text-slate-500' : 'text-slate-400'} />
+        </div>
+
+        <h3 className={`text-lg font-bold font-display leading-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+          {test.title}
+        </h3>
+
+        <p className={`text-sm mt-1 mb-4 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+          By {test.teacherName || "Educator"}
+        </p>
+
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className={`px-2.5 py-1 rounded text-xs font-medium ${isDark ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>
+              {test.totalQuestions || 0} questions
+            </span>
+            <span className={`px-2.5 py-1 rounded text-xs font-medium ${isDark ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>
+              {test.duration || 0} min
+            </span>
           </div>
-          <DesktopStatSkeleton />
-          <div className="space-y-3">
-            {[0, 1, 2, 3].map(i => <DesktopRowSkeleton key={i} />)}
-          </div>
+
+          {isCompleted ? (
+            <button
+              onClick={() => navigate(`/student/listedattempts/${test._id}`, { state: { test } })}
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg border font-bold text-xs ${isDark ? 'border-purple-500 text-purple-400 hover:bg-purple-500/10' : 'border-[#7A41F7] text-[#7A41F7] hover:bg-[#7A41F7]/10'}`}
+            >
+              <Target size={14} /> Attempts ({test.attempts.length})
+            </button>
+          ) : (
+            <button
+              onClick={() => navigate(`/student/test/${test._id}`)}
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg border font-bold text-xs ${isDark ? 'border-blue-500 text-blue-500 hover:bg-blue-500/10' : 'border-[#1EBA9B] text-[#1EBA9B] hover:bg-[#1EBA9B]/10'}`}
+            >
+              <AlignLeft size={14} /> Enroll
+            </button>
+          )}
         </div>
       </div>
-      {/* Mobile loading */}
-      <div className="md:hidden flex flex-col items-center justify-center h-screen bg-white">
-        <NexusLoader/>
-      </div>
-    </>
-  );
+    );
+  };
 
   return (
-    <>
-      <GlobalStyles />
+    <div className={`min-h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-[#0B121C]' : 'bg-[#F4F7FC]'}`}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap');
+        * { font-family: 'DM Sans', sans-serif; }
+        .font-display { font-family: 'Sora', sans-serif; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
 
-      {/* ══════════════════════════════════════════
-          DESKTOP LAYOUT
-      ══════════════════════════════════════════ */}
-      <div className="hidden md:flex flex-col min-h-screen bg-[#F6F8FC]">
-        <StudentHeader />
-
-        <div className="max-w-7xl mx-auto w-full px-8 lg:px-12 xl:px-24 2xl:px-20 py-8">
-
-          {/* ── Main grid: list + sidebar ── */}
-          <div className="grid grid-cols-3 gap-6">
-
-            {/* Left — history list col-span-2 */}
-            <div className="col-span-2">
-              {/* Search + header */}
-              <div className="flex items-center justify-between mb-5">
-                <div className="flex items-center gap-2">
-                  <Activity size={16} className="text-[#7A41F7]" />
-                  <h4 className="text-xl font-bold text-slate-800 font-display">Test History</h4>
-                  {filteredHistory.length > 0 && (
-                    <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 bg-[#F3EBFF] text-[#7A41F7] rounded-lg ml-2">
-                      {filteredHistory.length} Records
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Search bar */}
-              <div className="relative mb-5 group">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#7A41F7] transition-colors" size={16} />
-                <input
-                  type="text"
-                  placeholder="Search test records..."
-                  className="w-full bg-white border border-slate-100 rounded-2xl py-3 pl-11 pr-4 text-sm font-medium text-slate-700 placeholder:text-slate-300 focus:border-[#7A41F7] focus:ring-2 focus:ring-purple-100 shadow-sm transition-all outline-none"
-                  onChange={e => setSearchQuery(e.target.value)}
-                />
-              </div>
-
-              {/* List */}
-              {filteredHistory.length > 0 ? (
-                <div className="space-y-3 max-h-[calc(100vh-260px)] overflow-y-auto pr-2 no-scrollbar">
-                  {filteredHistory.map(record => (
-                    <DesktopHistoryRow
-                      key={record._id}
-                      record={record}
-                      isExpanded={selectedId === record._id}
-                      onToggle={() => setSelectedId(selectedId === record._id ? null : record._id)}
-                      navigate={navigate}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-24 bg-white rounded-3xl border-2 border-dashed border-slate-200">
-                  <div className="w-14 h-14 bg-slate-50 rounded-full flex items-center justify-center mb-3 shadow-sm">
-                    <Inbox className="text-slate-300" size={28} />
-                  </div>
-                  <p className="text-sm font-bold text-slate-400">No records found</p>
-                  <p className="text-xs text-slate-300 mt-1">Try adjusting your search</p>
-                </div>
-              )}
-            </div>
-
-            {/* Right sidebar */}
-            <div className="flex flex-col gap-5">
-
-              {/* CTA card — same style as dashboard "Completed Tests" */}
-              <div className="bg-gradient-to-br from-[#7A41F7] to-[#5B2ED6] rounded-3xl p-6 text-white relative overflow-hidden shadow-xl shadow-purple-200/50 min-h-[170px] flex flex-col justify-between">
-                <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-white/10 rounded-full pointer-events-none" />
-                <div className="absolute -right-2 -bottom-2 w-20 h-20 bg-white/10 rounded-full pointer-events-none" />
-                <div className="relative z-10">
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-white/50 mb-1">Your Archive</p>
-                  <h4 className="text-lg font-bold font-display">Test History</h4>
-                  <p className="text-xs text-white/60 font-medium mt-1">Review past performance & trends</p>
-                </div>
-                <div className="relative z-10 flex items-center justify-between mt-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                    <p className="text-[10px] font-bold text-white/60">{totalTests} tests recorded</p>
-                  </div>
-                  <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-                    <TrendingUp size={14} className="text-white" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Quick info cards — same colorful card style */}
-              <div className="bg-[#F3EBFF] rounded-2xl p-5 flex items-center gap-4">
-                <div className="bg-[#E6D6FF] w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <ClipboardList size={22} className="text-[#7A41F7]" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-slate-800 font-display">{totalTests}</p>
-                  <p className="text-[13px] font-semibold text-slate-500">Tests Logged</p>
-                  <p className="text-[11px] text-slate-400">All time</p>
-                </div>
-              </div>
-
-              <div className="bg-orange-50 rounded-2xl p-5 flex items-center gap-4">
-                <div className="bg-orange-100 w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Zap size={22} className="text-orange-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-slate-800 font-display">{totalAttempts}</p>
-                  <p className="text-[13px] font-semibold text-slate-500">Total Attempts</p>
-                  <p className="text-[11px] text-slate-400">Across all tests</p>
-                </div>
-              </div>
-
+      {/* ══ FIXED HEADER AREA ══ */}
+      <div
+        className="fixed top-0 left-0 right-0 z-50"
+        style={{
+          paddingTop: STATUS_BAR_H,
+          background: 'radial-gradient(ellipse 60% 100% at 70% 20%, rgba(255,255,255,0.12) 0%, #2D5588 40%, #2D5588 100%)',
+          backgroundColor: '#2D5588'
+        }}
+      >
+        {/* Top Header Row */}
+        <div className="flex items-center justify-between px-5 py-2 mt-2 mb-4">
+          <div>
+            <p className="text-[10px] font-medium leading-tight mb-0.5 text-slate-300">Current goal</p>
+            <div className="flex items-center gap-1 cursor-pointer">
+              <span className="font-bold text-[17px] font-display tracking-tight text-white">
+                IIT JEE
+              </span>
+              <ChevronDown size={18} className="text-white" strokeWidth={2.5} />
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* ══════════════════════════════════════════
-          MOBILE LAYOUT — completely unchanged
-      ══════════════════════════════════════════ */}
-      <div className="md:hidden fixed top-0 w-full min-h-screen bg-[#7A41F7] flex flex-col font-sans selection:bg-[#F1EBFE]">
-
-        {/* compact nav */}
-        <nav className="bg-[#7A41F7] pt-5 pb-14 px-6 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-8 -mt-8" />
-          <div className="absolute bottom-0 left-0 w-16 h-16 bg-white/5 rounded-full -ml-8 -mb-8" />
-          <div className="max-w-lg mx-auto flex justify-between items-center relative z-10">
-            <button onClick={() => navigate("/student")} className="p-2 bg-white/20 hover:bg-white/30 rounded-xl transition-all text-white backdrop-blur-md">
-              <ArrowLeft size={18} />
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowCounsellorModal(true)}
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full transition-colors bg-[#ffffff1a] text-white hover:bg-white/20"
+            >
+              <Phone size={14} fill="white" strokeWidth={0} />
+              <span className="text-xs font-bold tracking-wide">Talk to counsellor</span>
             </button>
-            <h2 className="text-lg font-black text-white tracking-tight">Test History</h2>
-            <div className="w-9" />
+            <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-transparent">
+              <img src={avatar} alt="avatar" className="w-full h-full object-cover" />
+            </div>
           </div>
-        </nav>
+        </div>
 
-        <div>
-          <main className="flex-1 rounded-t-2xl max-w-lg mx-auto w-full px-6 -mt-10 space-y-4 relative pb-24">
+        {/* Main Segmented Tabs (Tests | Quizzes) */}
+        <div className="px-4 mt-8 flex justify-center relative z-10">
+          <div className="flex items-end w-full max-w-[280px] relative -mb-[1px]">
 
-            {/* compact stats */}
-            <div className="bg-[#7A41F7] grid grid-cols-2 gap-2">
-              <div className="bg-white p-3 rounded-2xl shadow-lg shadow-purple-900/5 flex items-center gap-2.5 border border-white">
-                <div className="w-8 h-8 rounded-lg bg-[#F1EBFE] flex items-center justify-center shrink-0">
-                  <Layers size={14} className="text-[#7A41F7]" />
-                </div>
-                <div>
-                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-tighter opacity-70">Tests</p>
-                  <p className="text-base font-black text-slate-900 leading-none">{totalTests}</p>
-                </div>
-              </div>
-              <div className="bg-white p-3 rounded-2xl shadow-lg shadow-purple-900/5 flex items-center gap-2.5 border border-white">
-                <div className="w-8 h-8 rounded-lg bg-[#FFF4EB] flex items-center justify-center shrink-0">
-                  <Zap size={14} className="text-orange-500" />
-                </div>
-                <div>
-                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-tighter opacity-70">Attempts</p>
-                  <p className="text-base font-black text-slate-900 leading-none">{totalAttempts}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* search */}
-            <div className="rounded-2xl relative group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#7A41F7] transition-colors" size={16} />
-              <input
-                type="text"
-                placeholder="Search records..."
-                className="w-full bg-white border-2 border-slate-50 rounded-2xl py-3 pl-11 pr-4 text-xs font-bold focus:border-[#7A41F7] shadow-lg shadow-purple-900/5 transition-all outline-none"
-                onChange={e => setSearchQuery(e.target.value)}
+            {/* Tests Tab */}
+            <div
+              onClick={() => setActiveMainTab("Tests")}
+              className="relative flex-1 h-12 flex items-center justify-center cursor-pointer group"
+              style={{ zIndex: activeMainTab === "Tests" ? 10 : 1 }}
+            >
+              <div
+                className={`absolute inset-0 rounded-t-xl transition-all duration-300 origin-bottom ${activeMainTab === "Tests"
+                  ? (isDark ? 'bg-[#0B121C] border-t-2 border-[#00A3FF] shadow-lg' : 'bg-[#F4F7FC] border-t-2 border-[#1EBA9B] shadow-sm')
+                  : (isDark ? 'bg-[#0B121C] opacity-80 hover:opacity-100' : 'bg-[#F4F7FC] opacity-80 hover:opacity-100')
+                  }`}
+                style={{ transform: 'perspective(50px) rotateX(12deg)' }}
               />
+              <span className={`relative z-10 mt-1.5 font-bold text-[15px] tracking-wide ${activeMainTab === "Tests"
+                ? (isDark ? 'text-white' : 'text-slate-900')
+                : (isDark ? 'text-slate-300' : 'text-[#2D5588]')
+                }`}>
+                Tests
+              </span>
             </div>
 
-            {/* archive list */}
-            <div className="flex flex-col bg-white rounded-t-[2.5rem] -mx-6 px-6 pt-6 mt-4 shadow-[0_-10px_40px_rgba(0,0,0,0.04)] h-[calc(80vh)]">
-              <div className="flex items-center justify-between px-2 mb-4 shrink-0">
-                <div className="flex items-center gap-2">
-                  <Activity size={14} className="text-[#7A41F7]" />
-                  <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Archive Logs</p>
-                </div>
-                <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-full">
-                  <Calendar size={12} className="text-slate-400" />
-                  <span className="text-[10px] font-bold text-slate-500">History</span>
-                </div>
-              </div>
-
-              <div className="flex-1 overflow-y-auto pr-1 pb-32 space-y-3 no-scrollbar">
-                {filteredHistory.length > 0 ? (
-                  filteredHistory.map(record => (
-                    <HistoryLogItem
-                      key={record._id}
-                      record={record}
-                      isExpanded={selectedId === record._id}
-                      onToggle={() => setSelectedId(selectedId === record._id ? null : record._id)}
-                      navigate={navigate}
-                    />
-                  ))
-                ) : (
-                  <div className="py-20 text-center bg-slate-50/50 rounded-[2rem] border border-dashed border-slate-200">
-                    <Inbox className="mx-auto text-slate-200 mb-4" size={48} />
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No Records Found</p>
-                  </div>
-                )}
-              </div>
+            {/* Quizzes Tab */}
+            <div
+              onClick={() => setActiveMainTab("Quizzes")}
+              className="relative flex-1 h-12 flex items-center justify-center cursor-pointer group -ml-3"
+              style={{ zIndex: activeMainTab === "Quizzes" ? 10 : 1 }}
+            >
+              <div
+                className={`absolute inset-0 rounded-t-xl transition-all duration-300 origin-bottom ${activeMainTab === "Quizzes"
+                  ? (isDark ? 'bg-[#0B121C] border-t-2 border-[#00A3FF] shadow-lg' : 'bg-[#F4F7FC] border-t-2 border-[#1EBA9B] shadow-sm')
+                  : (isDark ? 'bg-[#0B121C] opacity-80 hover:opacity-100' : 'bg-[#F4F7FC] opacity-80 hover:opacity-100')
+                  }`}
+                style={{ transform: 'perspective(50px) rotateX(12deg)' }}
+              />
+              <span className={`relative z-10 mt-1.5 font-bold text-[15px] tracking-wide ${activeMainTab === "Quizzes"
+                ? (isDark ? 'text-white' : 'text-slate-900')
+                : (isDark ? 'text-slate-300' : 'text-[#2D5588]')
+                }`}>
+                Quizzes
+              </span>
             </div>
-          </main>
+
+          </div>
         </div>
       </div>
-    </>
+      {/* ══ FIXED SEARCH & SUB-TABS AREA ══ */}
+      <div
+        className={`fixed left-0 right-0 z-40 ${isDark ? 'bg-[#0B121C]' : 'bg-[#F4F7FC]'}`}
+        style={{ top: STATUS_BAR_H + 144 }}
+      >
+        {/* Search & Translation */}
+        <div className="px-4 py-4 flex items-center gap-3">
+          <div className={`flex-1 flex items-center gap-2 px-4 py-2.5 rounded-full border ${isDark ? 'bg-[#151E2E] border-slate-800' : 'bg-white border-slate-200'}`}>
+            <Search size={18} className={isDark ? 'text-slate-400' : 'text-slate-400'} />
+            <input
+              type="text"
+              placeholder={`Search ${activeMainTab.toLowerCase()}...`}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className={`w-full bg-transparent text-sm focus:outline-none ${isDark ? 'text-white placeholder-slate-500' : 'text-slate-800 placeholder-slate-400'}`}
+            />
+          </div>
+          <button className={`p-2.5 rounded-full border ${isDark ? 'bg-[#151E2E] border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>
+            <Languages size={18} />
+          </button>
+        </div>
+
+        {/* Secondary Scrollable Tabs */}
+        <div className={`w-full overflow-x-auto no-scrollbar border-b ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
+          <div className="flex px-2 w-max min-w-full">
+            {["Upcoming Tests", "Ongoing Tests", "Previous Year Tests"].map(tab => (
+              <button
+                key={tab}
+                onClick={() => setActiveSubTab(tab)}
+                className={`px-4 py-3 text-[13px] font-bold whitespace-nowrap transition-all border-b-2 ${activeSubTab === tab
+                  ? (isDark ? 'border-blue-500 text-blue-500' : 'border-[#1EBA9B] text-[#1EBA9B]')
+                  : `border-transparent hover:border-slate-500/30 ${isDark ? 'text-slate-400' : 'text-slate-500'}`
+                  }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ══ CONTENT AREA ══ */}
+      <div
+        className={`flex-1 flex flex-col`}
+        style={{ paddingTop: STATUS_BAR_H + 144 + 118 }} // Offset for BOTH fixed headers
+      >
+
+        {/* Filters */}
+        <div className="px-4 pt-4 flex gap-2 overflow-x-auto no-scrollbar">
+          <button className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold whitespace-nowrap transition-colors ${isDark ? 'bg-[#151E2E] border-slate-800 text-slate-300 hover:bg-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+            Educator <ChevronDown size={14} />
+          </button>
+          <button className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold whitespace-nowrap transition-colors ${isDark ? 'bg-[#151E2E] border-slate-800 text-blue-400 hover:bg-slate-800' : 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100'}`}>
+            All subscription types <ChevronDown size={14} />
+          </button>
+        </div>
+
+        {/* List Content */}
+        <div className="flex-1 px-4 py-4 space-y-4 pb-24">
+          {loading ? (
+            <div className="flex justify-center py-10"><Loader2 className="animate-spin text-blue-500" /></div>
+          ) : displayedTests.length === 0 ? (
+            <div className="text-center py-10 text-slate-500 font-medium">No records found.</div>
+          ) : (
+            displayedTests.map(renderCard)
+          )}
+        </div>
+      </div>
+
+      {/* ── COUNSELLOR MODAL ── */}
+      {showCounsellorModal && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-end justify-center"
+          onClick={() => setShowCounsellorModal(false)}
+        >
+          <div className="absolute inset-0 bg-black/65 transition-opacity" style={{ backdropFilter: 'blur(3px)' }} />
+          <div
+            className={`relative w-full max-w-md overflow-hidden transition-transform animate-in slide-in-from-bottom-full duration-300 ${isDark ? 'bg-[#111827]' : 'bg-white'}`}
+            style={{ borderRadius: '12px 12px 0 0' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex justify-center pt-4 pb-3">
+              <div className={`w-10 h-1 rounded-full ${isDark ? 'bg-white/20' : 'bg-slate-300'}`} />
+            </div>
+            <div className="px-6 pt-8 pb-2">
+              <div className="flex items-center justify-between gap-6">
+                <div className="flex-1">
+                  <h2 className={`font-black leading-tight ${isDark ? 'text-white' : 'text-slate-900'}`} style={{ fontSize: 19 }}>
+                    Need help with your subscription?
+                  </h2>
+                  <p className={`text-[12px] mt-2 leading-relaxed ${isDark ? 'text-white/55' : 'text-slate-500'}`}>
+                    Talk to our experts who will guide you with all you need to crack it.
+                  </p>
+                </div>
+                <div className={`w-[68px] h-[68px] rounded-full overflow-hidden flex-shrink-0 border-2 ${isDark ? 'border-white/10 bg-[#1F2937]' : 'border-slate-200 bg-slate-100'}`}>
+                  <img
+                    src="https://api.dicebear.com/7.x/avataaars/svg?seed=counsellorF&backgroundColor=b6e3f4&clothingColor=3c4f5c"
+                    className="w-full h-full object-cover"
+                    alt="Expert"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="px-6 pt-6 pb-3">
+              <a
+                href="tel:+918585858585"
+                className={`w-full flex items-center justify-center gap-3 active:scale-95 transition-transform ${isDark ? 'bg-white text-[#111827]' : 'bg-[#1EBA9B] text-white shadow-md'}`}
+                style={{ borderRadius: 8, padding: '14px 24px' }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.56 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                </svg>
+                <span className="font-bold" style={{ fontSize: 15 }}>+91 8585858585</span>
+              </a>
+            </div>
+            <div className="px-6 pb-12">
+              <button
+                onClick={() => setShowCounsellorModal(false)}
+                className={`w-full flex items-center justify-center gap-1.5 py-4 font-bold tracking-widest active:opacity-70 transition-opacity ${isDark ? 'text-white' : 'text-[#1EBA9B]'}`}
+                style={{ fontSize: 11.5, letterSpacing: '0.08em' }}
+              >
+                GET A CALL FROM US <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
   );
 }

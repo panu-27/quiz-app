@@ -208,3 +208,13 @@ export const updateAvatar = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+export const getAllTestsWithAttempts = async (req, res) => {
+  try {
+    const data = await service.getAllTestsWithAttempts(req.user);
+    res.json(data);
+  } catch (err) {
+    console.error("Error in getAllTestsWithAttempts:", err);
+    res.status(500).json({ message: "Server Error", error: err.message });
+  }
+};

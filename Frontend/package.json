@@ -10,7 +10,18 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@capacitor/android": "^8.2.0",
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.2.0",
+    "@capacitor/core": "^8.2.0",
+    "@capacitor/filesystem": "^8.1.2",
+    "@capacitor/screen-orientation": "^8.0.1",
+    "@capacitor/share": "^8.0.1",
+    "@capacitor/splash-screen": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.1",
     "@heroicons/react": "^2.2.0",
+    "@hookform/resolvers": "^5.4.0",
     "@tailwindcss/vite": "^4.1.18",
     "axios": "^1.13.4",
     "docx": "^9.5.1",
@@ -21,9 +32,11 @@
     "lucide-react": "^0.563.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-hook-form": "^7.76.1",
     "react-router-dom": "^7.13.0",
     "tailwindcss": "^4.1.18",
-    "vite-plugin-pwa": "^1.2.0"
+    "vite-plugin-pwa": "^1.2.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

@@ -48,6 +48,7 @@ app.use(express.urlencoded({ limit: "1mb", extended: true }));
 app.use('/api/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 app.get("/", (req, res) => res.send("API running 🚀"));
+app.get("/api/app/min-version", (req, res) => res.json({ minVersion: Number(process.env.MIN_APP_VERSION) || 1 }));
 
 app.use("/api/auth",         authRoutes);
 app.use("/api/super",        superRoutes);

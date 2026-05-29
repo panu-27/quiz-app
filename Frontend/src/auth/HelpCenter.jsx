@@ -41,13 +41,13 @@ const helpCategories = [
     description: "Account related issues, buffering issues and more.",
     icon: "https://static.uacdn.net/production/_next/static/images/helpCenter/technicalIssues.svg",
     issue: "Website not loading, test not opening, buffering or app crash",
-    contact: "Nexus Technical Support",
+    contact: "Target Coaching Classes Technical Support",
     content:
       "Fix issues like login failure, buffering, test not loading or app crashes.",
   },
   {
     id: "tests",
-    title: "Nexus Exclusives",
+    title: "Target Coaching Classes Exclusives",
     description: "Information regarding the tests and reports.",
     icon: "https://static.uacdn.net/production/_next/static/images/helpCenter/testSeries.svg",
     issue: "Test not visible, result missing, report not generated",
@@ -58,7 +58,7 @@ const helpCategories = [
   {
     id: "support",
     title: "Login Issue!",
-    description: "Your complete guide to the Nexus platform.",
+    description: "Your complete guide to the Target Coaching Classes platform.",
     icon: "https://static.uacdn.net/production/_next/static/images/helpCenter/letsBegin.svg",
     issue: "Login not working, account pending approval, access denied",
     contact: "Institute Admin / Assigned Teacher",
@@ -81,7 +81,7 @@ const helpCategories = [
 
                 {/* Title */}
                 <p className="text-slate-600 text-sm mb-2">
-                    Nexus Help & Support
+                    Help & Support
                 </p>
 
                 <h1 className="text-[26px] sm:text-3xl font-semibold text-slate-800">

@@ -1,202 +1,404 @@
-import React, { useState } from 'react';
-import { BarChart2, Trophy, Lock, TrendingUp, Target, BookOpen, Brain, Award, FlameIcon, ChevronRight } from "lucide-react";
-import EliteLeaderboard from './EliteLeaderboard';
-import StudentAnalysis from './StudentAnalysis';
-import StudentHeader from './StudentHeader';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Trophy, WifiOff, Users, Zap, Star, ChevronDown } from "lucide-react";
+import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
+import api from "../api/axios";
 
-/* ══════════════════════════════════════════════
-   DISCORD-STYLE LOCKED SIDEBAR ITEMS
-══════════════════════════════════════════════ */
-
-const NAV_ITEMS = [
-  {
-    section: 'ANALYTICS',
-    items: [
-      { key: 'analysis',       label: 'Personal Analysis',   icon: <BarChart2 size={16} />,  locked: false, active: true  },
-      { key: 'performance',    label: 'Performance Report',  icon: <TrendingUp size={16} />, locked: true  },
-      { key: 'target',         label: 'Target Tracker',      icon: <Target size={16} />,     locked: true  },
-    ],
-  },
-  {
-    section: 'RANKINGS',
-    items: [
-      { key: 'leaderboard',    label: 'Institute Ranking',   icon: <Trophy size={16} />,     locked: false },
-      { key: 'awards',         label: 'Achievements',        icon: <Award size={16} />,      locked: true  },
-    ],
-  },
-  {
-    section: 'STUDY',
-    items: [
-      { key: 'revision',       label: 'Revision Planner',    icon: <BookOpen size={16} />,   locked: true  },
-    ],
-  },
+const FALLBACK_ALL_TIME = [
+  { rank: 1, name: "Mushafir", points: "8.6,684,187,627,438,1e+,242", level: 33, percentile: 100, avatar: null },
+  { rank: 2, name: "Jashan", points: "7.3,348,158,761,678,4e+,242", level: 33, percentile: 100, avatar: null },
+  { rank: 3, name: "Bk jha", points: "6.6,680,144,328,798,6e+,242", level: 33, percentile: 100, avatar: null },
+  { rank: 4, name: "Madelyn Dias", points: "45,590", level: 22, percentile: 90, avatar: null },
+  { rank: 5, name: "Zain Vaccaro", points: "32,448", level: 18, percentile: 85, avatar: null },
+  { rank: 6, name: "Skylar Geidt", points: "12,410", level: 15, percentile: 75, avatar: null },
+  { rank: 7, name: "Elena Rossi", points: "8,370", level: 12, percentile: 60, avatar: null },
+  { rank: 8, name: "Yuki Tanaka", points: "5,350", level: 10, percentile: 50, avatar: null },
+  { rank: 9, name: "Lars Thomsen", points: "3,340", level: 8, percentile: 40, avatar: null },
+  { rank: 10, name: "Hana Kim", points: "2,320", level: 6, percentile: 30, avatar: null },
+  { rank: 11, name: "Sofia Silva", points: "1,310", level: 4, percentile: 20, avatar: null },
+  { rank: 12, name: "Pranav Zinjad", points: "0", level: 1, percentile: 0, avatar: null, current: true },
 ];
 
-/* ══════════════════════════════════════════════
-   LOCKED SCREEN PLACEHOLDER
-══════════════════════════════════════════════ */
-const LockedScreen = ({ label }) => (
-  <div className="flex-1 flex flex-col items-center justify-center py-40 select-none">
-    <div className="relative mb-6">
-      <div className="w-20 h-20 rounded-3xl bg-slate-100 flex items-center justify-center shadow-inner">
-        <Lock size={32} className="text-slate-300" strokeWidth={1.5} />
-      </div>
-      <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#7A41F7] flex items-center justify-center">
-        <span className="text-white text-[8px] font-black">!</span>
-      </div>
-    </div>
-    <p className="text-base font-black text-slate-700">{label}</p>
-    <p className="text-xs text-slate-400 mt-1.5 font-medium">This feature is coming soon</p>
-    <div className="mt-5 px-5 py-2.5 rounded-2xl bg-[#F3EBFF] text-[#7A41F7] text-[11px] font-bold uppercase tracking-widest">
-      🔒 Locked
-    </div>
-  </div>
-);
+const FALLBACK_LAST_7 = [
+  { rank: 1, name: "Mushafir", points: "1.2,684,187,627,438,1e+,242", level: 33, percentile: 100, avatar: null },
+  { rank: 2, name: "Jashan", points: "1.1,348,158,761,678,4e+,242", level: 33, percentile: 100, avatar: null },
+  { rank: 3, name: "Bk jha", points: "9.6,680,144,328,798,6e+,230", level: 33, percentile: 100, avatar: null },
+  { rank: 4, name: "Madelyn Dias", points: "6,590", level: 22, percentile: 90, avatar: null },
+  { rank: 5, name: "Zain Vaccaro", points: "4,448", level: 18, percentile: 85, avatar: null },
+  { rank: 6, name: "Skylar Geidt", points: "2,410", level: 15, percentile: 75, avatar: null },
+  { rank: 7, name: "Elena Rossi", points: "1,370", level: 12, percentile: 60, avatar: null },
+  { rank: 8, name: "Yuki Tanaka", points: 850, level: 10, percentile: 50, avatar: null },
+  { rank: 9, name: "Lars Thomsen", points: 540, level: 8, percentile: 40, avatar: null },
+  { rank: 10, name: "Hana Kim", points: 320, level: 6, percentile: 30, avatar: null },
+  { rank: 11, name: "Sofia Silva", points: 110, level: 4, percentile: 20, avatar: null },
+  { rank: 12, name: "Pranav Zinjad", points: "0", level: 1, percentile: 0, avatar: null, current: true },
+];
 
-/* ══════════════════════════════════════════════
-   SIDEBAR NAV ITEM
-══════════════════════════════════════════════ */
-const SidebarItem = ({ item, activeTab, onClick }) => {
-  const isActive = activeTab === item.key;
+const STATUS_BAR_H = 44;
 
-  if (item.locked) {
-    return (
-      <div
-        title="Coming Soon"
-        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-bold text-slate-300 cursor-not-allowed select-none group"
-      >
-        {/* Discord-style lock */}
-        <span className="relative flex-shrink-0">
-          <span className="text-slate-300 opacity-60">{item.icon}</span>
-          <Lock
-            size={10}
-            className="absolute -bottom-0.5 -right-1 text-slate-400 fill-slate-200"
-            strokeWidth={2.5}
-          />
-        </span>
-        <span className="truncate opacity-50">{item.label}</span>
-        <Lock size={12} className="ml-auto text-slate-300 flex-shrink-0 opacity-40" strokeWidth={2} />
-      </div>
-    );
-  }
+function Avatar({ src, name, size = 42, level = 1, className = "", isCurrentUser = false }) {
+  const [failed, setFailed] = useState(false);
+  const isUrl = src && (src.startsWith('http') || src.startsWith('/'));
+  const initial = name ? name.charAt(0).toUpperCase() : "?";
 
-  return (
-    <button
-      onClick={() => onClick(item.key)}
-      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-bold transition-all ${
-        isActive
-          ? 'bg-[#F3EBFF] text-[#7A41F7]'
-          : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
-      }`}
-    >
-      <span className={isActive ? 'text-[#7A41F7]' : 'text-slate-400'}>{item.icon}</span>
-      <span className="truncate">{item.label}</span>
-      {isActive && <ChevronRight size={14} className="ml-auto flex-shrink-0" />}
-    </button>
-  );
-};
-
-/* ══════════════════════════════════════════════
-   MAIN COMPONENT
-══════════════════════════════════════════════ */
-export default function StudentNexus() {
-  const [activeTab, setActiveTab] = useState('analysis');
-
-  /* resolve what to render in the main area */
-  const renderContent = () => {
-    if (activeTab === 'analysis')    return <StudentAnalysis />;
-    if (activeTab === 'leaderboard') return <EliteLeaderboard />;
-    const found = NAV_ITEMS.flatMap(s => s.items).find(i => i.key === activeTab);
-    return <LockedScreen label={found?.label ?? 'Feature'} />;
+  const avatarWrapperStyle = {
+    width: size,
+    height: size,
+    borderRadius: '50%',
+    position: 'relative',
+    flexShrink: 0,
   };
 
-  /* ── DESKTOP ── */
+  const imgStyle = {
+    width: '100%',
+    height: '100%',
+    borderRadius: '50%',
+    objectFit: 'cover',
+    background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)',
+  };
+
   return (
-    <div className="min-h-screen bg-[#F6F8FC] text-slate-900 selection:bg-indigo-100">
+    <div style={avatarWrapperStyle} className={className}>
+      {!isUrl || failed ? (
+        <div style={imgStyle} className="flex items-center justify-center text-white font-bold text-sm">
+          {initial}
+        </div>
+      ) : (
+        <img src={src} alt={name} onError={() => setFailed(true)} style={imgStyle} />
+      )}
+      {/* Level Badge at bottom right */}
+      <div
+        className={`absolute -bottom-1 -right-1 px-1 py-0.5 rounded text-[8px] font-black border leading-none transition-colors ${isCurrentUser
+          ? 'bg-[#22D3EE] text-[#111111] border-[#7A41F7]'
+          : 'bg-[#3B82F6] text-white border-white dark:border-[#1A1A1A]'
+          }`}
+      >
+        LV {level}
+      </div>
+    </div>
+  );
+}
 
-      {/* ══════ DESKTOP (md+) ══════ */}
-      <div className="hidden md:flex flex-col min-h-screen">
-        <StudentHeader />
+export default function StudentPersonalAnalytics() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
 
-        <div className="flex flex-1 max-w-7xl mx-auto w-full px-8 md:px-8 lg:px-12 2xl:px-20 pt-8 pb-2 gap-7">
+  const [timeframe, setTimeframe] = useState('last7'); // 'last7' | 'all'
+  const [allRanks, setAllRanks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [usingFallback, setUsingFallback] = useState(false);
+  const [showStickyCard, setShowStickyCard] = useState(false);
 
-          {/* ── LEFT SIDEBAR ── */}
-          <aside className="w-56 flex-shrink-0 flex flex-col gap-4">
+  const userRowRef = useRef(null);
 
-            {/* Brand block */}
-            <div className="bg-[#7A41F7] rounded-2xl p-5 text-white relative overflow-hidden">
-              <div className="absolute -right-4 -bottom-4 w-20 h-20 bg-white/10 rounded-full" />
-              <div className="absolute -right-1 -top-4 w-12 h-12 bg-white/5 rounded-full" />
-              <BarChart2 size={22} className="mb-3 relative z-10 opacity-80" />
-              <p className="font-black text-base relative z-10 leading-tight">Nexus<br />Analytics</p>
-              <p className="text-[10px] text-white/50 uppercase tracking-widest mt-1 relative z-10">Student Dashboard</p>
+  // Load user data
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchData() {
+      setLoading(true);
+      try {
+        const { data } = await api.get("/leaderboard/stats/all");
+        if (!cancelled) {
+          const list = Array.isArray(data) && data.length > 0 ? data : (timeframe === 'last7' ? FALLBACK_LAST_7 : FALLBACK_ALL_TIME);
+          const formatted = list.map((item, idx) => ({
+            ...item,
+            rank: item.rank || idx + 1,
+            points: typeof item.points === 'string' ? item.points : (item.points ? item.points.toLocaleString() : "0"),
+            level: item.level || Math.max(1, Math.floor(33 - (idx * 2.5))),
+            percentile: item.percentile !== undefined ? item.percentile : Math.max(0, 100 - Math.floor(idx * 9)),
+            current: item.current || (item.name?.toLowerCase().includes('pranav') || item.studentName?.toLowerCase().includes('pranav')),
+          }));
+          setAllRanks(formatted);
+          setUsingFallback(!Array.isArray(data) || data.length === 0);
+        }
+      } catch {
+        if (!cancelled) {
+          setAllRanks(timeframe === 'last7' ? FALLBACK_LAST_7 : FALLBACK_ALL_TIME);
+          setUsingFallback(true);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    fetchData();
+    return () => { cancelled = true; };
+  }, [timeframe]);
+
+  // Observer to show/hide sticky bottom user card
+  useEffect(() => {
+    if (loading || !userRowRef.current) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      // Show sticky bottom card if current user row is NOT in viewport
+      setShowStickyCard(!entry.isIntersecting);
+    }, { threshold: 0.1 });
+    observer.observe(userRowRef.current);
+    return () => observer.disconnect();
+  }, [loading, allRanks]);
+
+  // Hide bottom layout navigation tabs
+  useEffect(() => {
+    document.body.setAttribute('data-hide-nav', 'true');
+    return () => {
+      document.body.removeAttribute('data-hide-nav');
+    };
+  }, []);
+
+  const currentUser = allRanks.find(u => u.current) || { rank: 12, name: user?.name || "Pranav Zinjad", points: "0", level: 1, percentile: 0, current: true };
+
+  const handleBack = () => {
+    navigate('/student');
+  };
+
+  const resolveMediaUrl = url => {
+    if (!url) return null;
+    if (url.startsWith('http') || url.startsWith('data:') || url.startsWith('blob:')) return url;
+    const base = window.__API_URL__ ? window.__API_URL__.replace(/\/api$/, '') : (import.meta.env.VITE_API_BASE_URL || '').replace(/\/api$/, '');
+    return `${base}${url}`;
+  };
+
+  // Curve visual logic
+  const getCurvePoint = (p) => {
+    const x = 5 + (p / 100) * 90;
+    const exponent = -Math.pow((p - 50) / 25, 2);
+    const y = 35 - 30 * Math.exp(exponent);
+    return { x, y };
+  };
+  const currentMarker = getCurvePoint(currentUser.percentile);
+
+  return (
+    <div
+      className="fixed inset-0 transition-colors duration-300 flex flex-col overflow-hidden"
+      style={{ background: isDark ? '#111111' : '#F5F5F5' }}
+    >
+      <style>{`
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
+
+      {/* ── FIXED HEADER & TABS ── */}
+      <div
+        className="sticky top-0 z-50 border-b transition-colors duration-300"
+        style={{
+          background: isDark ? '#111111' : '#F5F5F5',
+          borderColor: isDark ? '#262626' : '#E5E5E5',
+          paddingTop: STATUS_BAR_H,
+        }}
+      >
+        <div className="max-w-md mx-auto px-5 pt-3 pb-1">
+          {/* Header Row */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <button onClick={handleBack} className="p-2 -ml-2 text-slate-500 dark:text-slate-400 active:opacity-60 transition-opacity">
+                <ArrowLeft size={20} />
+              </button>
+              <span className="text-[20px] font-bold tracking-tight text-slate-800 dark:text-white">Leaderboard</span>
             </div>
-
-            {/* Nav sections */}
-            <div className="bg-white rounded-2xl p-3 border border-slate-100 shadow-sm flex flex-col gap-4">
-              {NAV_ITEMS.map(section => (
-                <div key={section.section}>
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-3 mb-1.5">
-                    {section.section}
-                  </p>
-                  <div className="space-y-0.5">
-                    {section.items.map(item => (
-                      <SidebarItem
-                        key={item.key}
-                        item={item}
-                        activeTab={activeTab}
-                        onClick={setActiveTab}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Discord-style "locked" legend hint */}
-            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
-              <div className="flex items-center gap-2 mb-2">
-                <Lock size={12} className="text-slate-400" strokeWidth={2.5} />
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Locked</p>
+            {usingFallback && (
+              <div className="flex items-center gap-1.5 bg-slate-200/55 dark:bg-white/5 rounded-full px-2.5 py-1">
+                <WifiOff size={10} className="text-slate-450 dark:text-slate-500" />
+                <span className="text-[9px] font-bold text-slate-450 dark:text-slate-500 uppercase">Demo</span>
               </div>
-              <p className="text-[10px] text-slate-400 leading-relaxed">
-                These features are under development and will be unlocked soon.
+            )}
+          </div>
+
+          {/* Segmented Controls / Tab Bar */}
+          <div className="flex mt-2 relative">
+            <button
+              onClick={() => setTimeframe('last7')}
+              className={`flex-1 pb-2.5 text-xs font-bold text-center border-b-2 transition-all duration-200 ${timeframe === 'last7'
+                ? 'border-slate-800 dark:border-white text-slate-900 dark:text-white'
+                : 'border-transparent text-slate-400 dark:text-slate-500'
+                }`}
+            >
+              Last 7 days
+            </button>
+            <button
+              onClick={() => setTimeframe('all')}
+              className={`flex-1 pb-2.5 text-xs font-bold text-center border-b-2 transition-all duration-200 ${timeframe === 'all'
+                ? 'border-slate-800 dark:border-white text-slate-900 dark:text-white'
+                : 'border-transparent text-slate-400 dark:text-slate-500'
+                }`}
+            >
+              All time
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── SCROLLABLE BODY CONTENT ── */}
+      <div className="flex-1 overflow-y-auto no-scrollbar">
+        <div className="max-w-md mx-auto px-5 pt-5 pb-32 space-y-6">
+
+          {/* ── Minimal Bell Curve Card ── */}
+          <div
+            className="pt-4 pb-2 transition-colors"
+            style={{
+              background: 'transparent',
+              border: 'none',
+            }}
+          >
+            {/* Distribution Curve SVG */}
+            <div className="relative pt-2 pb-1 overflow-hidden">
+              <svg className="w-full h-24 overflow-visible" viewBox="0 0 100 40">
+                {/* Subtle horizontal grid lines */}
+                {[8, 16, 24, 32].map(y => (
+                  <line
+                    key={y}
+                    x1="0"
+                    y1={y}
+                    x2="100"
+                    y2={y}
+                    stroke={isDark ? "#262626" : "#E5E5E5"}
+                    strokeDasharray="2 2"
+                    strokeWidth="0.5"
+                  />
+                ))}
+
+                {/* Continuous Curve */}
+                <path
+                  d="M 5 38 C 25 38, 35 5, 50 5 C 65 5, 75 38, 95 38"
+                  fill="none"
+                  stroke="#22D3EE"
+                  strokeWidth="1.5"
+                />
+
+                {/* Cyan indicator dot for current user percentile */}
+                <circle
+                  cx={currentMarker.x}
+                  cy={currentMarker.y}
+                  r="2.5"
+                  fill="#22D3EE"
+                  stroke={isDark ? "#111111" : "#F5F5F5"}
+                  strokeWidth="1"
+                />
+              </svg>
+            </div>
+
+            <p className="text-[12px] text-slate-450 dark:text-slate-400 text-center mt-3 font-medium leading-relaxed">
+              To earn XPs, please upgrade your subscription.
+            </p>
+          </div>
+
+          {/* ── Top Learners Section Title ── */}
+          <div className="pt-2">
+            <h2 className="text-sm font-bold text-slate-800 dark:text-white leading-tight">Top learners</h2>
+            <p className="text-[11px] text-slate-450 dark:text-slate-500 mt-0.5">Updates every 30 minutes</p>
+          </div>
+
+          {/* ── Minimal Rankings List ── */}
+          <div className="space-y-4 pb-8">
+            {loading ? (
+              // Simple skeleton rows matching the clean layout
+              Array.from({ length: 6 }).map((_, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center gap-4 py-5 pl-0 pr-5 rounded-xl animate-pulse"
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                  }}
+                >
+                  <div className="w-10 h-10 bg-slate-200 dark:bg-slate-800 rounded-full" />
+                  <div className="flex-1 space-y-2">
+                    <div className="w-20 h-3 bg-slate-200 dark:bg-slate-800 rounded" />
+                    <div className="w-12 h-2 bg-slate-200 dark:bg-slate-800 rounded" />
+                  </div>
+                  <div className="w-12 h-3 bg-slate-200 dark:bg-slate-800 rounded" />
+                </div>
+              ))
+            ) : (
+              allRanks.map((userItem) => {
+                const isCurrentUser = userItem.current;
+
+                return (
+                  <div
+                    key={userItem.rank}
+                    ref={isCurrentUser ? userRowRef : null}
+                    className="flex items-center gap-4 pl-0 pr-5 py-5 rounded-xl transition-colors relative"
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                    }}
+                  >
+                    {/* Avatar Wrapper */}
+                    <div className="relative shrink-0 flex items-center justify-center">
+                      <Avatar
+                        src={resolveMediaUrl(userItem.avatar)}
+                        name={userItem.name}
+                        size={40}
+                        level={userItem.level}
+                        isCurrentUser={isCurrentUser}
+                      />
+                    </div>
+
+                    {/* Meta info */}
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-[14px] font-bold truncate leading-tight ${isCurrentUser ? 'text-cyan-550 dark:text-cyan-400' : 'text-slate-800 dark:text-white'}`}>
+                        {userItem.name}
+                      </p>
+                      <p className="text-[11px] text-slate-450 dark:text-slate-500 mt-0.5 leading-none">
+                        {userItem.percentile}th percentile
+                      </p>
+                    </div>
+
+                    {/* Score (XP) */}
+                    <span
+                      className={`text-[12px] font-black tracking-tight shrink-0 ${isCurrentUser ? 'text-cyan-550 dark:text-cyan-400' : 'text-slate-600 dark:text-slate-350'
+                        }`}
+                    >
+                      {userItem.points} XP
+                    </span>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+        </div>
+      </div>
+
+      {/* ── STICKY BOTTOM USER CARD ── */}
+      {currentUser && !loading && showStickyCard && (
+        <div
+          className="fixed bottom-0 left-0 right-0 z-50 border-t transition-all duration-300 shadow-lg"
+          style={{
+            background: isDark ? '#2A2A2A' : '#FFFFFF',
+            borderColor: isDark ? '#333333' : '#E5E5E5',
+            paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          }}
+        >
+          <div className="max-w-md mx-auto pl-5 pr-10 pt-4 pb-6 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="relative shrink-0">
+                <Avatar
+                  src={resolveMediaUrl(currentUser.avatar)}
+                  name={currentUser.name}
+                  size={40}
+                  level={currentUser.level}
+                  isCurrentUser={true}
+                />
+              </div>
+              <div className="text-left">
+                <p className={`text-[14px] font-bold leading-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                  {currentUser.name}
+                </p>
+                <p className={`text-[11px] mt-0.5 leading-none ${isDark ? 'text-white/60' : 'text-slate-500'}`}>
+                  {currentUser.percentile}th percentile
+                </p>
+              </div>
+            </div>
+
+            <div className="text-right">
+              <p className={`text-[12px] font-black tracking-tight shrink-0 ${isDark ? 'text-white' : 'text-[#7A41F7]'}`}>
+                {currentUser.points} XP
               </p>
             </div>
-          </aside>
-
-          {/* ── MAIN CONTENT ── */}
-          <div className="flex-1 min-w-0">
-            {renderContent()}
           </div>
         </div>
-      </div>
-
-      {/* ══════ MOBILE (< md) ══════ */}
-      <div className="md:hidden pb-12">
-        {/* Mobile tab bar — only unlocked tabs */}
-        <div className="fixed w-full z-20 px-6 pt-4">
-          <div className="bg-slate-200/60 p-1.5 rounded-[2rem] flex gap-1 backdrop-blur-md">
-            {['analysis', 'leaderboard'].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`flex-1 py-3 rounded-[1.7rem] text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${
-                  activeTab === tab
-                    ? 'bg-white shadow-xl shadow-indigo-100 text-indigo-600 scale-[1.02]'
-                    : 'text-slate-900 hover:text-slate-700'
-                }`}
-              >
-                {tab === 'analysis' ? 'Personal' : 'Institute Ranking'}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="max-w-md mx-auto">
-          {activeTab === 'analysis' ? <StudentAnalysis /> : <EliteLeaderboard />}
-        </div>
-      </div>
+      )}
     </div>
   );
 }

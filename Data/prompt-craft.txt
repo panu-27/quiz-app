@@ -1,0 +1,295 @@
+================================================================================
+  PROMPT-CRAFT — Question PDF → CraftTest JSON Converter
+  Use this prompt alongside any question PDF to get ready-to-paste JSON.
+================================================================================
+
+You are an expert question-paper digitizer. Your task is to read the attached
+PDF and convert every question into a strict JSON array that matches the schema
+below. Output ONLY the raw JSON array — no preamble, no explanation, no
+markdown fences (no ```json blocks). The output must start with [ and end with ]
+and be valid, parseable JSON.
+
+════════════════════════════════════════
+  EXACT OUTPUT SCHEMA  (one object per question)
+════════════════════════════════════════
+
+[
+  {
+    "questionText": "<string — the full question stem, with KaTeX math>",
+    "questionImage": null,
+    "options": [
+      { "text": "<option A text, with KaTeX math>", "image": null },
+      { "text": "<option B text, with KaTeX math>", "image": null },
+      { "text": "<option C text, with KaTeX math>", "image": null },
+      { "text": "<option D text, with KaTeX math>", "image": null }
+    ],
+    "correctAnswer": 0,
+    "explanation": "<made it by yourself coorect solution/explanation text, with KaTeX math>"
+  }
+]
+
+FIELD RULES
+-----------
+questionText  : Required. Full question including any sub-parts or given data.
+                Never truncate. Use KaTeX for all math (rules below).
+questionImage : Always null (we don't handle images).
+options       : Required. Array of 2-5 objects, each { "text": "...", "image": null }.
+                Label letters (A/B/C/D) must NOT appear inside the text value --
+                the UI adds them automatically.
+correctAnswer : Required. Zero-based index of the correct option.
+                A = 0, B = 1, C = 2, D = 3, E = 4.
+explanation   : include if the PDF has a solution or hint.
+                If absent, make your own .
+
+════════════════════════════════════════
+  KATEX MATH FORMATTING RULES  (critical — read carefully)
+════════════════════════════════════════
+
+The app renders math using KaTeX via renderMathInElement. Use these delimiters:
+
+  Inline math  -->  $...$          e.g.  $x^2 + y^2 = r^2$
+  Display math -->  $$...$$        e.g.  $$\int_0^\infty e^{-x}\,dx = 1$$
+
+ALWAYS use KaTeX for:
+  * Any variable, number in an equation, fraction, exponent, subscript
+  * Chemical formulas           e.g.  $\text{H}_2\text{O}$
+  * Units mixed with math       e.g.  $9.8\ \text{m/s}^2$
+  * Vectors                     e.g.  $\vec{F} = m\vec{a}$
+  * Greek letters               e.g.  $\alpha$, $\lambda$, $\Delta$
+  * Integrals, limits, sums     e.g.  $\sum_{n=1}^{\infty}$
+  * Matrices / determinants     e.g.  $\begin{vmatrix} a & b \\ c & d \end{vmatrix}$
+
+COMMON CONVERSIONS — PDF notation -> KaTeX
+  x^2                ->  $x^2$
+  x_2                ->  $x_2$
+  sqrt(x)            ->  $\sqrt{x}$
+  cube root of x     ->  $\sqrt[3]{x}$
+  a/b (fraction)     ->  $\dfrac{a}{b}$
+  |x|                ->  $|x|$
+  infinity           ->  $\infty$
+  >= <= !=           ->  $\geq$  $\leq$  $\neq$
+  x  /               ->  $\times$  $\div$
+  arrow (->)         ->  $\rightarrow$
+  plus-minus         ->  $\pm$
+  degrees C          ->  $^\circ\text{C}$
+  log base 10 of x   ->  $\log_{10} x$
+  ln x               ->  $\ln x$
+  sin / cos / tan    ->  $\sin\theta$  $\cos\theta$  $\tan\theta$
+  sin squared x      ->  $\sin^2 x$
+  n!                 ->  $n!$
+  nCr                ->  $\binom{n}{r}$
+  nPr                ->  $^nP_r$
+  limit x->0         ->  $\lim_{x \to 0}$
+  dy/dx              ->  $\dfrac{dy}{dx}$
+  partial f/partial x->  $\dfrac{\partial f}{\partial x}$
+  integral a to b    ->  $\int_a^b f(x)\,dx$
+  sum i=1 to n       ->  $\sum_{i=1}^{n}$
+  pi                 ->  $\pi$
+  h-bar              ->  $\hbar$
+  mu_0, epsilon_0    ->  $\mu_0$, $\varepsilon_0$
+
+ESCAPING INSIDE JSON STRINGS  <-- THIS IS THE MOST COMMON MISTAKE
+  Every backslash in a LaTeX command must be doubled inside a JSON string.
+
+  LaTeX \frac   -->  JSON "\\frac"
+  LaTeX \sqrt   -->  JSON "\\sqrt"
+  LaTeX \times  -->  JSON "\\times"
+  LaTeX \alpha  -->  JSON "\\alpha"
+  LaTeX \text{} -->  JSON "\\text{}"
+
+  Example:
+    LaTeX:  $\frac{1}{2}mv^2$
+    JSON:   "$\\frac{1}{2}mv^2$"
+
+    LaTeX:  $\vec{F} = m\vec{a}$
+    JSON:   "$\\vec{F} = m\\vec{a}$"
+
+    LaTeX:  $\text{H}_2\text{SO}_4$
+    JSON:   "$\\text{H}_2\\text{SO}_4$"
+
+  Newlines inside string values are NOT allowed. Keep every field on one line.
+
+════════════════════════════════════════
+  SUBJECT-SPECIFIC TIPS
+════════════════════════════════════════
+
+PHYSICS
+  * Always include units in math: $9.8\ \text{m/s}^2$, $3 \times 10^8\ \text{m/s}$
+  * Vectors: $\vec{v}$, $\hat{i}$, $\hat{j}$, $\hat{k}$
+  * Scientific notation: $6.022 \times 10^{23}$
+  * Resistance R, current I, voltage V -- always italicise in $...$
+
+CHEMISTRY
+  * Chemical formulas in \text: $\text{H}_2\text{SO}_4$, $\text{CO}_2$
+  * Reactions: $\text{A} + \text{B} \rightarrow \text{C}$
+  * Molar mass: $M = 18\ \text{g/mol}$
+  * State symbols: $(\text{aq})$, $(\text{s})$, $(\text{g})$
+
+MATHEMATICS
+  * Use \dfrac (not \frac) for fractions in questionText for better readability.
+  * Piecewise functions: use \begin{cases}...\end{cases}
+  * Matrices: \begin{pmatrix}...\end{pmatrix}
+  * For display equations in question stem, prefer $$...$$ block syntax.
+
+BIOLOGY
+  * Scientific names in plain text (no math needed).
+  * Where a formula appears (e.g. photosynthesis equation), use \text{} inside $...$
+
+════════════════════════════════════════
+  EDGE CASES & QUALITY RULES
+════════════════════════════════════════
+
+1. MULTI-PART QUESTIONS
+   If a question has a shared passage/data block followed by sub-questions
+   (i)(ii)(iii), treat each sub-question as a SEPARATE question object.
+   Prepend the shared context to each questionText.
+
+2. ASSERTION-REASON (A-R) TYPE
+   questionText: "Assertion (A): ... Reason (R): ..."
+   Use standard A-R options:
+     A -> "Both A and R are true and R is the correct explanation of A"
+     B -> "Both A and R are true but R is not the correct explanation of A"
+     C -> "A is true but R is false"
+     D -> "A is false but R is true"
+
+3. MATCH THE COLUMN
+   questionText: List Column I and Column II items clearly in the text.
+   Options: Each option is a complete matching pattern e.g. "P-2, Q-3, R-1, S-4"
+
+4. INTEGER / NUMERICAL ANSWER TYPE
+   If the answer is a typed number (not MCQ), include four plausible options
+   around the correct value and set correctAnswer to the index of the correct one.
+
+5. STATEMENT TYPE (True/False statements)
+   Options:
+     A -> "Statement I is correct, Statement II is correct"
+     B -> "Statement I is correct, Statement II is incorrect"
+     C -> "Statement I is incorrect, Statement II is correct"
+     D -> "Statement I is incorrect, Statement II is incorrect"
+
+6. OPTION COUNT
+   Always include ALL options given in the PDF (2, 3, 4, or 5).
+   Never add or invent options not present in the PDF.
+
+7. CORRECT ANSWER SOURCE
+   Only set correctAnswer from an answer key visible in the PDF.
+   If no answer key exists, set correctAnswer to 0 and write in explanation:
+   "Answer key not provided in source PDF."
+
+8. EXPLANATIONS
+   If the PDF has a detailed solution, include it fully with KaTeX math.
+   If only the correct option is given, leave explanation as "".
+   Never fabricate or guess explanations.
+
+9. QUESTION NUMBERING
+   Do NOT include "Q1.", "1.", "(i)", "Question 5" etc. inside questionText.
+   Strip all leading numbering -- the UI numbers questions automatically.
+
+10. SPECIAL SYMBOLS
+    Degree symbol    ->  $30^\circ$          (not a plain °)
+    Dot product      ->  $\cdot$
+    Perpendicular    ->  $\perp$
+    Parallel         ->  $\parallel$
+    Angle            ->  $\angle ABC$
+    Triangle         ->  $\triangle ABC$
+    Therefore        ->  $\therefore$
+    Because          ->  $\because$
+    Approximately    ->  $\approx$
+    Proportional to  ->  $\propto$
+    In set notation  ->  $\in$, $\subset$, $\cup$, $\cap$
+
+════════════════════════════════════════
+  VALIDATION CHECKLIST (self-check before outputting)
+════════════════════════════════════════
+
+Before finalising output, verify every item:
+
+  [ ] Output is a single valid JSON array starting with [ and ending with ]
+  [ ] No markdown fences (```), no text outside the array
+  [ ] Every object has all five keys: questionText, questionImage, options,
+      correctAnswer, explanation
+  [ ] questionImage is null for every question
+  [ ] Every option object is { "text": "...", "image": null }
+  [ ] options array has at least 2 items
+  [ ] correctAnswer is an integer (0-indexed), never a letter like "A"
+  [ ] All LaTeX backslashes are double-escaped: \\frac, \\sqrt, \\text{}, etc.
+  [ ] No raw newline characters inside string values
+  [ ] No trailing commas anywhere (last item in array/object has no comma)
+  [ ] Only straight double quotes " used, no curly/smart quotes
+
+════════════════════════════════════════
+  FULL EXAMPLE OUTPUT (3 questions, all subjects)
+════════════════════════════════════════
+
+[
+  {
+    "questionText": "A particle moves with velocity $v = 3t^2 - 2t + 1$ m/s. Find the acceleration at $t = 2$ s.",
+    "questionImage": null,
+    "options": [
+      { "text": "$10\\ \\text{m/s}^2$", "image": null },
+      { "text": "$8\\ \\text{m/s}^2$", "image": null },
+      { "text": "$6\\ \\text{m/s}^2$", "image": null },
+      { "text": "$4\\ \\text{m/s}^2$", "image": null }
+    ],
+    "correctAnswer": 0,
+    "explanation": "Acceleration $a = \\dfrac{dv}{dt} = 6t - 2$. At $t = 2$: $a = 6(2) - 2 = 10\\ \\text{m/s}^2$."
+  },
+  {
+    "questionText": "Which of the following represents the hybridisation of the central atom in $\\text{SF}_6$?",
+    "questionImage": null,
+    "options": [
+      { "text": "$sp^3$", "image": null },
+      { "text": "$sp^3d$", "image": null },
+      { "text": "$sp^3d^2$", "image": null },
+      { "text": "$dsp^2$", "image": null }
+    ],
+    "correctAnswer": 2,
+    "explanation": "$\\text{SF}_6$ has 6 bond pairs and 0 lone pairs around S, giving octahedral geometry with $sp^3d^2$ hybridisation."
+  },
+  {
+    "questionText": "If $f(x) = x^3 - 6x^2 + 9x + 15$, find the interval in which $f(x)$ is strictly increasing.",
+    "questionImage": null,
+    "options": [
+      { "text": "$(-\\infty, 1) \\cup (3, \\infty)$", "image": null },
+      { "text": "$(1, 3)$", "image": null },
+      { "text": "$(-\\infty, 3)$", "image": null },
+      { "text": "$(3, \\infty)$", "image": null }
+    ],
+    "correctAnswer": 0,
+    "explanation": "$f'(x) = 3x^2 - 12x + 9 = 3(x-1)(x-3)$. $f'(x) > 0$ when $x < 1$ or $x > 3$, so the function is strictly increasing on $(-\\infty, 1) \\cup (3, \\infty)$."
+  }
+]
+
+
+for in question having table use below like katex to implement the table view in ketex at question or in ooption wherever it is needed
+Match the column – I with column – II and select the correct option.
+
+$$\begin{array}{|l|l|} \hline \textbf{Column – I (Traits)} & \textbf{Column – II (Type of inheritance)} \\ \hline \text{i. Roan cattle} & \text{a. Multiple allelism} \\ \text{ii. Pink flowered Mirabilis jalapa plant} & \text{b. Co-dominance} \\ \text{iii. Sickle cell anaemia} & \text{c. Incomplete dominance} \\ \text{iv. Wings in Drosophila} & \text{d. Pleiotropism} \\ \hline \end{array}$$
+
+Options:
+(A) i-b, ii-c, iii-d, iv-a
+(B) i-c, ii-b, iii-a, iv-d
+(C) i-d, ii-a, iii-b, iv-c
+(D) i-a, ii-d, iii-c, iv-b
+
+
+================================================================================
+  HOW TO USE THIS PROMPT
+================================================================================
+
+1. Open Claude.ai (or any Claude interface).
+2. Start a new conversation.
+3. Upload your question PDF.
+4. Copy-paste the entire content of this file as your message.
+5. Send. Claude will reply with the raw JSON array.
+6. Copy the JSON output.
+7. Paste it into the subject's JSON textarea in CraftTest.
+8. The green checkmark and question count confirm successful parsing.
+
+NOTE: For large PDFs (50+ questions), ask Claude to process in batches of 20
+and then combine the arrays manually by merging the inner objects:
+  [...batch1questions, ...batch2questions, ...]
+
+================================================================================
+  END OF PROMPT
+================================================================================

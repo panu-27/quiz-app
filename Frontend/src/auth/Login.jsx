@@ -27,10 +27,10 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen bg-white">
-
+      
       <PublicHeader />
 
-      <div className="px-4 sm:px-12 md:px-6 xl:px-52">
+      <div className=" px-4 sm:px-12 md:px-6 xl:px-52">
 
         {/* ── HERO ── */}
         <section className="max-w-7xl mx-auto pt-6 sm:pt-24 pb-10">
@@ -39,7 +39,7 @@ export default function AuthPage() {
             {/* LEFT */}
             <div className="max-w-xl">
               <h1 className="text-[32px] sm:text-[40px] leading-[1.15] font-serif tracking-tight text-slate-700">
-                Crack your goal with World's Best Platform Nexus
+                Crack your goal with Manchar's Best Platform
               </h1>
 
               <p className="mt-4 text-[15px] sm:text-[16px] text-slate-600">

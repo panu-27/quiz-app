@@ -1,11 +1,25 @@
+import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { LogOut } from "lucide-react";
+import { LogOut, ChevronDown } from "lucide-react";
+import GoalModal from "./GoalModal";
 
 export default function StudentHeader() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
+
+  const [selectedGoal, setSelectedGoal] = useState(localStorage.getItem("selectedGoal") || "");
+  const [showGoalDropdown, setShowGoalDropdown] = useState(false);
+  const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
+
+  const selectGoal = (goal) => {
+    localStorage.setItem("selectedGoal", goal);
+    setSelectedGoal(goal);
+    setShowGoalDropdown(false);
+    setIsGoalModalOpen(false);
+    window.location.reload();
+  };
 
   const navItems = [
     { label: "Dashboard", path: "/student" },
@@ -20,7 +34,7 @@ export default function StudentHeader() {
     <header
       className="
         h-14 sm:h-18
-        bg-gray-50 border-b border-slate-200
+        bg-gray-50 dark:bg-[#0B121C] border-b border-slate-200 dark:border-slate-800
         flex items-center justify-between
         px-3 sm:px-10 md:px-4 lg:px-8 xl:px-24 2xl:px-48
         sticky top-0 z-40
@@ -59,21 +73,43 @@ export default function StudentHeader() {
 
 
         {/* Profile circle */}
-        <div
+        <button
+          onClick={() => navigate("/student/profile")}
           className="
             w-9 h-9 rounded-full
             bg-slate-900 text-white
             flex items-center justify-center
             text-sm font-bold
+            hover:bg-slate-800 transition-colors
+            active:scale-95
           "
         >
           {user?.name?.charAt(0)?.toUpperCase() || "S"}
-        </div>
+        </button>
         
       </div>
 
       {/* ===== DESKTOP / TABLET : NAV + LOGOUT ===== */}
       <div className="hidden sm:flex items-center gap-8 ml-auto">
+        {/* GOAL SELECTOR */}
+        <div className="relative">
+          <button
+            onClick={() => setIsGoalModalOpen(true)}
+            className="
+              flex items-center gap-2
+              text-xs sm:text-sm font-bold
+              bg-white dark:bg-[#121A28] border border-slate-200 dark:border-slate-800
+              px-3.5 py-2 rounded-xl
+              text-slate-700 dark:text-slate-250 hover:bg-slate-50 dark:hover:bg-slate-900 transition
+              shadow-sm active:scale-95 duration-150
+            "
+          >
+            <span className="text-purple-600 dark:text-purple-400 font-extrabold uppercase text-[10px] tracking-wider block sm:inline">Goal:</span>
+            <span>{selectedGoal || "Select Goal"}</span>
+            <ChevronDown size={14} className="text-slate-400" />
+          </button>
+        </div>
+
         {/* NAV LINKS */}
         <div className="flex items-center gap-6">
           {navItems.map((item) => {
@@ -89,8 +125,8 @@ export default function StudentHeader() {
                   font-semibold tracking-wide
                   transition-all duration-200
                   ${isActive
-                    ? "text-slate-900"
-                    : "text-slate-600 hover:text-slate-900"
+                    ? "text-slate-900 dark:text-white"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                   }
                 `}
               >
@@ -101,7 +137,7 @@ export default function StudentHeader() {
                     className="
                       absolute -bottom-2 left-1/2 -translate-x-1/2
                       w-14 h-[2px]
-                      bg-slate-900 rounded-full
+                      bg-slate-900 dark:bg-white rounded-full
                     "
                   />
                 )}
@@ -127,6 +163,12 @@ export default function StudentHeader() {
           Logout
         </button>
       </div>
+
+      <GoalModal
+        isOpen={isGoalModalOpen}
+        onClose={() => setIsGoalModalOpen(false)}
+        onSelectGoal={selectGoal}
+      />
     </header>
   );
 }

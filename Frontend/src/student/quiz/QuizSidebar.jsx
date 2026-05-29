@@ -51,7 +51,7 @@ const QuizSidebar = ({ step, subjects, chapCount, subjectMap = {} }) => {
                 <div style={{ position: 'absolute', right: -12, top: -12, width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,0.07)' }} />
                 <div style={{ position: 'relative', zIndex: 1 }}>
                     <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', opacity: 0.7, marginBottom: 4 }}>
-                        Nexus Quiz
+                        Quiz
                     </div>
                     <div style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontSize: 17, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
                         Build Your Test

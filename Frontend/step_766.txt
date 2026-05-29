@@ -1,0 +1,1 @@
+"function FullSettingsView({ onBack, name, email, avatarUrl, onAvatarChange }) {\n  const { theme } = useTheme();\n  const isDark = theme === \"dark\";\n  const fileRef = useRef();"
