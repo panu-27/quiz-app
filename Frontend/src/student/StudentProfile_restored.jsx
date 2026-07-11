@@ -14,7 +14,7 @@ import {
 import StudentHeader from "./StudentHeader";
 import api from "../api/axios";
 
-const STATUS_BAR_H = 43.7;
+const STATUS_BAR_H = 28.5;
 
 /* ────────────────────────────────
    HELPERS

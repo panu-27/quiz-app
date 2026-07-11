@@ -1,11 +1,10 @@
 import { useAuth } from "../context/AuthContext";
 import { useState } from "react";
 import api from "../api/axios";
-import PublicHeader from "./PublicHeader";
 import { useNavigate } from "react-router-dom";
-import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
+import { EyeIcon, EyeSlashIcon, ArrowLeftIcon } from "@heroicons/react/24/outline";
 
-
+const STATUS_BAR_H = 28.5;
 
 export default function LoginPage() {
     const { login } = useAuth();
@@ -15,7 +14,6 @@ export default function LoginPage() {
     const [status, setStatus] = useState({ type: "", message: "" });
     const [showPassword, setShowPassword] = useState(false);
 
-
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -23,15 +21,10 @@ export default function LoginPage() {
 
         try {
             const res = await api.post("/auth/login", formData);
-
-            // Only success responses (2xx) come here
             login(res.data.data);
-
         } catch (err) {
-            // 🔥 THIS IS THE KEY PART
             if (err.response?.data) {
                 const { status, message } = err.response.data;
-
                 setStatus({
                     type: status === 403 ? "pending" : "error",
                     message,
@@ -47,140 +40,123 @@ export default function LoginPage() {
         }
     };
 
-
-
     return (
-        <div className="min-h-screen bg-white">
+        <div className="min-h-screen bg-white flex flex-col items-center">
 
-            {/* Header */}
-            <PublicHeader />
+            {/* Top Bar */}
+            <div
+                className="w-full flex items-center justify-between px-4 pb-2"
+                style={{ paddingTop: STATUS_BAR_H + 16 }}
+            >
+                <button
+                    onClick={() => navigate(-1)}
+                    className="w-10 h-10 -mt-9 flex items-center justify-center text-slate-600 active:scale-95 transition-transform"
+                >
+                    <ArrowLeftIcon className="w-6 h-6" />
+                </button>
+                <div className="flex-1 flex justify-center pr-10 pt-4">
+                    <img
+                        src="./logo.png"
+                        alt="Logo"
+                        className="h-20 w-auto object-contain"
+                    />
+                </div>
+            </div>
 
             {/* Content */}
-<div className="flex-1 px-4 sm:px-12 md:px-6 xl:px-52 pt-10 sm:pt-16">
-                <div className="grid md:grid-cols-2 gap-16 items-start">
-                <div className="max-w-md">
+            <div className="w-full max-w-md px-6 pt-6 -mt-5">
 
-                    {/* Title */}
-                    <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">
-                        Welcome back
-                    </h1>
+                <h1 className="text-[22px] font-medium text-center text-slate-900">
+                    Sign in
+                </h1>
+                <p className="mt-2 mb-8 text-[14px] text-center text-slate-600">
+                    to continue to Target Classes
+                </p>
 
-                    <p className="mt-2 text-sm text-slate-600">
-                        Log in to continue
-                    </p>
-                    {status.message && (
-                        <div
-                            className={`mt-4 rounded-xl px-4 py-3 text-sm ${status.type === "pending"
-                                ? "bg-yellow-50 text-yellow-800"
-                                : "bg-red-50 text-red-700"
-                                }`}
-                        >
-                            {status.message}
-                        </div>
-                    )}
+                {status.message && (
+                    <div
+                        className={`mb-6 rounded-lg px-4 py-3 text-sm ${status.type === "pending"
+                            ? "bg-yellow-50 text-yellow-800 border border-yellow-200"
+                            : "bg-red-50 text-red-700 border border-red-200"
+                            }`}
+                    >
+                        {status.message}
+                    </div>
+                )}
 
+                <form onSubmit={handleSubmit} className="space-y-4">
 
-                    {/* Login form */}
-                    <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+                    <input
+                        type="text"
+                        required
+                        placeholder="Email or phone"
+                        className="w-full px-4 py-3.5 border border-slate-300 rounded-lg
+                                   text-[14px] text-slate-900 placeholder:text-slate-500
+                                   focus:outline-none focus:border-[#1A66FF] focus:ring-1 focus:ring-[#1A66FF]"
+                        onChange={(e) =>
+                            setFormData({ ...formData, email: e.target.value })
+                        }
+                    />
 
+                    <div className="relative">
                         <input
-                            type="email"
+                            type={showPassword ? "text" : "password"}
                             required
-                            placeholder="Email address"
-                            className="w-full px-4 py-3 border border-slate-300 rounded-xl
-                         text-sm text-slate-700 placeholder:text-slate-400
-                         focus:outline-none focus:ring-2 focus:ring-slate-200"
+                            placeholder="Enter your password"
+                            className="w-full px-4 py-3.5 pr-12 border border-slate-300 rounded-lg
+                                       text-[14px] text-slate-900 placeholder:text-slate-500
+                                       focus:outline-none focus:border-[#1A66FF] focus:ring-1 focus:ring-[#1A66FF]"
                             onChange={(e) =>
-                                setFormData({ ...formData, email: e.target.value })
+                                setFormData({ ...formData, password: e.target.value })
                             }
                         />
-
-                        <div className="relative">
-  <input
-    type={showPassword ? "text" : "password"}
-    required
-    placeholder="Password"
-    className="w-full px-4 py-3 pr-12 border border-slate-300 rounded-xl
-      text-sm text-slate-700 placeholder:text-slate-400
-      focus:outline-none focus:ring-2 focus:ring-slate-200"
-    onChange={(e) =>
-      setFormData({ ...formData, password: e.target.value })
-    }
-  />
-
-  <button
-    type="button"
-    onClick={() => setShowPassword(!showPassword)}
-    className="absolute inset-y-0 right-3 flex items-center text-slate-500 hover:text-slate-700"
-  >
-    {showPassword ? (
-              <EyeIcon className="w-5 h-5" />
-
-    ) : (
-              <EyeSlashIcon className="w-5 h-5" />
-
-    )}
-  </button>
-</div>
-
-
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full py-3 rounded-xl bg-slate-800 text-white
-                         font-semibold text-sm
-                         hover:bg-slate-900 transition
-                         disabled:opacity-60"
-                        >
-                            {loading ? "Logging in..." : "Log in"}
-                        </button>
-
-                    </form>
-
-                    {/* Footer text */}
-                    <p className="mt-6 text-sm text-slate-600">
-                        Don’t have an account?{" "}
                         <button
                             type="button"
-                            onClick={() => navigate("/register")}
-                            className="inline font-semibold text-slate-800
-               hover:underline hover:text-slate-900
-               focus:outline-none focus:underline
-               bg-transparent p-0 m-0"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute inset-y-0 right-3 flex items-center text-slate-500"
                         >
-                            Join for free
+                            {showPassword ? (
+                                <EyeIcon className="w-[22px] h-[22px]" strokeWidth={1.5} />
+                            ) : (
+                                <EyeSlashIcon className="w-[22px] h-[22px]" strokeWidth={1.5} />
+                            )}
                         </button>
-                    </p>
-                    <p className="mt-4 text-xs text-slate-500">
-                        Having trouble? Visit our{" "}
+                    </div>
+
+                    <div className="flex justify-start mt-1 mb-8">
                         <button
                             type="button"
                             onClick={() => navigate("/help")}
-                            className="font-medium text-slate-700 hover:underline"
+                            className="text-[#1A66FF] text-[15px] font-medium hover:underline"
                         >
-                            Help Center
-                        </button>.
-                    </p>
+                            Forgot password?
+                        </button>
                     </div>
-{/* RIGHT : Illustration (Tablet + Desktop) */}
-<div className="hidden sm:flex justify-center items-center">
-  <img
-    src="./loginpagestudent.jpg"
-    alt="Students learning"
-    className="
-      w-[260px]
-      md:w-[360px]
-      lg:w-[420px]
-      xl:w-[500px]
-      object-contain
-    "
-    loading="lazy"
-    decoding="async"
-  />
-</div>
 
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className="w-full py-3 mt-6 rounded-lg bg-[#1A66FF] text-white
+                                   font-medium text-[16px]
+                                   hover:bg-[#1556D6] transition
+                                   disabled:opacity-60 active:scale-[0.98]"
+                    >
+                        {loading ? "Signing in..." : "Next"}
+                    </button>
 
-                </div>
+                </form>
+
+                <p className="mt-6 text-center text-[15px] text-slate-600">
+                    Don't have an account?{" "}
+                    <button
+                        type="button"
+                        onClick={() => navigate("/register")}
+                        className="text-[#1A66FF] font-medium hover:underline ml-1"
+                    >
+                        Create account
+                    </button>
+                </p>
+
             </div>
         </div>
     );

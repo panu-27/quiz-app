@@ -3,7 +3,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import AuthLanding from "./auth/AuthLanding";
 import ProtectedRoute from "./auth/ProtectedRoute";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { ScreenOrientation } from "@capacitor/screen-orientation";
 import { Capacitor } from "@capacitor/core";
 import { App as CapApp } from "@capacitor/app";
@@ -26,13 +26,22 @@ import PYQProgress from "./student/PYQProgress";
 import PYQBookmarks from "./student/PYQBookmarks";
 import PYQPapers from "./student/PYQPapers";
 import QBank from "./student/QBank";
-import StudentStore from "./student/StudentStore";
 import FeedbackPage from "./student/FeedbackPage";
 import StudentVersionGate from "./student/StudentVersionGate"; // ← NEW
 import StudentSubscription from "./student/StudentSubscription";
 import MyLearning from "./student/MyLearning";
 import Prime from "./student/Prime";
+import PrimeCourse from "./student/PrimeCourse";
+import PrimeVideo from "./student/PrimeVideo";
 import ListedAttempts from "./student/ListedAttempts";
+import PdfViewerPage from "./student/PdfViewerPage";
+import SettingsPage from "./student/SettingsPage";
+import StudentDownloads from "./student/StudentDownloads";
+import StudentUpdates from "./student/StudentUpdates";
+import StudentFAQs from "./student/StudentFAQs";
+import DeleteAccountPage from "./student/DeleteAccountPage";
+import ChangePasswordPage from "./student/ChangePasswordPage";
+import GoalSelectionPage from "./student/GoalSelectionPage";
 
 /* ── super / institute admin ── */
 import SuperAdmin from "./SuperAdmin";
@@ -43,6 +52,9 @@ import ViewInstitutes from "./ViewInstitutes";
 import ViewAdmins from "./ViewAdmins";
 
 /* ── auth / misc ── */
+import LoginPage from "./auth/LoginPage";
+import Register from "./auth/Register";
+import Login from "./auth/Login";
 import HelpCenter from "./auth/HelpCenter";
 import PublicRoute from "./auth/PublicRoute";
 import { ViolationProvider } from "./student/TestEnvironment/ViolationContext";
@@ -84,24 +96,52 @@ if (Capacitor.isNativePlatform()) {
 
 export default function App() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const locationRef = useRef(location);
+
+  useEffect(() => {
+    locationRef.current = location;
+  }, [location]);
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
 
     const sub = CapApp.addListener("backButton", ({ canGoBack }) => {
-      const currentPath = window.location.pathname;
-      const currentSearch = window.location.search;
+      const currentPath = locationRef.current.pathname;
+      const currentSearch = locationRef.current.search;
       
-      // If we are on the main landing page, always exit app
-      if ((currentPath === "/" || currentPath === "/login" || currentPath === "/register") && !currentSearch) {
+      const rootPaths = ["/", "/login", "/register", "/student", "/admin", "/institute-admin", "/super"];
+
+      // 1. If we are exactly on a root page, exit the app
+      if (rootPaths.includes(currentPath) && !currentSearch) {
         CapApp.exitApp();
         return;
       }
 
-      if (window.history.length > 1) {
+      // 2. Try to go back in history if React Router has a history stack
+      const hasRouterHistory = window.history.state && window.history.state.idx > 0;
+      
+      if (hasRouterHistory) {
         navigate(-1);
       } else {
-        CapApp.exitApp();
+        // 3. Smart Fallback for complex routes (IDs, skipped intermediate paths)
+        if (currentPath.includes('/analytics/')) {
+          navigate('/student/history');
+        } else if (currentPath.includes('/library/chapter/')) {
+          navigate('/student/library');
+        } else if (currentPath.includes('/test/') || currentPath.includes('/listedattempts/') || currentPath.includes('/leaderboard/')) {
+          navigate('/student'); 
+        } else if (currentPath.startsWith('/student/pyq/')) {
+          navigate('/student/pyq');
+        } else if (currentPath.startsWith('/student/')) {
+          navigate('/student');
+        } else if (currentPath.startsWith('/admin/')) {
+          navigate('/admin');
+        } else if (currentPath.startsWith('/super/') || currentPath.startsWith('/system/')) {
+          navigate('/super');
+        } else {
+          navigate('/');
+        }
       }
     });
 
@@ -121,9 +161,9 @@ export default function App() {
             <Routes>
 
           {/* ── Public ── */}
-          <Route path="/" element={<PublicRoute><AuthLanding /></PublicRoute>} />
-          <Route path="/login" element={<PublicRoute><AuthLanding /></PublicRoute>} />
-          <Route path="/register" element={<PublicRoute><AuthLanding /></PublicRoute>} />
+          <Route path="/" element={<PublicRoute><Login /></PublicRoute>} />
+          <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+          <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
           <Route path="/help" element={<HelpCenter />} />
 
           {/* ── Student ── */}
@@ -142,6 +182,7 @@ export default function App() {
             <Route path="analytics/quiz/:attemptId" element={<AttemptAnalytics />} />
             <Route path="analytics/quiz/:attemptId/answers" element={<AnswerSheet />} />
             <Route path="listedattempts/:testId" element={<ListedAttempts />} />
+            <Route path="pdf/:source/:id" element={<PdfViewerPage />} />
             <Route path="leaderboard/:testId" element={<LeaderboardPage />} />
             <Route path="profile" element={<StudentProfile />} />
             <Route path="library" element={<StudentLibrary />} />
@@ -156,11 +197,19 @@ export default function App() {
             <Route path="pyq/progress" element={<PYQProgress />} />
             <Route path="pyq/bookmarks" element={<PYQBookmarks />} />
             <Route path="pyq/:subjectId" element={<PYQExplorer />} />
-            <Route path="store" element={<StudentStore />} />
             <Route path="feedback" element={<FeedbackPage />} />
             <Route path="subscription" element={<StudentSubscription />} />
             <Route path="learning" element={<MyLearning />} />
             <Route path="prime" element={<Prime />} />
+            <Route path="prime/course/:courseId" element={<PrimeCourse />} />
+            <Route path="prime/video/:videoId" element={<PrimeVideo />} />
+            <Route path="settings" element={<SettingsPage />} />
+            <Route path="downloads" element={<StudentDownloads />} />
+            <Route path="updates" element={<StudentUpdates />} />
+            <Route path="faqs" element={<StudentFAQs />} />
+            <Route path="goal-selection" element={<GoalSelectionPage />} />
+            <Route path="delete-account" element={<DeleteAccountPage />} />
+            <Route path="change-password" element={<ChangePasswordPage />} />
           </Route>
 
           {/* ── Admin ── */}

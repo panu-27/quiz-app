@@ -1,7 +1,8 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
+import { ArrowRightOnRectangleIcon } from "@heroicons/react/24/outline";
 
-const STATUS_H = 43.5;
+const STATUS_BAR_H = 28.5;
 
 export default function PublicHeader() {
   const navigate = useNavigate();
@@ -13,27 +14,20 @@ export default function PublicHeader() {
 
   return (
     <>
-      {/* ── Fake Status Bar (mobile only) ── */}
-      <div
-        className="lg:hidden fixed top-0 left-0 right-0 z-[4000] pointer-events-none bg-[#2f6ef5]"
-        style={{ height: STATUS_H }}
-      />
-
-      {/* ── Spacer so header doesn't hide under the status bar ── */}
-      <div className="lg:hidden" style={{ height: STATUS_H }} />
-
-      <header className="h-14 sm:h-18 border-b-amber-500 bg-gray-50 flex items-center justify-between
-                         px-3 sm:px-10 md:px-4 xl:px-48">
+      <header 
+        className="border-b-amber-500 bg-white flex items-center justify-between px-3 sm:px-10 md:px-4 xl:px-48 pb-3"
+        style={{ paddingTop: STATUS_BAR_H + 12 }}
+      >
 
         {/* LEFT : LOGO */}
         <a href="/" className="flex items-center">
           <img
-            src="./icon-512.png"
+            src="./logo.png"
             alt="Nexus"
             className="hidden sm:block h-8 sm:h-14 w-auto object-contain"
           />
           <img
-            src="./icon-512.png"
+            src="./logo.png"
             alt="Nexus"
             className="block sm:hidden h-12 w-auto object-contain"
           />
@@ -55,24 +49,14 @@ export default function PublicHeader() {
           <div className="flex items-center gap-1.5 sm:gap-4">
             <button
               onClick={() => navigate("/login")}
-              className="h-[32px] sm:h-[40px] w-[96px] sm:w-[104px] hidden sm:block
-                         flex items-center justify-center cursor-pointer
-                         border border-slate-900 rounded-lg
-                         text-sm font-medium text-slate-700
-                         hover:bg-slate-50 transition"
-            >
-              Log in
-            </button>
-
-            <button
-              onClick={() => navigate("/register")}
-              className="h-[32px] sm:h-[40px] px-3 sm:px-4
-                         flex items-center justify-center
-                         bg-slate-800 text-white rounded-lg
+              className="h-[32px] sm:h-[40px] px-4 sm:px-6
+                         flex items-center justify-center gap-2
+                         bg-[#1A66FF] text-white rounded-lg
                          text-sm font-semibold cursor-pointer
-                         hover:bg-slate-900 transition"
+                         hover:bg-[#1556D6] transition"
             >
-              Join for free
+              <ArrowRightOnRectangleIcon className="w-5 h-5" />
+              Log In
             </button>
           </div>
         </div>

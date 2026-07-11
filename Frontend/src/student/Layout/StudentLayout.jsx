@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Outlet, useLocation, useNavigate, Navigate } from "react-router-dom";
 import { Home, PlayCircle, Book, ScrollText, Zap } from "lucide-react";
-import { StatusBar } from "@capacitor/status-bar";
+import { StatusBar, Style } from "@capacitor/status-bar";
 import { Capacitor } from "@capacitor/core";
 import { App } from "@capacitor/app";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 
-const STATUS_BAR_H = 43.7;
+const STATUS_BAR_H = 28.5;
 
 // ── Singleton: lives outside React, never cleaned up ──
 let _statusBarInitialized = false;
@@ -99,7 +99,19 @@ export default function StudentLayout() {
   }, []);
 
   const isListedAttempts = location.pathname.startsWith('/student/listedattempts');
-  const showNavbar = isTestPage || isAnalysisPage || hideForPdf || isQuizTest || isQuizPage || isPYQPage || isProfilePage || isFeedbackPage || isListedAttempts;
+  const isPdfPage = location.pathname.startsWith('/student/pdf/');
+
+  const isSettingsPages = [
+    '/student/settings',
+    '/student/delete-account',
+    '/student/downloads',
+    '/student/updates',
+    '/student/faqs',
+    '/student/change-password',
+    '/student/goal-selection'
+  ].includes(location.pathname);
+
+  const showNavbar = isTestPage || isAnalysisPage || hideForPdf || isQuizTest || isQuizPage || isPYQPage || isProfilePage || isFeedbackPage || isListedAttempts || isPdfPage || isSettingsPages;
   const showChrome = isMobile && !showNavbar;
   const isDashboard =
     location.pathname === "/student" ||
@@ -108,13 +120,49 @@ export default function StudentLayout() {
     location.pathname === "/student/learning" ||
     location.pathname === "/student/prime" ||
     location.pathname === "/student/library" ||
-    location.pathname === "/student/quiz" ||
-    location.pathname === "/student/store";
+    location.pathname === "/student/quiz";
+
+  // Status bar should only be hidden on test page and quiztest page
+  const shouldHideStatusBar = isTestPage || isQuizTest || isPdfPage;
 
   // Handle status bar visibility based on route/mobile status
   useEffect(() => {
-    applyStatusBar(!isMobile || showNavbar);
-  }, [isMobile, showNavbar]);
+    applyStatusBar(!isMobile || shouldHideStatusBar);
+  }, [isMobile, shouldHideStatusBar]);
+
+  // Handle status bar icon/text style based on theme
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    // Light theme → dark icons (DARK style); Dark theme → light icons (LIGHT style)
+    StatusBar.setStyle({ style: isDark ? Style.Dark : Style.Light }).catch(() => { });
+  }, [isDark]);
+
+  // ── Android Back Button Handler ──
+  // Capacitor passes { canGoBack } which reflects the WebView's actual history stack
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    let handlerRef = null;
+
+    App.addListener('backButton', ({ canGoBack }) => {
+      if (canGoBack) {
+        // Navigate back through React Router / WebView history
+        window.history.back();
+      } else {
+        // No history left — exit the app
+        App.exitApp();
+      }
+    }).then(h => { handlerRef = h; });
+
+    return () => {
+      handlerRef?.remove();
+    };
+  }, []);
+
+  const selectedGoal = localStorage.getItem("selectedGoal");
+  if (!selectedGoal && location.pathname !== "/student" && location.pathname !== "/student/" && location.pathname !== "/student/goal-selection") {
+    return <Navigate to="/student" replace />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F8FAFF]">
@@ -135,14 +183,14 @@ export default function StudentLayout() {
         >
           {/* ── Non-Approved Plus Banner ── */}
           {user?.approved === false && (
-            <div className="absolute bottom-full left-0 right-0 bg-gradient-to-r from-[#1EBA9B] to-[#25D3A4] text-white px-5 py-4 flex items-center justify-between">
+            <div className="absolute bottom-full left-0 right-0 bg-gradient-to-r from-[#1EBA9B] to-[#25D3A4] text-white px-5 py-2.5 flex items-center justify-between">
               <div className="flex flex-col">
-                <span className="font-bold text-[15px] leading-tight">Get access to all the batches</span>
+                <span className="font-bold text-[13px] leading-tight">Get access to all the batches</span>
                 <span className="text-[13px] text-white/90 mt-0.5">Starts at ₹902/month</span>
               </div>
-              <button 
+              <button
                 onClick={() => window.open('https://en.wikipedia.org', '_blank')}
-                className="bg-white text-[#1EBA9B] px-5 py-2.5 rounded-lg font-bold text-[14px] active:scale-95 transition-transform"
+                className="bg-white text-[#1EBA9B] px-5 py-2 rounded-sm font-bold text-[13px] active:scale-95 transition-transform"
               >
                 Join Plus
               </button>
@@ -206,7 +254,7 @@ export default function StudentLayout() {
               label="My Learning"
               isActive={location.pathname === '/student/learning'}
               isDark={isDarkPage}
-              onClick={() => navigate('/student')}
+              onClick={() => navigate('/student/learning')}
               activeColor="#1EBA9B"
               activeFilter="brightness(0) saturate(100%) invert(65%) sepia(40%) saturate(600%) hue-rotate(120deg) brightness(95%)"
             />
@@ -253,8 +301,8 @@ function NavTabBtn({ imgSrc, imgActiveSrc, label, isActive, isDark, onClick, act
         <img
           src={src}
           alt={label}
-          width={isActive ? 33 : 28}
-          height={isActive ? 33 : 28}
+          width={isActive ? 31 : 26}
+          height={isActive ? 31 : 26}
           style={{
             filter: imgFilter,
             opacity: isActive ? 1 : (isDark ? 0.4 : 0.45),

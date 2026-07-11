@@ -7,7 +7,7 @@ import api from "../api/axios";
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { Capacitor } from '@capacitor/core';
 
-const STATUS_BAR_H = 43.5;
+const STATUS_BAR_H = 28.5;
 
 export default function ListedAttempts() {
   const { theme } = useTheme();
@@ -114,18 +114,14 @@ export default function ListedAttempts() {
           </div>
         </div>
 
-        <div className="relative">
-          <Search className={`absolute left-4 top-1/2 -translate-y-1/2 ${isDark ? 'text-[#64748B]' : 'text-slate-400'}`} size={18} />
+        <div className={`flex-1 flex items-center gap-2 px-4 py-2.5 rounded-full border ${isDark ? 'bg-[#151E2E] border-slate-800' : 'bg-white border-slate-200'}`}>
+          <Search size={18} className={isDark ? 'text-slate-400' : 'text-slate-400'} />
           <input
             type="text"
             placeholder="Search attempts (e.g. 1, 2)..."
             value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className={`w-full py-3.5 pl-12 pr-4 rounded-[24px] text-[15px] focus:outline-none focus:border-[#3B82F6] transition-colors ${
-              isDark
-                ? 'border border-[#2A3441] bg-[#161C26] text-white placeholder-[#8492A6]'
-                : 'bg-white text-slate-800 placeholder-slate-400 border border-slate-300'
-            }`}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="bg-transparent border-none outline-none text-sm w-full font-medium placeholder:text-slate-500 text-slate-900 dark:text-white"
           />
         </div>
       </div>

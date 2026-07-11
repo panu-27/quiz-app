@@ -10,7 +10,7 @@ import LoaderAnalysis from "./LoaderAnalysis";
 import api from "../api/axios";
 import { useTheme } from "../context/ThemeContext";
 
-const STATUS_BAR_H = 43.5;
+const STATUS_BAR_H = 28.5;
 
 const REPORT_REASONS = [
   { key: 'incorrect_options', label: 'Options are incorrect' },
@@ -53,9 +53,7 @@ const loadKaTeX = (() => {
 const KATEX_OPTS = {
   delimiters: [
     { left: '$$', right: '$$', display: true  },
-    { left: '$',  right: '$',  display: false },
-    { left: '\\(', right: '\\)', display: false },
-    { left: '\\[', right: '\\]', display: true  },
+    { left: '$',  right: '$',  display: false }
   ],
   throwOnError: false,
 };

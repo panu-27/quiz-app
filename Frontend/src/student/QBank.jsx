@@ -10,9 +10,10 @@ import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import api from "../api/axios";
 import { SUBJECTS, CHAPTERS } from "./libraryConfig";
+import CounsellorModal from "../components/CounsellorModal";
 
 /* ─── Constants ─────────────────────────────────────────── */
-const STATUS_BAR_H = 44;
+const STATUS_BAR_H = 28.5;
 const BOTTOM_NAV_H = 72;
 
 /* ─── Subject metadata ───────────────────────────────────── */
@@ -113,7 +114,7 @@ function DecryptOverlay() {
           }}
         />
       </div>
-      <p className="text-white text-[11px] font-black uppercase tracking-[0.2em] mb-1">Decrypting</p>
+      <p className="text-white text-[11px] font-bold uppercase tracking-[0.2em] mb-1">Decrypting</p>
       <p className="text-white/40 text-[11px]">Securing your access…</p>
     </div>
   );
@@ -138,7 +139,7 @@ function PdfViewer({ file, onClose, resolveFileUrl }) {
           <ArrowLeft size={17} className="text-slate-300" />
         </button>
         <div className="min-w-0 flex-1">
-          <p className="text-[13px] font-bold text-white truncate">{file.title}</p>
+          <p className="text-[13px] font-semibold text-white truncate">{file.title}</p>
         </div>
       </div>
 
@@ -162,7 +163,7 @@ function PdfViewer({ file, onClose, resolveFileUrl }) {
         ) : (
           <div className="flex flex-col items-center justify-center h-full">
             <FileText size={48} className="text-slate-700 mb-4" />
-            <p className="text-slate-500 text-sm font-bold">Document not found</p>
+            <p className="text-slate-500 text-sm font-semibold">Document not found</p>
           </div>
         )}
       </div>
@@ -224,12 +225,12 @@ function TopicFullScreen({ topic, isApproved, onBack, resolveFileUrl }) {
           <div className="min-w-0 flex-1">
             {/* Subject pill */}
             <div
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider mb-1"
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider mb-1"
               style={{ background: `${topic.subjColor}22`, color: topic.subjColor }}
             >
               {topic.subjIcon} {topic.subjLabel}
             </div>
-            <h2 className="text-[16px] font-bold text-white leading-tight truncate">{topic.name}</h2>
+            <h2 className="text-[16px] font-semibold text-white leading-tight truncate">{topic.name}</h2>
           </div>
         </div>
 
@@ -238,7 +239,7 @@ function TopicFullScreen({ topic, isApproved, onBack, resolveFileUrl }) {
           {isApproved ? (
             <div className="flex items-center gap-2 px-3 py-2.5 bg-emerald-900/30 border border-emerald-800/40 rounded-2xl">
               <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
-                <span className="text-white text-[9px] font-black">✓</span>
+                <span className="text-white text-[9px] font-bold">✓</span>
               </div>
               <p className="text-[12px] text-emerald-400 font-semibold">
                 Approved — first PDF locked by institute, all others open
@@ -268,7 +269,7 @@ function TopicFullScreen({ topic, isApproved, onBack, resolveFileUrl }) {
         ) : items.length === 0 ? (
           <div className="flex flex-col items-center py-20">
             <FileText size={48} className="text-slate-700 mb-4" />
-            <p className="text-slate-500 text-sm font-bold">No PDFs uploaded yet</p>
+            <p className="text-slate-500 text-sm font-semibold">No PDFs uploaded yet</p>
             <p className="text-slate-600 text-[12px] mt-1">Your teacher will add materials soon</p>
           </div>
         ) : (
@@ -308,7 +309,7 @@ function TopicRow({ topic, onPress }) {
     >
       {/* Subject pill */}
       <div
-        className="flex-shrink-0 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider"
+        className="flex-shrink-0 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider"
         style={{ background: `${topic.subjColor}22`, color: topic.subjColor }}
       >
         {topic.subjLabel}
@@ -437,7 +438,7 @@ export default function QBank() {
               )}
             </div>
             <button className="w-9 h-9 bg-[#141B27] border border-[#1E2535] rounded-xl flex items-center justify-center">
-              <span className="text-slate-400 text-[11px] font-bold">Aあ</span>
+              <span className="text-slate-400 text-[11px] font-semibold">Aあ</span>
             </button>
             <button
               className="w-9 h-9 bg-[#141B27] border border-[#1E2535] rounded-xl flex items-center justify-center"
@@ -453,7 +454,7 @@ export default function QBank() {
               <button
                 key={tab}
                 onClick={() => setActiveSubj(tab)}
-                className={`flex-shrink-0 px-4 py-1.5 text-[12px] font-bold transition-all ${
+                className={`flex-shrink-0 px-4 py-1.5 text-[12px] font-semibold transition-all ${
                   activeSubj === tab
                     ? "text-[#7A41F7] border-b-2 border-[#7A41F7]"
                     : "text-slate-500"
@@ -481,25 +482,27 @@ export default function QBank() {
           {/* Goal + counsellor row */}
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="text-[11px] text-slate-500 font-medium">CURRENT GOAL</p>
-              <button className="flex items-center gap-1 text-white font-black text-[18px]">
-                {localStorage.getItem("selectedGoal") || "IIT JEE"}
-                <ChevronDown size={16} className="text-slate-400 mt-0.5" />
+              <p className="text-[10px] font-medium leading-tight mb-0.5 text-slate-500">Current goal</p>
+              <button className="flex items-center gap-1 cursor-pointer">
+                <span className="font-bold text-[17px] font-display tracking-tight text-white">
+                  {localStorage.getItem("selectedGoal") || "Select Goal"}
+                </span>
+                <ChevronDown size={18} className="text-white" strokeWidth={2.5} />
               </button>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowCounsellorModal(true)}
-                className="flex items-center gap-1.5 px-3 py-2 bg-[#141B27] border border-[#1E2535] rounded-2xl"
+                className="flex items-center gap-2 px-3.5 py-1.5 rounded-full transition-colors border bg-[#1A1F2E] border-slate-800 text-white hover:bg-white/10"
               >
-                <Phone size={12} className="text-white/60" />
-                <span className="text-white/70 text-[11px] font-semibold">Talk to counsellor</span>
+                <Phone size={14} className="fill-white text-white" strokeWidth={0} />
+                <span className="text-xs font-bold tracking-wide">Talk to counsellor</span>
               </button>
-              <button onClick={() => navigate('/student/profile')} className="active:scale-95 transition-all outline-none rounded-full">
+              <button onClick={() => navigate('/student/profile')} className="w-8 h-8 rounded-full overflow-hidden border-2 border-transparent active:scale-95 transition-all outline-none">
                 {user?.profilePic ? (
-                  <img src={user.profilePic} className="w-9 h-9 rounded-full object-cover flex-shrink-0" alt="me" />
+                  <img src={user.profilePic} className="w-full h-full object-cover" alt="me" />
                 ) : (
-                  <div className="w-9 h-9 rounded-full bg-[#7A41F7] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                  <div className="w-full h-full bg-[#7A41F7] flex items-center justify-center text-white font-bold text-xs">
                     {user?.name?.charAt(0)?.toUpperCase() || "S"}
                   </div>
                 )}
@@ -519,7 +522,7 @@ export default function QBank() {
                 <div className="text-[40px] opacity-20">🏆</div>
               </div>
               <Trophy size={18} className="text-blue-400 mb-2 relative z-10" />
-              <p className="text-white font-bold text-[14px] leading-tight relative z-10">Compete</p>
+              <p className="text-white font-semibold text-[14px] leading-tight relative z-10">Compete</p>
               <p className="text-slate-400 text-[11px] mt-1 leading-relaxed relative z-10">
                 See where you rank among peers!
               </p>
@@ -532,7 +535,7 @@ export default function QBank() {
                 <div className="text-[40px] opacity-20">🤓</div>
               </div>
               <MessageCircle size={18} className="text-emerald-400 mb-2 relative z-10" />
-              <p className="text-white font-bold text-[14px] leading-tight relative z-10">Ask a Doubt</p>
+              <p className="text-white font-semibold text-[14px] leading-tight relative z-10">Ask a Doubt</p>
               <p className="text-slate-400 text-[11px] mt-1 leading-relaxed relative z-10">
                 Upload image &amp; get instant answers!
               </p>
@@ -549,7 +552,7 @@ export default function QBank() {
             <div className="absolute right-3 top-1/2 -translate-y-1/2 opacity-20">
               <BookOpen size={80} className="text-blue-300" />
             </div>
-            <p className="text-[17px] font-black text-white mb-3 relative z-10">
+            <p className="text-[17px] font-bold text-white mb-3 relative z-10">
               Previous Year Question Papers
               <span className="text-blue-400 ml-1">✦</span>
             </p>
@@ -568,7 +571,7 @@ export default function QBank() {
         {/* ── TOPIC WISE QBANKS SECTION ──────────────────────── */}
         <div className="px-4">
           {/* Section title — this is the sentinel we observe */}
-          <h2 ref={qbankSectionRef} className="text-[18px] font-black text-white mb-3">
+          <h2 ref={qbankSectionRef} className="text-[18px] font-bold text-white mb-3">
             Topic wise QBanks
           </h2>
 
@@ -590,7 +593,7 @@ export default function QBank() {
               )}
             </div>
             <button className="w-10 h-10 bg-[#141B27] border border-[#1E2535] rounded-xl flex items-center justify-center">
-              <span className="text-slate-400 text-[12px] font-bold">Aあ</span>
+              <span className="text-slate-400 text-[12px] font-semibold">Aあ</span>
             </button>
             <button
               className="w-10 h-10 bg-[#141B27] border border-[#1E2535] rounded-xl flex items-center justify-center"
@@ -606,7 +609,7 @@ export default function QBank() {
               <button
                 key={tab}
                 onClick={() => setActiveSubj(tab)}
-                className={`flex-shrink-0 px-4 pb-2 pt-1 text-[13px] font-bold transition-all ${
+                className={`flex-shrink-0 px-4 pb-2 pt-1 text-[13px] font-semibold transition-all ${
                   activeSubj === tab
                     ? "text-[#7A41F7] border-b-2 border-[#7A41F7]"
                     : "text-slate-500"
@@ -621,7 +624,7 @@ export default function QBank() {
           {filteredTopics.length === 0 ? (
             <div className="flex flex-col items-center py-20">
               <Search size={40} className="text-slate-700 mb-4" />
-              <p className="text-slate-500 text-sm font-bold">No topics found</p>
+              <p className="text-slate-500 text-sm font-semibold">No topics found</p>
               <p className="text-slate-600 text-xs mt-1">Try a different search or subject</p>
             </div>
           ) : (
@@ -640,10 +643,10 @@ export default function QBank() {
         >
           <div className="rounded-2xl bg-gradient-to-r from-[#7A41F7] to-[#6330E3] flex items-center justify-between px-4 py-3.5 shadow-2xl shadow-purple-900/50">
             <div>
-              <p className="text-white font-bold text-[13px]">5 free questions available</p>
+              <p className="text-white font-semibold text-[13px]">5 free questions available</p>
               <p className="text-white/60 text-[11px]">Get unlimited access with Prime.</p>
             </div>
-            <button className="bg-white text-[#7A41F7] font-bold text-[12px] px-4 py-2 rounded-xl flex-shrink-0">
+            <button className="bg-white text-[#7A41F7] font-semibold text-[12px] px-4 py-2 rounded-xl flex-shrink-0">
               Join Prime
             </button>
           </div>
@@ -661,63 +664,11 @@ export default function QBank() {
       )}
 
       {/* Counsellor Bottom Sheet Modal */}
-      {showCounsellorModal && (
-        <div
-          className="fixed inset-0 z-[9999] flex items-end justify-center"
-          onClick={() => setShowCounsellorModal(false)}
-        >
-          <div className="absolute inset-0 bg-black/65" style={{ backdropFilter: 'blur(3px)' }} />
-          <div
-            className={`relative w-full max-w-md overflow-hidden ${theme === 'dark' ? 'bg-[#111827]' : 'bg-white'}`}
-            style={{ borderRadius: '12px 12px 0 0' }}
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex justify-center pt-4 pb-3">
-              <div className={`w-10 h-1 rounded-full ${theme === 'dark' ? 'bg-white/20' : 'bg-slate-300'}`} />
-            </div>
-            <div className="px-6 pt-8 pb-2">
-              <div className="flex items-center justify-between gap-6">
-                <div className="flex-1">
-                  <h2 className={`font-black leading-tight ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`} style={{ fontSize: 19 }}>
-                    Need help with your subscription?
-                  </h2>
-                  <p className={`text-[12px] mt-2 leading-relaxed ${theme === 'dark' ? 'text-white/55' : 'text-slate-500'}`}>
-                    Talk to our experts who will guide you with all you need to crack it.
-                  </p>
-                </div>
-                <div className={`w-[68px] h-[68px] rounded-full overflow-hidden flex-shrink-0 border-2 ${theme === 'dark' ? 'border-white/10 bg-[#1F2937]' : 'border-slate-200 bg-slate-100'}`}>
-                  <img
-                    src="https://api.dicebear.com/7.x/avataaars/svg?seed=counsellorF&backgroundColor=b6e3f4&clothingColor=3c4f5c"
-                    className="w-full h-full object-cover"
-                    alt="Expert"
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="px-6 pt-6 pb-3">
-              <a
-                href="tel:+918585858585"
-                className={`w-full flex items-center justify-center gap-3 active:scale-95 transition-transform ${theme === 'dark' ? 'bg-white text-[#111827]' : 'bg-[#1EBA9B] text-white shadow-md'}`}
-                style={{ borderRadius: 8, padding: '14px 24px' }}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.56 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-                </svg>
-                <span className="font-bold" style={{ fontSize: 15 }}>+91 8585858585</span>
-              </a>
-            </div>
-            <div className="px-6 pb-12">
-              <button
-                onClick={() => setShowCounsellorModal(false)}
-                className={`w-full flex items-center justify-center gap-1.5 py-4 font-bold tracking-widest active:opacity-70 transition-opacity ${theme === 'dark' ? 'text-white' : 'text-[#1EBA9B]'}`}
-                style={{ fontSize: 11.5, letterSpacing: '0.08em' }}
-              >
-                GET A CALL FROM US <ChevronRight size={14} />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <CounsellorModal
+        isOpen={showCounsellorModal}
+        onClose={() => setShowCounsellorModal(false)}
+        title="Need help with your subscription?"
+      />
     </>
   );
 }

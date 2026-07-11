@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronDown, Flame, Search, ChevronRight, ListVideo, Lock } from 'lucide-react';
+import { ChevronDown, Flame, Search, ChevronRight, ListVideo, Lock, Phone } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import CounsellorModal from '../components/CounsellorModal';
 
-const STATUS_BAR_H = 43.5;
+const STATUS_BAR_H = 28.5;
 
 const DEFAULT_AVATAR = (seed = "student") =>
   `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed)}`;
@@ -139,9 +140,9 @@ const TopEducatorCard = ({ index, title, teacherImg, bg, isDark }) => (
   </div>
 );
 
-const VideoCard = ({ title, count, subject, author, bgColor, teacherImg }) => (
-  <div className="w-[170px] flex-shrink-0 bg-white dark:bg-[#151924] rounded-[16px] p-2 flex flex-col gap-3 shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-md border border-slate-200 dark:border-slate-800/50">
-    
+const VideoCard = ({ title, count, subject, author, bgColor, teacherImg, id, onClick }) => (
+  <div onClick={onClick} className="w-[196px] flex-shrink-0 bg-white dark:bg-[#151924] rounded-[16px] p-2 flex flex-col gap-3 shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-md border border-slate-200 dark:border-slate-800/50 cursor-pointer active:scale-95 transition-transform">
+
     {/* Stack Container */}
     <div className="relative pt-3">
       {/* Back Tab */}
@@ -151,32 +152,32 @@ const VideoCard = ({ title, count, subject, author, bgColor, teacherImg }) => (
 
       {/* Main Image Block */}
       <div className={`relative h-28 rounded-[12px] overflow-hidden ${bgColor} z-10 shadow-sm border border-white/5`}>
-        
+
         {/* Subject Text */}
         <div className="absolute top-[40%] -translate-y-1/2 left-3 z-10">
-        <h4 className="text-white font-black text-[13px] uppercase leading-tight max-w-[85px] drop-shadow-md tracking-wide">{subject}</h4>
-      </div>
-      
-      {/* Teacher Image */}
-      <img src={teacherImg} alt={author} className="absolute bottom-0 right-[-5px] h-[90%] object-contain z-10" />
-      
-      {/* By Author */}
-      <div className="absolute bottom-2 left-3 bg-white px-2 py-0.5 rounded-full z-10 shadow-sm">
-        <span className="text-[9px] text-black font-extrabold">{author}</span>
-      </div>
-      
-      {/* Prime tag */}
-      <div className="absolute top-1.5 right-1.5 bg-[#2E68FF] px-1.5 py-0.5 rounded z-10 shadow-sm flex items-center justify-center">
-        <span className="text-[7px] font-black text-white leading-none tracking-wider">Prime</span>
-      </div>
-
-      {/* Faded Locked Overlay */}
-      <div className="absolute inset-0 bg-black/40 z-20 flex items-center justify-center pointer-events-none">
-        <div className="bg-black/60 backdrop-blur-md p-2 rounded-full border border-white/10 shadow-[0_0_15px_rgba(0,0,0,0.6)]">
-          <Lock size={18} className="text-white opacity-90" />
+          <h4 className="text-white font-black text-[13px] uppercase leading-tight max-w-[85px] drop-shadow-md tracking-wide">{subject}</h4>
         </div>
-      </div>
-    </div> {/* Close Main Image Block */}
+
+        {/* Teacher Image */}
+        <img src={teacherImg} alt={author} className="absolute bottom-0 right-[-5px] h-[90%] object-contain z-10" />
+
+        {/* By Author */}
+        <div className="absolute bottom-2 left-3 bg-white px-2 py-0.5 rounded-full z-10 shadow-sm">
+          <span className="text-[9px] text-black font-extrabold">{author}</span>
+        </div>
+
+        {/* Prime tag */}
+        <div className="absolute top-1.5 right-1.5 bg-[#2E68FF] px-1.5 py-0.5 rounded z-10 shadow-sm flex items-center justify-center">
+          <span className="text-[7px] font-black text-white leading-none tracking-wider">Prime</span>
+        </div>
+
+        {/* Faded Locked Overlay */}
+        <div className="absolute inset-0 bg-black/40 z-20 flex items-center justify-center pointer-events-none">
+          <div className="bg-black/60 backdrop-blur-md p-2 rounded-full border border-white/10 shadow-[0_0_15px_rgba(0,0,0,0.6)]">
+            <Lock size={18} className="text-white opacity-90" />
+          </div>
+        </div>
+      </div> {/* Close Main Image Block */}
     </div> {/* Close Stack Container */}
 
     {/* Text Content */}
@@ -197,7 +198,50 @@ export default function Prime() {
   const isDark = theme === 'dark';
 
   const [activeFilter, setActiveFilter] = useState('Class 11th - JEE');
+  const [showCounsellorModal, setShowCounsellorModal] = useState(false);
+  const [showFilters, setShowFilters] = useState(true);
   const filters = ['Class 11th - JEE', 'Class 12th - JEE', 'Dropper - JEE'];
+
+  useEffect(() => {
+    let lastScrollY = window.scrollY;
+    let ticking = false;
+
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentScrollY = window.scrollY;
+
+          if (currentScrollY < 50) {
+            setShowFilters(true);
+          } else if (currentScrollY > lastScrollY && currentScrollY > 50) {
+            // scrolling down
+            setShowFilters(false);
+          } else if (currentScrollY < lastScrollY) {
+            // scrolling up
+            setShowFilters(true);
+          }
+
+          lastScrollY = currentScrollY;
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    if (showCounsellorModal) {
+      document.body.setAttribute('data-hide-nav', 'true');
+    } else {
+      document.body.removeAttribute('data-hide-nav');
+    }
+    return () => {
+      document.body.removeAttribute('data-hide-nav');
+    };
+  }, [showCounsellorModal]);
 
   const resolveMediaUrl = (url) => {
     if (!url) return null;
@@ -215,7 +259,7 @@ export default function Prime() {
   const bgClass = isDark ? 'bg-[#0B101A]' : 'bg-white';
 
   return (
-    <div className={`min-h-screen pb-32 transition-colors duration-300 ${bgClass} font-sans`}>
+    <div className={`min-h-screen ${user?.approved === false ? 'pb-38' : 'pb-22'} transition-colors duration-300 ${bgClass} font-sans`}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap');
         * { font-family: 'DM Sans', sans-serif; }
@@ -225,47 +269,53 @@ export default function Prime() {
       `}</style>
 
       {/* ══ FIXED HEADER AREA ══ */}
-      <div 
+      <div
         className={`fixed top-0 left-0 right-0 z-50 transition-colors duration-300 ${isDark ? 'bg-[#0B101A]' : 'bg-white'}`}
         style={{ paddingTop: STATUS_BAR_H }}
       >
 
         {/* Top Header Row */}
-        <div className="flex items-center justify-between px-4 py-2 mt-2 mb-4">
+        <div className="flex items-center justify-between px-5 py-2 mt-2">
           <div>
-            <p className="text-[11px] text-slate-400 font-medium leading-tight mb-0.5">Current goal</p>
+            <p className="text-[10px] font-medium leading-tight mb-0.5 text-slate-500">Current goal</p>
             <div className="flex items-center gap-1 cursor-pointer">
-              <span className={`font-bold text-[16px] font-display tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                IIT JEE
+              <span className={`font-bold text-[17px] font-display tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                {localStorage.getItem("selectedGoal") || "Select Goal"}
               </span>
-              <ChevronDown size={16} className={isDark ? 'text-white' : 'text-slate-900'} />
+              <ChevronDown size={18} className={isDark ? 'text-white' : 'text-slate-900'} strokeWidth={2.5} />
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border ${isDark ? 'bg-[#1A1F2E] border-slate-800' : 'bg-white border-slate-200'}`}>
-              <Flame size={14} className="text-orange-500 fill-orange-500" />
-              <span className={`text-xs font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>0 day</span>
-            </div>
-            <div className={`w-8 h-8 rounded-full overflow-hidden border ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
+            <button
+              onClick={() => setShowCounsellorModal(true)}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full transition-colors border ${isDark ? 'bg-[#1A1F2E] border-slate-800 text-white hover:bg-white/10' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}
+            >
+              <Phone size={14} className={isDark ? 'fill-white text-white' : 'fill-slate-700 text-slate-700'} strokeWidth={0} />
+              <span className="text-xs font-bold tracking-wide">Talk to counsellor</span>
+            </button>
+            <div className={`w-8 h-8 rounded-full overflow-hidden border-2 ${isDark ? 'border-transparent' : 'border-transparent'}`}>
               <img src={resolvedAvatar} alt="avatar" className="w-full h-full object-cover" />
             </div>
           </div>
         </div>
 
         {/* Search Bar */}
-        <div className="px-4 pb-5">
-          <div className={`rounded-[12px] flex items-center gap-3 px-4 py-2.5 border ${isDark ? 'bg-[#1A1F2E] border-[#2A3441]' : 'bg-[#F8FAFF] border-slate-200'}`}>
-            <Search size={16} className="text-slate-400" />
+        <div className="px-4 py-4 flex items-center gap-3">
+          <div className={`flex-1 flex items-center gap-2 px-4 py-2.5 rounded-full border ${isDark ? 'bg-[#1A1F2E] border-[#2A3441]' : 'bg-[#F8FAFF] border-slate-200'}`}>
+            <Search size={18} className="text-slate-400" />
             <input
               type="text"
               placeholder="Search for a lesson"
-              className={`bg-transparent border-none outline-none text-[13px] font-medium placeholder:text-slate-500 w-full ${isDark ? 'text-white' : 'text-slate-900'}`}
+              className={`bg-transparent border-none outline-none text-sm w-full font-medium placeholder:text-slate-500 ${isDark ? 'text-white' : 'text-slate-900'}`}
             />
           </div>
         </div>
 
         {/* Filter Chips */}
-        <div className="px-4 pb-4 flex gap-2.5 overflow-x-auto hide-scrollbar">
+        <div
+          className={`px-4 flex gap-2.5 overflow-x-auto hide-scrollbar transition-all duration-300 ease-in-out ${showFilters ? 'max-h-[100px] pb-4 opacity-100' : 'max-h-0 pb-0 opacity-0 pointer-events-none'
+            }`}
+        >
           {filters.map(f => (
             <button
               key={f}
@@ -283,16 +333,16 @@ export default function Prime() {
 
       {/* ══ SCROLLABLE CONTENT ══ */}
       {/* Add top padding to account for the fixed header + status bar */}
-      <div className="pt-[250px] px-4 space-y-6">
+      <div className="pt-[250px] px-4 space-y-1">
 
         {/* Top Educators / Prime Picks Section */}
         <div>
-          <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center justify-between mb-4 -mt-3">
             <h2 className={`text-[17px] font-bold font-display ${isDark ? 'text-white' : 'text-slate-900'}`}>
               Our Educators
             </h2>
           </div>
-          <div className="flex overflow-x-auto overflow-y-hidden hide-scrollbar pb-10 pt-4 -mx-4 px-4 pl-6">
+          <div className="flex overflow-x-auto overflow-y-hidden hide-scrollbar pb-10  -mx-4 px-4 pl-6">
             {TOP_EDUCATORS_DATA.map((item, i) => (
               <TopEducatorCard key={item.id} index={i + 1} isDark={isDark} {...item} />
             ))}
@@ -301,14 +351,14 @@ export default function Prime() {
 
         {/* Section 1 */}
         <div>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-4">
             <h2 className={`text-[17px] font-bold font-display ${isDark ? 'text-white' : 'text-slate-900'}`}>
               JEE Class 11 Complete Syllabus
             </h2>
             <ChevronRight size={18} className="text-[#C084FC]" />
           </div>
           <div className="flex gap-4 overflow-x-auto overflow-y-hidden hide-scrollbar pb-6 pt-2 -mx-4 px-4">
-            {SYLLABUS_VIDEOS.map(video => <VideoCard key={video.id} {...video} />)}
+            {SYLLABUS_VIDEOS.map(video => <VideoCard key={video.id} {...video} onClick={() => navigate(`/student/prime/course/${video.id}`)} />)}
           </div>
         </div>
 
@@ -321,7 +371,7 @@ export default function Prime() {
             <ChevronRight size={18} className="text-[#C084FC]" />
           </div>
           <div className="flex gap-4 overflow-x-auto overflow-y-hidden hide-scrollbar pb-6 pt-2 -mx-4 px-4">
-            {PYQ_VIDEOS.map(video => <VideoCard key={video.id} {...video} />)}
+            {PYQ_VIDEOS.map(video => <VideoCard key={video.id} {...video} onClick={() => navigate(`/student/prime/course/${video.id}`)} />)}
           </div>
         </div>
 
@@ -339,6 +389,13 @@ export default function Prime() {
           </button>
         </div>
       )}
+
+      {/* ══ COUNSELLOR MODAL ══ */}
+      <CounsellorModal
+        isOpen={showCounsellorModal}
+        onClose={() => setShowCounsellorModal(false)}
+        title="Need help with your subscription?"
+      />
 
     </div>
   );

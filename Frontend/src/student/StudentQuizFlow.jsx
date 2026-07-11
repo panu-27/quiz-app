@@ -43,30 +43,30 @@ export default function StudentQuizFlow() {
     setSubjects(subjectIds);
 
     try {
-      const allQuestions = [];
+      const subjectWiseCounts = {};
+      let overallDifficulty = 'Medium';
       
-      // Fetch questions for each subject individually to respect their specific difficulty and question counts
-      await Promise.all(subjectIds.map(async (subjId) => {
+      subjectIds.forEach(subjId => {
         const settings = subjectSettings[subjId] || { count: 25, difficulty: 'All' };
-        const finalCount = settings.count === 'Unlimited' ? 9999 : settings.count;
-        
-        // Map 'All' to 'Medium' or let backend handle it depending on API capabilities.
-        // The original code passed 'Medium' as default, so we pass the selected level.
-        const q = await fetchQuizQuestions({
-          type: 'pyq',
-          subjectIds: [subjId],
-          chapterIds,
-          difficulty: settings.difficulty === 'All' ? 'Medium' : settings.difficulty,
-          yearRange: { min: 2004, max: 2025 },
-          totalTime: totalTime === 9999 ? 9999 : totalTime,
-          subjectWiseCounts: { [subjId]: finalCount },
-          limit: finalCount,
-        });
-        
-        allQuestions.push(...q);
-      }));
+        subjectWiseCounts[subjId] = settings.count === 'Unlimited' ? 9999 : settings.count;
+        // Use the first subject's difficulty if not 'All'
+        if (settings.difficulty !== 'All' && overallDifficulty === 'Medium') {
+            overallDifficulty = settings.difficulty;
+        }
+      });
 
-      setQuestions(allQuestions);
+      const examData = await fetchQuizQuestions({
+        type: 'pyq',
+        subjectIds,
+        chapterIds,
+        difficulty: overallDifficulty,
+        yearRange: { min: 2004, max: 2025 },
+        totalTime: totalTime === 9999 ? 9999 : totalTime,
+        subjectWiseCounts,
+        limit: 25,
+      });
+
+      setQuestions(examData);
       setStep('test');
     } catch (err) {
       console.error('[StudentQuizFlow] Error:', err);

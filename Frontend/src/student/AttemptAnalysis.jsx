@@ -1,14 +1,14 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import {
-  ArrowLeft, Download, Trophy, X, Share2, 
+  ArrowLeft, Download, Trophy, X, Share2,
   Circle, Triangle, ClipboardList, Loader2
 } from "lucide-react";
 import LoaderAnalysis from "./LoaderAnalysis";
 import api from "../api/axios";
 import { useTheme } from "../context/ThemeContext";
 
-const STATUS_BAR_H = 43.5;
+const STATUS_BAR_H = 28.5;
 
 export default function AttemptAnalytics() {
   const { testId, attemptNumber, attemptId } = useParams();
@@ -16,11 +16,11 @@ export default function AttemptAnalytics() {
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
-  const [data, setData]               = useState(null);
-  const [loading, setLoading]         = useState(true);
-  const [error, setError]             = useState(false); 
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [downloading, setDownloading] = useState(false);
-  const [sharing, setSharing]         = useState(false);
+  const [sharing, setSharing] = useState(false);
 
   const handleOpenAnswers = () => {
     if (attemptId) {
@@ -42,7 +42,7 @@ export default function AttemptAnalytics() {
         if (attemptId) {
           const { data: response } = await api.get(`/quiz/attempts/${attemptId}`);
           const attempt = response.data || response;
-          
+
           const totalMaxScore = attempt.blocks.reduce((acc, block) => {
             return acc + block.sections.reduce((sAcc, sec) => {
               let maxSecScore = 0;
@@ -64,7 +64,7 @@ export default function AttemptAnalytics() {
             totalCorrect: attempt.totalCorrect,
             totalWrong: attempt.totalWrong,
             totalUnattempted: attempt.totalUnattempted,
-            groupedAnalysis: attempt.blocks.flatMap(block => 
+            groupedAnalysis: attempt.blocks.flatMap(block =>
               block.sections.map(section => ({
                 subjectName: section.subjectName,
                 score: section.score,
@@ -119,7 +119,7 @@ export default function AttemptAnalytics() {
   const handleShare = async () => {
     console.log("Share clicked - action disabled");
   };
-  
+
   const handleDownload = async () => {
     console.log("Download clicked - action disabled");
   };
@@ -136,8 +136,8 @@ export default function AttemptAnalytics() {
         </nav>
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
           <p className="text-slate-550 font-medium text-lg mb-4">Try after some time</p>
-          <button 
-            onClick={() => navigate(-1)} 
+          <button
+            onClick={() => navigate(-1)}
             className="px-6 py-2.5 bg-slate-100 text-slate-800 rounded-full font-bold text-sm hover:bg-slate-200 transition-colors"
           >
             Go Back
@@ -148,45 +148,34 @@ export default function AttemptAnalytics() {
   }
 
   // ─── computed totals ──────────────────────────────────────────────────────
-  const totalCorrect     = (data?.groupedAnalysis || []).reduce((acc, curr) => acc + curr.correct, 0) || 0;
-  const totalWrong       = (data?.groupedAnalysis || []).reduce((acc, curr) => acc + curr.wrong, 0) || 0;
+  const totalCorrect = (data?.groupedAnalysis || []).reduce((acc, curr) => acc + curr.correct, 0) || 0;
+  const totalWrong = (data?.groupedAnalysis || []).reduce((acc, curr) => acc + curr.wrong, 0) || 0;
   const totalUnattempted = (data?.groupedAnalysis || []).reduce((acc, curr) => acc + curr.unattempted, 0) || 0;
   const accuracy = (totalCorrect + totalWrong) > 0
     ? ((totalCorrect / (totalCorrect + totalWrong)) * 100).toFixed(1) : 0;
 
   return (
-    <div className={`w-full min-h-screen flex flex-col font-sans transition-colors duration-300 ${
-      isDark ? "bg-[#0E131F] text-white" : "bg-[#F4F7FC] text-[#1E293B]"
-    }`}>
+    <div className={`w-full min-h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? "bg-[#0E131F] text-white" : "bg-[#F4F7FC] text-[#1E293B]"
+      }`}>
       <style>{`
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
-      <nav 
-        className={`sticky top-0 z-50 px-6 py-2 flex justify-center items-center border-b transition-colors ${
-          isDark ? "bg-[#0E131F] border-white/[0.06]" : "bg-white border-slate-100"
-        }`} 
+      <nav
+        className={`sticky top-0 z-50 px-6 py-2 flex justify-center items-center  ${isDark ? "bg-[#0E131F]" : "bg-white"
+          }`}
         style={{ paddingTop: STATUS_BAR_H + 2 }}
       >
-        <button 
-          onClick={handleNavBack} 
-          className={`absolute left-5 p-2 rounded-full transition-colors ${
-            isDark ? "hover:bg-white/[0.05]" : "hover:bg-slate-100"
-          }`}
+        <button
+          onClick={handleNavBack}
+          className={`absolute left-5 p-2 rounded-full transition-colors ${isDark ? "hover:bg-white/[0.05]" : "hover:bg-slate-100"
+            }`}
         >
           <ArrowLeft size={20} className={isDark ? "text-white" : "text-slate-900"} />
         </button>
         <h2 className={`text-lg font-bold ${isDark ? "text-white" : "text-slate-900"}`}>Good Job!</h2>
-        <button 
-          onClick={() => navigate(-1)} 
-          className={`absolute right-5 p-2 rounded-full transition-colors ${
-            isDark ? "hover:bg-white/[0.05]" : "hover:bg-slate-100"
-          }`}
-        >
-          <X size={20} className={isDark ? "text-white" : "text-slate-900"} />
-        </button>
       </nav>
- 
+
       <main className="flex-1 max-w-lg mx-auto w-full px-5 pt-5 space-y-6 flex flex-col">
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
           {/* Hero card */}
@@ -212,36 +201,31 @@ export default function AttemptAnalytics() {
 
           {/* Stats grid */}
           <div className="grid grid-cols-2 gap-3">
-            <div className={`p-4 rounded-2xl border transition-colors ${
-              isDark ? "bg-[#161C26] border-white/[0.04]" : "bg-white border-slate-100 shadow-sm"
-            }`}>
+            <div className={`p-4 rounded-2xl border transition-colors ${isDark ? "bg-[#161C26] border-white/[0.04]" : "bg-white border-slate-100 shadow-sm"
+              }`}>
               <p className="text-[10px] font-black text-emerald-500 uppercase mb-1 tracking-widest">Correct</p>
               <p className={`text-lg font-black ${isDark ? "text-white" : "text-slate-900"}`}>{totalCorrect} <span className="text-[10px] opacity-50 font-normal">Qs</span></p>
             </div>
-            <div className={`p-4 rounded-2xl border transition-colors ${
-              isDark ? "bg-[#161C26] border-white/[0.04]" : "bg-white border-slate-100 shadow-sm"
-            }`}>
+            <div className={`p-4 rounded-2xl border transition-colors ${isDark ? "bg-[#161C26] border-white/[0.04]" : "bg-white border-slate-100 shadow-sm"
+              }`}>
               <p className="text-[10px] font-black text-blue-500 uppercase mb-1 tracking-widest">Accuracy</p>
               <p className={`text-lg font-black ${isDark ? "text-white" : "text-slate-900"}`}>{accuracy}%</p>
             </div>
-            <div className={`p-4 rounded-2xl border transition-colors ${
-              isDark ? "bg-[#161C26] border-white/[0.04]" : "bg-white border-slate-100 shadow-sm"
-            }`}>
+            <div className={`p-4 rounded-2xl border transition-colors ${isDark ? "bg-[#161C26] border-white/[0.04]" : "bg-white border-slate-100 shadow-sm"
+              }`}>
               <p className="text-[10px] font-black text-orange-500 uppercase mb-1 tracking-widest">Skipped</p>
               <p className={`text-lg font-black ${isDark ? "text-white" : "text-slate-900"}`}>{totalUnattempted}</p>
             </div>
-            <div className={`p-4 rounded-2xl border transition-colors ${
-              isDark ? "bg-[#161C26] border-white/[0.04]" : "bg-white border-slate-100 shadow-sm"
-            }`}>
+            <div className={`p-4 rounded-2xl border transition-colors ${isDark ? "bg-[#161C26] border-white/[0.04]" : "bg-white border-slate-100 shadow-sm"
+              }`}>
               <p className="text-[10px] font-black text-rose-500 uppercase mb-1 tracking-widest">Incorrect</p>
               <p className={`text-lg font-black ${isDark ? "text-white" : "text-slate-900"}`}>{totalWrong}</p>
             </div>
           </div>
 
           {/* Subject bars */}
-          <div className={`p-5 rounded-2xl border transition-colors ${
-            isDark ? "bg-[#161C26] border-white/[0.04]" : "bg-white border-slate-100 shadow-sm"
-          }`}>
+          <div className={`p-5 rounded-2xl border transition-colors ${isDark ? "bg-[#161C26] border-white/[0.04]" : "bg-white border-slate-100 shadow-sm"
+            }`}>
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/[0.04]">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Subject Performance</p>
               <div className="flex items-center gap-2">
@@ -287,9 +271,8 @@ export default function AttemptAnalytics() {
               <ClipboardList size={16} className="text-[#FF9494]" />
               <p className="text-[10px] font-black text-rose-450 uppercase tracking-widest">Analysis Table</p>
             </div>
-            <div className={`w-full overflow-x-auto no-scrollbar rounded-2xl border transition-colors ${
-              isDark ? "bg-[#161C26] border-white/[0.05]" : "bg-white border-slate-100 shadow-sm"
-            }`}>
+            <div className={`w-full overflow-x-auto no-scrollbar rounded-2xl border transition-colors ${isDark ? "bg-[#161C26] border-white/[0.05]" : "bg-white border-slate-100 shadow-sm"
+              }`}>
               <table className="w-full text-left border-collapse min-w-[420px]">
                 <thead className={isDark ? "bg-white/[0.02] border-b border-white/[0.04]" : "bg-[#FFF5F5] border-b border-rose-50"}>
                   <tr>

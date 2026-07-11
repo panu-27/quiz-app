@@ -16,9 +16,10 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import api from '../api/axios';
 import { SUBJECTS, CHAPTERS, CATEGORIES } from './libraryConfig';
+import CounsellorModal from '../components/CounsellorModal';
 import { PYQ_SUBJECTS } from './pyqData';
 
-const STATUS_BAR_H = 43.5;
+const STATUS_BAR_H = 28.5;
 const BOTTOM_NAV_H = 70;
 
 const GlobalCSS = () => (
@@ -298,6 +299,18 @@ function DecryptOverlay() {
 function PdfViewer({ file, onClose, resolveFileUrl }) {
   const { theme } = useTheme();
   const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    import('@capacitor/status-bar').then(({ StatusBar }) => {
+      StatusBar.hide().catch(() => { });
+    }).catch(() => { });
+
+    return () => {
+      import('@capacitor/status-bar').then(({ StatusBar }) => {
+        StatusBar.show().catch(() => { });
+      }).catch(() => { });
+    };
+  }, []);
   return (
     <div
       className={`fixed inset-0 z-[8000] flex flex-col transition-colors ${theme === 'light' ? 'bg-[#F4F7FC]' : 'bg-[#0B101A]'
@@ -305,19 +318,32 @@ function PdfViewer({ file, onClose, resolveFileUrl }) {
       style={{ animation: "slideInRight 0.28s cubic-bezier(.16,1,.3,1) both" }}
     >
       {/* Toolbar */}
-      <div className={`h-14 flex items-center gap-3 px-4 border-b flex-shrink-0 ${theme === 'light' ? 'bg-white border-slate-200' : 'border-[#1e293b]'
+      <div className={`h-14 flex items-center justify-between px-2 border-b flex-shrink-0 ${theme === 'light' ? 'bg-white border-slate-200' : 'bg-[#0B101A] border-[#1e293b]'
         }`}>
+        <div className="flex items-center gap-2 min-w-0 flex-1 pr-4">
+          <button
+            onClick={onClose}
+            className={`p-2 flex items-center justify-center flex-shrink-0 bg-transparent outline-none ${theme === 'light' ? 'text-slate-800' : 'text-slate-300'
+              }`}
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <div className="min-w-0 flex-1">
+            <p className={`text-[14px] font-bold truncate ${theme === 'light' ? 'text-slate-900' : 'text-white'
+              }`}>{file.title}</p>
+          </div>
+        </div>
+
         <button
-          onClick={onClose}
-          className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${theme === 'light' ? 'bg-slate-100 text-slate-600' : 'bg-[#1e293b] text-slate-300'
+          onClick={() => {
+            if (file.fileUrl) window.open(resolveFileUrl(file.fileUrl), '_blank');
+          }}
+          className={`flex items-center justify-center gap-1.5 px-3 py-1.5 mr-2 rounded border shadow-none flex-shrink-0 ${theme === 'light' ? 'border-slate-300 text-slate-700 active:bg-slate-50' : 'border-slate-700 text-slate-200 active:bg-white/5'
             }`}
         >
-          <ArrowLeft size={17} />
+          <ArrowDownTrayIcon className="w-[15px] h-[15px]" strokeWidth={2} />
+          <span className="text-[12px] font-bold">Download</span>
         </button>
-        <div className="min-w-0 flex-1">
-          <p className={`text-[13px] font-bold truncate ${theme === 'light' ? 'text-slate-800' : 'text-white'
-            }`}>{file.title}</p>
-        </div>
       </div>
 
       {/* Content */}
@@ -352,6 +378,7 @@ function PdfViewer({ file, onClose, resolveFileUrl }) {
    TOPIC FULL-SCREEN VIEW
 ══════════════════════════════════════════════════════════ */
 function TopicFullScreen({ topic, isApproved, onBack, resolveFileUrl }) {
+  const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openingId, setOpeningId] = useState(null);
@@ -405,19 +432,7 @@ function TopicFullScreen({ topic, isApproved, onBack, resolveFileUrl }) {
   }, [topic.id, topic.subjId]);
 
   const handleOpen = (item) => {
-    setOpeningId(item._id);
-    setDecrypting(true);
-    document.body.setAttribute('data-hide-nav', 'true');
-    setTimeout(() => {
-      setDecrypting(false);
-      setOpeningId(null);
-      setViewerFile(item);
-    }, 1100);
-  };
-
-  const handleCloseViewer = () => {
-    setViewerFile(null);
-    document.body.removeAttribute('data-hide-nav');
+    navigate(`/student/pdf/library/${item._id}`, { state: { pdfUrl: item.fileUrl, title: item.title } });
   };
 
   const { theme } = useTheme();
@@ -559,15 +574,6 @@ function TopicFullScreen({ topic, isApproved, onBack, resolveFileUrl }) {
 
       {/* Decrypting Overlay */}
       {decrypting && <DecryptOverlay />}
-
-      {/* PDF Document Viewer Modal */}
-      {viewerFile && (
-        <PdfViewer
-          file={viewerFile}
-          onClose={handleCloseViewer}
-          resolveFileUrl={resolveFileUrl}
-        />
-      )}
 
       {/* Join Prime Banner sitting at a height from the bottom (Full Width) */}
       {!isApproved && (
@@ -892,7 +898,7 @@ export default function StudentLibrary() {
                     {filteredResources.map(item => {
                       const subColor = SUBJECT_COLORS[item.subject] || { bg: 'bg-slate-50', text: 'text-slate-600', dot: 'bg-slate-300' };
                       return (
-                        <div key={item._id} className="desk-res-card" onClick={() => { setDeskOpenFile(item); setDeskViewerReady(false); setDeskDecrypting(true); setTimeout(() => { setDeskDecrypting(false); setDeskShowViewer(true); }, 1200); }}>
+                        <div key={item._id} className="desk-res-card" onClick={() => navigate(`/student/pdf/library/${item._id}`, { state: { pdfUrl: item.fileUrl, title: item.title } })}>
                           <div className={`w-12 h-12 ${subColor.bg} rounded-xl flex items-center justify-center shrink-0`}><img src={categoryIcons[item.category] || categoryIcons.Default} alt={item.category} className="w-7 h-7 object-contain" onError={e => { e.target.src = categoryIcons.Default; }} /></div>
                           <div className="flex-1 min-w-0"><h4 className="text-[14px] font-bold text-slate-800 truncate">{item.title}</h4><div className="flex items-center gap-2 mt-1"><span className={`text-[10px] font-black ${subColor.text} uppercase`}>{item.subject}</span><span className="w-1 h-1 bg-slate-200 rounded-full" /><span className="text-[10px] font-semibold text-slate-400 uppercase">{item.category}</span></div></div>
                           <div className="w-8 h-8 rounded-xl bg-[#F3EBFF] text-[#7A41F7] flex items-center justify-center"><ChevronRightIcon className="w-4 h-4 stroke-[2.5]" /></div>
@@ -910,30 +916,21 @@ export default function StudentLibrary() {
         </div>
       </div>
 
-      {/* Desktop modals */}
-      {deskDecrypting && (
-        <div className="hidden md:flex fixed inset-0 z-[2000] bg-black/70 flex-col items-center justify-center backdrop-blur-sm">
-          <div className="relative mb-5"><div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center"><svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg></div><div className="absolute inset-0 rounded-2xl border-2 border-t-white/80 border-white/10 animate-spin" /></div>
-          <p className="text-white text-xs font-black uppercase tracking-[0.2em]">Decrypting</p>
-        </div>
-      )}
-      {deskShowViewer && deskOpenFile && (
-        <div className="hidden md:flex fixed inset-0 z-[3000] bg-white flex-col animate-in fade-in duration-200">
-          <div className="h-14 border-b border-slate-200 flex items-center justify-between px-5 shrink-0 bg-white">
-            <div className="flex items-center gap-3 min-w-0"><button onClick={() => { setDeskShowViewer(false); setDeskOpenFile(null); setDeskViewerReady(false); }} className="p-2 hover:bg-slate-100 rounded-xl"><XMarkIcon className="w-5 h-5 text-slate-500" /></button><div className="truncate"><h3 className="text-[14px] font-bold text-slate-900 truncate">{deskOpenFile.title}</h3><p className="text-[10px] text-slate-400 font-semibold uppercase tracking-tight mt-0.5">{deskOpenFile.subject} · {deskOpenFile.category}</p></div></div>
-            <button onClick={() => { if (deskOpenFile.fileUrl) window.open(resolveFileUrl(deskOpenFile.fileUrl), '_blank'); }} className="flex items-center gap-2 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95" style={{ background: 'linear-gradient(135deg,#7c3aed,#6366f1)' }}><ArrowDownTrayIcon className="w-4 h-4" />Download</button>
-          </div>
-          <div className="flex-1 bg-slate-100 relative overflow-hidden">
-            {!deskViewerReady && <div className="absolute inset-0 flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-slate-400" /></div>}
-            {deskOpenFile.fileUrl ? <iframe src={`https://docs.google.com/viewer?url=${encodeURIComponent(resolveFileUrl(deskOpenFile.fileUrl))}&embedded=true`} className={`w-full h-full border-none transition-opacity duration-500 ${deskViewerReady ? 'opacity-100' : 'opacity-0'}`} title="Document Viewer" onLoad={() => setDeskViewerReady(true)} /> : <div className="flex flex-col items-center justify-center h-full"><InboxIcon className="w-10 h-10 text-slate-200 mb-3" /><p className="text-sm font-bold text-slate-400">Document not found</p></div>}
-          </div>
-        </div>
-      )}
+      {/* Desktop modals removed as we now route to PdfViewerPage */}
 
       {/* ═══════════════════════════════════════════════════
           MOBILE
       ═══════════════════════════════════════════════════ */}
       <div className="md:hidden">
+
+        {/* ── STATUS BAR COVER (fixes background bleeding through) ── */}
+        <div
+          className="fixed top-0 left-0 right-0 z-50"
+          style={{
+            height: STATUS_BAR_H,
+            background: theme === 'dark' ? '#0B101A' : '#F4F7FC',
+          }}
+        />
 
         {/* ── MAIN SCROLL AREA ── */}
         <div
@@ -946,26 +943,27 @@ export default function StudentLibrary() {
           }}
         >
           {/* ── HERO SECTION ────────────────────────────────────── */}
-          <div className="px-4 pt-4">
-            {/* Goal + counsellor row */}
-            <div className="flex items-center justify-between mb-4">
+          <div className="px-4 pt-2">
+            {/* Top Header Row */}
+            <div className="flex items-center justify-between px-1 py-2 mb-2">
               <div>
-                <p className="text-[11px] text-slate-500 font-medium">CURRENT GOAL</p>
-                <button className={`flex items-center gap-1 font-black text-[18px] ${theme === 'light' ? 'text-slate-800' : 'text-white'
-                  }`}>
-                  {localStorage.getItem("selectedGoal") || "IIT JEE"}
-                  <ChevronDown size={16} className="text-slate-400 dark:text-slate-500 mt-0.5" />
-                </button>
+                <p className="text-[10px] font-medium leading-tight mb-0.5 text-slate-500">Current goal</p>
+                <div className="flex items-center gap-1 cursor-pointer">
+                  <span className={`font-bold text-[17px] font-display tracking-tight ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>
+                    {localStorage.getItem("selectedGoal") || "Select Goal"}
+                  </span>
+                  <ChevronDown size={18} className={theme === 'light' ? 'text-slate-900' : 'text-white'} strokeWidth={2.5} />
+                </div>
               </div>
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-3">
                 <button
                   onClick={() => setShowCounsellorModal(true)}
-                  className={`flex items-center gap-1.5 px-4 py-2 border rounded-full shadow-sm active:scale-95 transition-all text-xs font-bold ${theme === 'light' ? 'bg-white border-slate-200 text-slate-700' : 'bg-[#121A28] border-[#1e293b] text-white/70'
-                    }`}
+                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full transition-colors border ${theme === 'light' ? 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50' : 'bg-[#1A1F2E] border-slate-800 text-white hover:bg-white/10'}`}
                 >
-                  <Phone size={12} className="fill-transparent" /> Talk to counsellor
+                  <Phone size={14} className={theme === 'light' ? 'fill-slate-700 text-slate-700' : 'fill-white text-white'} strokeWidth={0} />
+                  <span className="text-xs font-bold tracking-wide">Talk to counsellor</span>
                 </button>
-                <button onClick={() => navigate('/student/profile')} className="w-8 h-8 rounded-full overflow-hidden border-2 shadow-md border-white/30 active:scale-95 transition-all outline-none flex-shrink-0">
+                <button onClick={() => navigate('/student/profile')} className={`w-8 h-8 rounded-full overflow-hidden border-2 flex-shrink-0 ${theme === 'light' ? 'border-transparent' : 'border-transparent'}`}>
                   {user?.profilePic ? (
                     <img src={resolveMediaUrl(user.profilePic)} className="w-full h-full object-cover" alt="me" />
                   ) : (
@@ -975,6 +973,27 @@ export default function StudentLibrary() {
                   )}
                 </button>
               </div>
+            </div>
+
+            {/* Search & Icons Row */}
+            <div className="py-3 flex items-center gap-3 mb-2 -mt-1 px-1">
+              <div className={`flex-1 flex items-center gap-2 px-4 -mx-2 py-2.5 rounded-full border ${theme === 'dark' ? 'bg-[#151E2E] border-slate-800' : 'bg-white border-slate-200'}`}>
+                <Search size={18} className="text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search topics..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className={`bg-transparent border-none outline-none text-sm w-full font-medium placeholder:text-slate-500 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}
+                />
+              </div>
+              <button
+                onClick={() => navigate("/student/personal")}
+                className={`w-[42px] h-[42px] rounded-full flex items-center justify-center active:scale-95 transition-all shrink-0 border
+                ${theme === 'light' ? 'bg-white text-slate-500 border-slate-200' : 'bg-[#151E2E] text-slate-300 border-slate-800'}`}
+              >
+                <Trophy size={16} />
+              </button>
             </div>
 
             {/* ── 2-card hero ── */}
@@ -1056,49 +1075,13 @@ export default function StudentLibrary() {
           {/* ── TOPIC WISE QBANKS SECTION ──────────────────────── */}
           <div>
             {/* Sticky Wrapper for Title, Search & Filters */}
-            <div className={`sticky top-[43.5px] z-30 px-4 pt-2 pb-3.5 flex flex-col gap-3 transition-colors duration-300 ${theme === 'light' ? 'bg-[#F4F7FC]' : 'bg-[#0B101A]'
+            <div className={`sticky top-[28.5px] z-30 px-4 pt-2 pb-3.5 flex flex-col gap-3 transition-colors duration-300 ${theme === 'light' ? 'bg-[#F4F7FC]' : 'bg-[#0B101A]'
               }`}>
               {/* Section title */}
               <h2 className={`text-[18px] font-black ${theme === 'light' ? 'text-slate-800' : 'text-white'
                 }`}>
                 Target Coachings Study Material
               </h2>
-
-              {/* Search + icons row */}
-              <div className="flex items-center gap-2.5">
-                <div className="relative group transition-all duration-300 ease-out flex-1">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 z-10 transition-colors group-focus-within:text-[#25D3A4]" size={18} />
-                  <input
-                    type="text"
-                    placeholder="Search"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className={`w-full py-3.5 pl-11 pr-10 rounded-xl text-sm font-semibold outline-none transition-all duration-300 border border-transparent
-                      ${theme === 'light'
-                        ? 'bg-white text-slate-800 placeholder-slate-500 focus:border-[#25D3A4]/30 focus:ring-4 focus:ring-[#25D3A4]/10 shadow-[0_2px_10px_rgba(0,0,0,0.03)]'
-                        : 'bg-white/10 text-white placeholder-white/60 focus:bg-white focus:text-slate-900 focus:placeholder-slate-400'
-                      }
-                    `}
-                  />
-                  {search && (
-                    <button onClick={() => setSearch("")} className="absolute right-4 top-1/2 -translate-y-1/2 z-20">
-                      <X size={16} className="text-slate-400 hover:text-slate-600" />
-                    </button>
-                  )}
-                </div>
-                <button className={`w-12 h-12 rounded-xl flex items-center justify-center active:scale-95 transition-all shrink-0
-                  ${theme === 'light' ? 'bg-white text-slate-500 hover:bg-slate-50 shadow-[0_2px_10px_rgba(0,0,0,0.03)]' : 'bg-white/10 text-white/60 hover:bg-white/20'}`}
-                >
-                  <span className="text-[12px] font-bold">Aあ</span>
-                </button>
-                <button
-                  onClick={() => navigate("/student/personal")}
-                  className={`w-12 h-12 rounded-xl flex items-center justify-center active:scale-95 transition-all shrink-0
-                  ${theme === 'light' ? 'bg-white text-slate-500 hover:bg-slate-50 shadow-[0_2px_10px_rgba(0,0,0,0.03)]' : 'bg-white/10 text-white/60 hover:bg-white/20'}`}
-                >
-                  <Trophy size={18} />
-                </button>
-              </div>
 
               {/* Filter tabs */}
               <div className={`flex gap-1 overflow-x-auto no-scrollbar border-b pb-2 ${theme === 'light' ? 'border-slate-200' : 'border-[#1e293b]'
@@ -1164,63 +1147,11 @@ export default function StudentLibrary() {
         )}
 
         {/* Counsellor Bottom Sheet Modal */}
-        {showCounsellorModal && (
-          <div
-            className="fixed inset-0 z-[9999] flex items-end justify-center"
-            onClick={() => setShowCounsellorModal(false)}
-          >
-            <div className="absolute inset-0 bg-black/65" style={{ backdropFilter: 'blur(3px)' }} />
-            <div
-              className={`relative w-full max-w-md overflow-hidden ${theme === 'dark' ? 'bg-[#111827]' : 'bg-white'}`}
-              style={{ borderRadius: '12px 12px 0 0' }}
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="flex justify-center pt-4 pb-3">
-                <div className={`w-10 h-1 rounded-full ${theme === 'dark' ? 'bg-white/20' : 'bg-slate-300'}`} />
-              </div>
-              <div className="px-6 pt-8 pb-2">
-                <div className="flex items-center justify-between gap-6">
-                  <div className="flex-1">
-                    <h2 className={`font-black leading-tight ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`} style={{ fontSize: 19 }}>
-                      Need help with your subscription?
-                    </h2>
-                    <p className={`text-[12px] mt-2 leading-relaxed ${theme === 'dark' ? 'text-white/55' : 'text-slate-500'}`}>
-                      Talk to our experts who will guide you with all you need to crack it.
-                    </p>
-                  </div>
-                  <div className={`w-[68px] h-[68px] rounded-full overflow-hidden flex-shrink-0 border-2 ${theme === 'dark' ? 'border-white/10 bg-[#1F2937]' : 'border-slate-200 bg-slate-100'}`}>
-                    <img
-                      src="https://api.dicebear.com/7.x/avataaars/svg?seed=counsellorF&backgroundColor=b6e3f4&clothingColor=3c4f5c"
-                      className="w-full h-full object-cover"
-                      alt="Expert"
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="px-6 pt-6 pb-3">
-                <a
-                  href="tel:+918585858585"
-                  className={`w-full flex items-center justify-center gap-3 active:scale-95 transition-transform ${theme === 'dark' ? 'bg-white text-[#111827]' : 'bg-[#1EBA9B] text-white shadow-md'}`}
-                  style={{ borderRadius: 8, padding: '14px 24px' }}
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.56 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-                  </svg>
-                  <span className="font-bold" style={{ fontSize: 15 }}>+91 8585858585</span>
-                </a>
-              </div>
-              <div className="px-6 pb-12">
-                <button
-                  onClick={() => setShowCounsellorModal(false)}
-                  className={`w-full flex items-center justify-center gap-1.5 py-4 font-bold tracking-widest active:opacity-70 transition-opacity ${theme === 'dark' ? 'text-white' : 'text-[#1EBA9B]'}`}
-                  style={{ fontSize: 11.5, letterSpacing: '0.08em' }}
-                >
-                  GET A CALL FROM US <ChevronRight size={14} />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <CounsellorModal
+          isOpen={showCounsellorModal}
+          onClose={() => setShowCounsellorModal(false)}
+          title="Need help with your subscription?"
+        />
 
       </div>
     </div>

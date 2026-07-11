@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { LogOut, ChevronDown } from "lucide-react";
-import GoalModal from "./GoalModal";
 
 export default function StudentHeader() {
   const navigate = useNavigate();
@@ -10,16 +9,6 @@ export default function StudentHeader() {
   const { user, logout } = useAuth();
 
   const [selectedGoal, setSelectedGoal] = useState(localStorage.getItem("selectedGoal") || "");
-  const [showGoalDropdown, setShowGoalDropdown] = useState(false);
-  const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
-
-  const selectGoal = (goal) => {
-    localStorage.setItem("selectedGoal", goal);
-    setSelectedGoal(goal);
-    setShowGoalDropdown(false);
-    setIsGoalModalOpen(false);
-    window.location.reload();
-  };
 
   const navItems = [
     { label: "Dashboard", path: "/student" },
@@ -94,7 +83,7 @@ export default function StudentHeader() {
         {/* GOAL SELECTOR */}
         <div className="relative">
           <button
-            onClick={() => setIsGoalModalOpen(true)}
+            onClick={() => navigate('/student/goal-selection')}
             className="
               flex items-center gap-2
               text-xs sm:text-sm font-bold
@@ -163,12 +152,6 @@ export default function StudentHeader() {
           Logout
         </button>
       </div>
-
-      <GoalModal
-        isOpen={isGoalModalOpen}
-        onClose={() => setIsGoalModalOpen(false)}
-        onSelectGoal={selectGoal}
-      />
     </header>
   );
 }

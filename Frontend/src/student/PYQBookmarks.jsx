@@ -7,7 +7,7 @@ import api from '../api/axios.js';
 import { QuestionItem } from './PYQExplorer';
 import { YEAR_OPTIONS } from './pyqData';
 
-const STATUS_BAR_H = 43.5;
+const STATUS_BAR_H = 28.5;
 const DOT_COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EC4899', '#8B5CF6', '#EF4444', '#06B6D4'];
 const REPORT_REASONS = [
     { key: 'blurry_image',         label: 'Blurry / Missing Image' },

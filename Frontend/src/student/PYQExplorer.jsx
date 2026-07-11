@@ -47,7 +47,7 @@ const parseMarkdown = (text) => {
     // 1. Extract math blocks to prevent markdown parsing inside them
     const mathBlocks = [];
     let placeholderIndex = 0;
-    const mathRegex = /(\$\$[^\$]+\$\$|\$[^\$]+\$|\\\[[\s\S]+?\\\]|\\\([\s\S]+?\\\)|\$\$\$[\s\S]+?\$\$\$)/g;
+    const mathRegex = /(\$\$[^\$]+\$\$|\$[^\$]+\$)/g;
 
     let processedText = textStr.replace(mathRegex, (match) => {
         const placeholder = `__MATH_BLOCK_${placeholderIndex}__`;
@@ -56,13 +56,7 @@ const parseMarkdown = (text) => {
         return placeholder;
     });
 
-    // 2. Escape HTML special characters
-    processedText = processedText
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
-
-    // 3. Render markdown formatting on processedText
+    // 2. Render markdown formatting on processedText
     // Bold: **text** or __text__
     processedText = processedText
         .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
@@ -130,7 +124,7 @@ const parseMarkdown = (text) => {
     // Line breaks
     processedText = processedText.replace(/\n/g, '<br />');
 
-    // 4. Restore math blocks
+    // 3. Restore math blocks
     mathBlocks.forEach(({ placeholder, original }) => {
         processedText = processedText.replace(placeholder, original);
     });
@@ -148,9 +142,7 @@ const KaTeXSpan = ({ html }) => {
                 window.renderMathInElement(ref.current, {
                     delimiters: [
                         { left: '$$', right: '$$', display: true },
-                        { left: '$', right: '$', display: false },
-                        { left: '\\(', right: '\\)', display: false },
-                        { left: '\\[', right: '\\]', display: true },
+                        { left: '$', right: '$', display: false }
                     ],
                     throwOnError: false,
                 });
@@ -187,7 +179,7 @@ const CHAPTER_PALETTES = [
 
 const DOT_COLORS = ['#6366F1', '#0EA5E9', '#10B981', '#F59E0B', '#EF4444', '#EC4899', '#8B5CF6', '#14B8A6'];
 
-const STATUS_BAR_H = 43.5;
+const STATUS_BAR_H = 28.5;
 const BOTTOM_NAV_H = 70;
 
 const MathIcon = () => <Calculator size={20} className="text-white" />;
@@ -618,6 +610,7 @@ export default function PYQExplorer() {
     const [chapters, setChapters] = useState([]);
     const [chaptersLoading, setChaptersLoading] = useState(true);
     const [chaptersMap, setChaptersMap] = useState({});
+    const [subjects, setSubjects] = useState([]);
     const [expandedSubject, setExpandedSubject] = useState(subjectId || null);
 
     const [allQuestions, setAllQuestions] = useState([]);
@@ -680,22 +673,20 @@ export default function PYQExplorer() {
 
     useEffect(() => { loadKaTeX(); }, []);
 
-    // Load chapters for ALL subjects on mount
     useEffect(() => {
         const loadAllChapters = async () => {
             setChaptersLoading(true);
             try {
+                // Fetch real subjects
+                const subRes = await api.get('/quiz/subjects');
+                const realSubjects = subRes.data?.data || subRes.data || [];
+                setSubjects(realSubjects);
+                
                 const cmap = {};
-                const subjectsToFetch = [
-                    { id: '69a6be2794b749c00e88cd23' },
-                    { id: '69a6be2794b749c00e88cd24' },
-                    { id: '69a6be2794b749c00e88cd25' },
-                    { id: '69a6be2794b749c00e88cd26' }
-                ];
                 await Promise.all(
-                    subjectsToFetch.map(async (sub) => {
-                        const res = await api.get(`/quiz/subjects/${sub.id}/chapters`);
-                        cmap[sub.id] = res.data?.data || res.data || [];
+                    realSubjects.map(async (sub) => {
+                        const res = await api.get(`/quiz/subjects/${sub._id}/chapters`);
+                        cmap[sub._id] = res.data?.data || res.data || [];
                     })
                 );
                 setChaptersMap(cmap);
@@ -720,18 +711,19 @@ export default function PYQExplorer() {
             const topicList = topicsRes.data || [];
             setTopics(topicList);
             setTopicsLoading(false);
-            const allQs = await Promise.all(
-                topicList.map(t =>
-                    api.get(`/pyq/${targetSubId}/chapters/${chap._id}/topics/${t._id}/questions`)
-                        .then(r => (r.data || []).map(q => ({
-                            ...q,
-                            topicId: t._id,
-                            _topicName: t.name,
-                        })))
-                        .catch(() => [])
-                )
-            );
-            setAllQuestions(allQs.flat());
+            const allQsRes = await api.get(`/quiz/pyq/${chap._id}`);
+            const allQs = allQsRes.data?.data || allQsRes.data || [];
+            
+            // Map the topic names to the questions if possible
+            const enrichedQs = allQs.map(q => {
+                const topic = topicList.find(t => String(t._id) === String(q.topicId));
+                return {
+                    ...q,
+                    _topicName: topic ? topic.name : 'Unassigned',
+                };
+            });
+            
+            setAllQuestions(enrichedQs);
         } catch (err) { console.error(err); }
         finally { setQLoading(false); setTopicsLoading(false); }
     }, [subjectId, activeSubjectId]);
@@ -749,20 +741,10 @@ export default function PYQExplorer() {
         loadChapterData(chap, subId);
     };
 
-    const getChapterStats = useCallback((chap, idx) => {
-        const nameLen = chap?.name?.length || 10;
-        const totalQs = ((idx * 13 + nameLen) % 31) * 10 + 40;
-
-        const userSolvedCount = doneQuestions.filter(item => item.chapterId === chap._id).length;
-
-        let baseSolved = 0;
-        if (idx % 5 === 1) {
-            baseSolved = Math.floor(totalQs * 0.7);
-        } else if (idx % 5 === 3) {
-            baseSolved = Math.floor(totalQs * 0.35);
-        }
-
-        const solvedQs = Math.min(baseSolved + userSolvedCount, totalQs);
+    const getChapterStats = useCallback((chap) => {
+        const totalQs = chap?.questionCount || 0;
+        const solvedQs = doneQuestions.filter(item => item.chapterId === chap._id).length;
+        
         return { totalQs, solvedQs };
     }, [doneQuestions]);
 
@@ -796,37 +778,14 @@ export default function PYQExplorer() {
 
     // ── SUBJECTS / CHAPTERS LIST VIEW ───────────────────────────────────
     if (!activeChapter) {
-        const goal = localStorage.getItem("selectedGoal") || "MHT CET";
-        const subjects = [
-            {
-                id: '69a6be2794b749c00e88cd23',
-                name: 'Physics',
-                count: '6813 QS',
-                iconBg: 'bg-[#F97316]',
-                icon: <Atom size={20} className="text-white" />,
-            },
-            {
-                id: '69a6be2794b749c00e88cd24',
-                name: 'Chemistry',
-                count: '4550 QS',
-                iconBg: 'bg-[#10B981]',
-                icon: <FlaskConical size={20} className="text-white" />,
-            },
-            {
-                id: '69a6be2794b749c00e88cd25',
-                name: 'Maths',
-                count: '8936 QS',
-                iconBg: 'bg-[#3B82F6]',
-                icon: <MathIcon />,
-            },
-            {
-                id: '69a6be2794b749c00e88cd26',
-                name: 'Biology',
-                count: '5796 QS',
-                iconBg: 'bg-[#EC4899]',
-                icon: <Dna size={20} className="text-white" />,
-            },
-        ];
+        const getSubjectIcon = (name) => {
+            const n = name.toLowerCase();
+            if (n.includes('phys')) return { bg: 'bg-[#F97316]', icon: <Atom size={20} className="text-white" /> };
+            if (n.includes('chem')) return { bg: 'bg-[#10B981]', icon: <FlaskConical size={20} className="text-white" /> };
+            if (n.includes('math')) return { bg: 'bg-[#3B82F6]', icon: <MathIcon /> };
+            if (n.includes('bio')) return { bg: 'bg-[#EC4899]', icon: <Dna size={20} className="text-white" /> };
+            return { bg: 'bg-[#6366F1]', icon: <Atom size={20} className="text-white" /> };
+        };
 
 
         // Counsellor popup shared helper
@@ -860,7 +819,7 @@ export default function PYQExplorer() {
                         </div>
                     </div>
                     <div className="px-6 pt-6 pb-3">
-                        <a href="tel:+918585858585" className="w-full flex items-center justify-center gap-3 bg-white active:scale-95 transition-transform" style={{ borderRadius: 8, padding: '14px 24px' }}>
+                        <a href="tel:+918585858585" className="w-full flex items-center justify-center gap-3 bg-white active:scale-95 transition-transform" style={{ borderRadius: 8, padding: '12px 24px' }}>
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.56 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
                             </svg>
@@ -868,7 +827,7 @@ export default function PYQExplorer() {
                         </a>
                     </div>
                     <div className="px-6 pb-12">
-                        <button onClick={() => setShowCounsellorPopup(false)} className="w-full flex items-center justify-center gap-1.5 py-4 text-white font-bold tracking-widest active:opacity-70 transition-opacity" style={{ fontSize: 11.5, letterSpacing: '0.08em' }}>
+                        <button onClick={() => setShowCounsellorPopup(false)} className="w-full flex items-center justify-center gap-1.5 py-3 text-white font-bold tracking-widest active:opacity-70 transition-opacity" style={{ fontSize: 11.5, letterSpacing: '0.08em' }}>
                             GET A CALL FROM US <ChevronRight size={14} />
                         </button>
                     </div>
@@ -880,7 +839,7 @@ export default function PYQExplorer() {
         // CHAPTERS LIST VIEW (subject selected, no chapter yet)
         // ══════════════════════════════════════════════════════
         if (activeSubjectId) {
-            const sub = subjects.find(s => s.id === activeSubjectId);
+            const sub = subjects.find(s => s._id === activeSubjectId);
             const allChaps = chaptersMap[activeSubjectId] || [];
 
             const displayChaps = allChaps.filter((chap, idx) => {
@@ -1110,7 +1069,7 @@ export default function PYQExplorer() {
                         <p className={`text-center mt-10 ${isDark ? 'text-[#64748B]' : 'text-slate-400'}`}>No subjects found.</p>
                     ) : (
                         filteredSubjects.map(sub => {
-                            const allChaps = chaptersMap[sub.id] || [];
+                            const allChaps = chaptersMap[sub._id] || [];
 
                             // Calculate solved/total stats for the subject
                             let totalQs = 0;
@@ -1121,16 +1080,18 @@ export default function PYQExplorer() {
                                 solvedQs += stats.solvedQs;
                             });
 
+                            const { bg, icon } = getSubjectIcon(sub.name);
+
                             return (
                                 <div
-                                    key={sub.id}
-                                    onClick={() => { setActiveSubjectId(sub.id); setSearchSubject(''); setChapterTab('all'); }}
+                                    key={sub._id}
+                                    onClick={() => { setActiveSubjectId(sub._id); setSearchSubject(''); setChapterTab('all'); }}
                                     className={`flex items-center px-4 py-4 rounded-[16px] cursor-pointer active:scale-[0.99] transition-all ${isDark ? 'bg-[#161C26]' : 'bg-white shadow-none'
                                         }`}
                                 >
                                     {/* Icon styled like checkbox container */}
-                                    <div className={`w-[24px] h-[24px] rounded-[6px] mr-4 flex-shrink-0 flex items-center justify-center transition-all ${sub.iconBg}`}>
-                                        {sub.icon}
+                                    <div className={`w-[24px] h-[24px] rounded-[6px] mr-4 flex-shrink-0 flex items-center justify-center transition-all ${bg}`}>
+                                        {icon}
                                     </div>
 
                                     <div className="flex-1">
@@ -1194,7 +1155,7 @@ export default function PYQExplorer() {
                         </button>
                         <div className="min-w-0 flex-1">
                             <p className={`text-[10px] font-black tracking-wider uppercase leading-none ${isDark ? 'text-[#8492A6]' : 'text-slate-400'}`}>
-                                {SUBJECT_MAP[activeSubjectId]?.name || 'PYQ'}
+                                {subjects.find(s => s._id === activeSubjectId)?.name || 'PYQ'}
                             </p>
                             <h1 className={`text-[17px] font-bold truncate leading-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>
                                 {activeChapter.name}
@@ -1509,7 +1470,7 @@ export default function PYQExplorer() {
                             <a
                                 href="tel:+918585858585"
                                 className="w-full flex items-center justify-center gap-3 bg-white active:scale-95 transition-transform"
-                                style={{ borderRadius: 8, padding: '14px 24px' }}
+                                style={{ borderRadius: 8, padding: '12px 24px' }}
                             >
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.56 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
@@ -1522,7 +1483,7 @@ export default function PYQExplorer() {
                         <div className="px-6 pb-12">
                             <button
                                 onClick={() => setShowCounsellorPopup(false)}
-                                className="w-full flex items-center justify-center gap-1.5 py-4 text-white font-bold tracking-widest active:opacity-70 transition-opacity"
+                                className="w-full flex items-center justify-center gap-1.5 py-3 text-white font-bold tracking-widest active:opacity-70 transition-opacity"
                                 style={{ fontSize: 11.5, letterSpacing: '0.08em' }}
                             >
                                 GET A CALL FROM US <ChevronRight size={14} />

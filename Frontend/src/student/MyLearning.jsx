@@ -1,207 +1,279 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { PlayCircle, Search, ShoppingBag, BookOpen, Clock, ChevronRight } from 'lucide-react';
-import { useTheme } from '../context/ThemeContext';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useTheme } from "../context/ThemeContext";
+import { useAuth } from "../context/AuthContext";
+import CounsellorModal from "../components/CounsellorModal";
+import {
+  ChevronRight, Search, ChevronDown, Lock,
+  Phone, Languages, Loader2, BookOpen, Clock, ShoppingBag
+} from "lucide-react";
 
-const STATUS_BAR_H = 43.5;
-
-/* ── Fonts & Animations (matching TestHistory) ── */
-const GlobalStyles = () => (
-  <style>{`
-    @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,700&display=swap');
-    * { font-family: 'DM Sans', sans-serif; }
-    .font-display { font-family: 'Sora', sans-serif; }
-  `}</style>
-);
+const STATUS_BAR_H = 28.5;
 
 export default function MyLearning() {
-  const navigate = useNavigate();
   const { theme } = useTheme();
-  const isDark = theme === 'dark';
-  const [search, setSearch] = useState('');
-  const [activeFilter, setActiveFilter] = useState('All');
-  
-  const filters = ['All', 'Ongoing', 'Completed'];
+  const isDark = theme === "dark";
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
-  // Enrolled courses — swap with real API data when available
+  const [activeMainTab, setActiveMainTab] = useState("Courses");
+  const [activeSubTab, setActiveSubTab] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showCounsellorModal, setShowCounsellorModal] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (showCounsellorModal) {
+      document.body.setAttribute('data-hide-nav', 'true');
+    } else {
+      document.body.removeAttribute('data-hide-nav');
+    }
+    return () => {
+      document.body.removeAttribute('data-hide-nav');
+    };
+  }, [showCounsellorModal]);
+
+  const resolveMediaUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+      return url;
+    }
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    const cleanBaseUrl = baseUrl.endsWith('/api') ? baseUrl.slice(0, -4) : baseUrl;
+    return `${cleanBaseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+  };
+
+  const name = user?.name || "Student";
+  const avatar = resolveMediaUrl(user?.profilePic) || `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}&backgroundColor=b6e3f4`;
+
+  // Mock enrolled courses data
   const enrolledCourses = [];
 
-  const filteredCourses = enrolledCourses.filter(c =>
-    c.title.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredCourses = enrolledCourses.filter(c => {
+    const matchesSearch = c.title.toLowerCase().includes(searchQuery.toLowerCase());
+    if (!matchesSearch) return false;
+    
+    if (activeSubTab === "Ongoing") {
+      return c.status === "Ongoing";
+    }
+    if (activeSubTab === "Completed") {
+      return c.status === "Completed";
+    }
+    return true;
+  });
+
+  const renderCard = (course) => {
+    return (
+      <div
+        key={course._id}
+        className={`relative overflow-hidden rounded-[20px] border transition-all duration-300 active:scale-[0.99] ${
+          isDark 
+            ? 'bg-[#111827] border-white/[0.06] shadow-[0_10px_30px_rgba(0,0,0,0.28)]' 
+            : 'bg-white border-slate-200 shadow-[0_4px_24px_rgba(15,23,42,0.06)]'
+        }`}
+      >
+        <div className="p-5 flex items-start gap-4">
+          <div className="w-12 h-12 rounded-xl bg-[#25D3A4]/15 flex items-center justify-center flex-shrink-0">
+            <BookOpen size={22} className="text-[#25D3A4]" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h4 className={`text-[15px] font-bold leading-snug ${isDark ? 'text-white' : 'text-slate-900'}`}>
+              {course.title}
+            </h4>
+            <p className={`text-[12px] mt-0.5 font-medium ${isDark ? 'text-white/55' : 'text-slate-500'}`}>
+              {course.educator}
+            </p>
+            <div className="flex items-center gap-2 mt-2">
+              <span className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold ${isDark ? 'bg-white/[0.06] text-white/50' : 'bg-slate-100 text-slate-500'}`}>
+                <Clock size={11} /> {course.lessonsCount} lessons
+              </span>
+            </div>
+          </div>
+          <ChevronRight size={18} className={`mt-1 flex-shrink-0 ${isDark ? 'text-slate-700' : 'text-slate-300'}`} />
+        </div>
+      </div>
+    );
+  };
 
   return (
-    <>
-      <GlobalStyles />
-      <div className={`min-h-screen pb-28 transition-colors duration-300 ${isDark ? 'dark bg-[#0B101A] text-white' : 'bg-[#F4F7FC] text-slate-900'}`}>
+    <div className={`min-h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-[#0B121C]' : 'bg-[#F4F7FC]'}`}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap');
+        * { font-family: 'DM Sans', sans-serif; }
+        .font-display { font-family: 'Sora', sans-serif; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
 
-        {/* ══ MOBILE LAYOUT ══ */}
-        <div className="md:hidden relative">
-
-          {/* Top Header Background — matching TestHistory deep blue */}
-          <div className="absolute top-0 left-0 right-0 h-[230px] bg-gradient-to-br from-[#0E2E5D] to-[#041A3A] dark:from-[#0B121C] dark:to-[#040810] rounded-b-lg overflow-hidden pointer-events-none z-0 transition-colors duration-300">
-            <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] pointer-events-none" />
+      {/* ══ FIXED HEADER AREA ══ */}
+      <div
+        className="fixed top-0 left-0 right-0 z-50"
+        style={{
+          paddingTop: STATUS_BAR_H,
+          background: 'radial-gradient(ellipse 60% 100% at 70% 20%, rgba(255,255,255,0.12) 0%, #2D5588 40%, #2D5588 100%)',
+          backgroundColor: '#2D5588'
+        }}
+      >
+        {/* Top Header Row */}
+        <div className="flex items-center justify-between px-5 py-2 mt-2 mb-4">
+          <div>
+            <p className="text-[10px] font-medium leading-tight mb-0.5 text-slate-300">Current goal</p>
+            <div className="flex items-center gap-1 cursor-pointer">
+              <span className="font-bold text-[17px] font-display tracking-tight text-white">
+                {localStorage.getItem("selectedGoal") || "Select Goal"}
+              </span>
+              <ChevronDown size={18} className="text-white" strokeWidth={2.5} />
+            </div>
           </div>
 
-          {/* Header Row */}
-          <div className="relative z-10 px-4 flex flex-col gap-3" style={{ paddingTop: STATUS_BAR_H + 16 }}>
-            <div className="flex items-center justify-between pb-1">
-              <span className="text-[20px] font-black tracking-tight text-white font-display">
-                My Learning
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowCounsellorModal(true)}
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full transition-colors bg-[#ffffff1a] text-white hover:bg-white/20"
+            >
+              <Phone size={14} fill="white" strokeWidth={0} />
+              <span className="text-xs font-bold tracking-wide">Talk to counsellor</span>
+            </button>
+            <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-transparent">
+              <img src={avatar} alt="avatar" className="w-full h-full object-cover" />
+            </div>
+          </div>
+        </div>
+
+        {/* Main Segmented Tabs */}
+        <div className="px-4 mt-4 flex justify-center relative z-10">
+          <div className="flex items-end w-full max-w-[280px] relative -mb-[1px]">
+            {/* Courses Tab */}
+            <div
+              onClick={() => setActiveMainTab("Courses")}
+              className="relative flex-1 h-12 flex items-center justify-center cursor-pointer group"
+              style={{ zIndex: activeMainTab === "Courses" ? 10 : 1 }}
+            >
+              <div
+                className={`absolute inset-0 rounded-t-xl transition-all duration-300 origin-bottom ${activeMainTab === "Courses"
+                  ? (isDark ? 'bg-[#0B121C] border-t-2 border-[#00A3FF] shadow-lg' : 'bg-[#F4F7FC] border-t-2 border-[#1EBA9B] shadow-sm')
+                  : (isDark ? 'bg-[#0B121C] opacity-80 hover:opacity-100' : 'bg-[#F4F7FC] opacity-80 hover:opacity-100')
+                  }`}
+                style={{ transform: 'perspective(50px) rotateX(12deg)' }}
+              />
+              <span className={`relative z-10 mt-1.5 font-bold text-[15px] tracking-wide ${activeMainTab === "Courses"
+                ? (isDark ? 'text-white' : 'text-slate-900')
+                : (isDark ? 'text-slate-300' : 'text-[#2D5588]')
+                }`}>
+                Courses
               </span>
             </div>
 
-            {/* Search bar */}
-            <div className="relative group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50 z-10" size={17} />
-              <input
-                type="text"
-                placeholder="Search my courses"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="w-full py-3.5 pl-11 pr-4 rounded-xl text-sm font-semibold outline-none bg-white/10 text-white placeholder-white/50 focus:bg-white focus:text-slate-900 focus:placeholder-slate-400 transition-all duration-200"
-              />
-            </div>
-
-            {/* Filters */}
-            <div className="flex gap-2.5 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] mt-1 pb-2">
-              {filters.map(f => (
-                <button
-                  key={f}
-                  onClick={() => setActiveFilter(f)}
-                  className={`whitespace-nowrap px-4 py-1.5 rounded-full text-[12px] font-bold transition-all border ${
-                    activeFilter === f 
-                      ? 'bg-white text-slate-900 border-white shadow-sm'
-                      : 'bg-white/10 text-white/70 border-white/10 hover:bg-white/20'
-                  }`}
-                >
-                  {f}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Content */}
-          <main className="px-4 mt-6 relative z-10 space-y-4">
-
-            {filteredCourses.length > 0 ? (
-              /* ── Course cards ── */
-              <div className="space-y-3">
-                {filteredCourses.map(course => (
-                  <div
-                    key={course._id}
-                    className="relative overflow-hidden bg-white dark:bg-[#111827] rounded-[20px] border border-slate-200 dark:border-white/[0.06] shadow-[0_4px_24px_rgba(15,23,42,0.06)] dark:shadow-[0_10px_30px_rgba(0,0,0,0.28)] transition-all duration-300 active:scale-[0.99]"
-                  >
-                    <div className="p-5 flex items-start gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-[#25D3A4]/15 flex items-center justify-center flex-shrink-0">
-                        <BookOpen size={22} className="text-[#25D3A4]" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-[15px] font-bold leading-snug text-slate-900 dark:text-white">
-                          {course.title}
-                        </h4>
-                        <p className="text-[12px] text-slate-500 dark:text-white/55 mt-0.5 font-medium">
-                          {course.educator}
-                        </p>
-                        <div className="flex items-center gap-2 mt-2">
-                          <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-white/[0.06] text-[11px] font-bold text-slate-500 dark:text-white/50">
-                            <Clock size={11} /> {course.lessonsCount} lessons
-                          </span>
-                        </div>
-                      </div>
-                      <ChevronRight size={18} className="text-slate-300 dark:text-slate-700 mt-1 flex-shrink-0" />
-                    </div>
-                  </div>
-                ))}
-
-                {/* Explore Store — small, at bottom when courses exist */}
-                <div className="flex justify-center pt-2 pb-2">
-                  <button
-                    onClick={() => navigate('/student/store')}
-                    className="flex items-center gap-1.5 px-5 py-2 rounded-full bg-[#25D3A4]/15 border border-[#25D3A4]/30 active:scale-95 transition-all"
-                  >
-                    <ShoppingBag size={13} className="text-[#1EBA9B]" />
-                    <span className="text-[#1EBA9B] font-bold text-[12px]">Explore Store</span>
-                  </button>
-                </div>
-              </div>
-            ) : (
-              /* ── Professional Empty State ── */
-              <div className="flex flex-col items-center justify-center text-center" style={{ minHeight: 'calc(100vh - 380px)' }}>
-                <div className="relative mb-6">
-                  <div className="absolute inset-0 bg-blue-500/20 dark:bg-blue-500/10 blur-2xl rounded-full" />
-                  <div className="w-24 h-24 bg-gradient-to-br from-white to-slate-50 dark:from-[#1E293B] dark:to-[#0F172A] rounded-[24px] flex items-center justify-center relative z-10 border border-slate-200 dark:border-white/5 shadow-xl">
-                    <BookOpen size={40} className="text-slate-300 dark:text-slate-500" />
-                    <div className="absolute -bottom-2 -right-2 bg-[#2563EB] w-9 h-9 rounded-full flex items-center justify-center border-4 border-[#F4F7FC] dark:border-[#0B101A] shadow-md">
-                      <Search size={14} className="text-white" />
-                    </div>
-                  </div>
-                </div>
-                
-                <h3 className="text-[19px] font-bold text-slate-900 dark:text-white mb-2 font-display">No courses yet</h3>
-                <p className="text-slate-500 dark:text-slate-400 text-[13px] font-medium max-w-[260px] mb-8 leading-relaxed">
-                  You haven't enrolled in any courses. Explore the store to find your next learning journey.
-                </p>
-                
-                <button
-                  onClick={() => navigate('/student/store')}
-                  className="flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-[#2563EB] text-white font-bold text-[14px] shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
-                >
-                  <ShoppingBag size={16} />
-                  Explore Store
-                </button>
-              </div>
-            )}
-          </main>
-        </div>
-
-        {/* ══ DESKTOP LAYOUT ══ */}
-        <div className="hidden md:flex flex-col min-h-screen">
-          <div className="max-w-4xl mx-auto w-full px-8 py-10 flex-1 flex flex-col gap-6">
-
-            <div className="flex items-center gap-3">
-              <PlayCircle className="text-[#25D3A4] w-7 h-7" />
-              <h1 className="text-3xl font-bold font-display text-slate-900 dark:text-white">My Learning</h1>
-            </div>
-
-            {filteredCourses.length > 0 ? (
-              <div className="space-y-4">
-                {filteredCourses.map(course => (
-                  <div key={course._id} className="bg-white dark:bg-[#121A28] border border-slate-200/60 dark:border-slate-800/80 rounded-3xl p-6 flex items-center gap-5 shadow-sm hover:shadow-md transition-all">
-                    <div className="w-14 h-14 rounded-2xl bg-[#25D3A4]/15 flex items-center justify-center flex-shrink-0">
-                      <BookOpen size={26} className="text-[#25D3A4]" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="text-[17px] font-extrabold text-slate-900 dark:text-white">{course.title}</h4>
-                      <p className="text-xs text-slate-400 dark:text-slate-500 font-semibold mt-1">{course.educator}</p>
-                    </div>
-                    <ChevronRight className="text-slate-300 dark:text-slate-700" size={20} />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center py-20 text-center w-full">
-                <PlayCircle size={48} className="text-slate-400/80 mb-4" />
-                <p className="text-slate-400 text-sm font-bold">No enrolled courses</p>
-                <p className="text-slate-500 text-[12px] mt-1">
-                  You haven't enrolled in any courses yet
-                </p>
-              </div>
-            )}
-
-            {/* Always shown at bottom */}
-            <button
-              onClick={() => navigate('/student/store')}
-              className="flex items-center justify-center gap-2 px-8 py-3.5 bg-[#25D3A4] hover:bg-[#1EBA9B] text-slate-900 rounded-2xl text-sm font-bold shadow-lg shadow-emerald-100 dark:shadow-none active:scale-95 transition-all w-fit mx-auto"
+            {/* Materials Tab */}
+            <div
+              className="relative flex-1 h-12 flex items-center justify-center group -ml-3 opacity-60 cursor-not-allowed"
+              style={{ zIndex: 1 }}
             >
-              <ShoppingBag size={16} />
-              Explore Store
-            </button>
-
+              <div
+                className={`absolute inset-0 rounded-t-xl transition-all duration-300 origin-bottom ${isDark ? 'bg-[#0B121C]' : 'bg-[#F4F7FC]'}`}
+                style={{ transform: 'perspective(50px) rotateX(12deg)' }}
+              />
+              <span className={`relative z-10 mt-1.5 font-bold text-[15px] tracking-wide flex items-center gap-1.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                Materials <Lock size={14} />
+              </span>
+            </div>
           </div>
         </div>
-
       </div>
-    </>
+
+      {/* ══ FIXED SEARCH & SUB-TABS AREA ══ */}
+      <div
+        className={`fixed -mt-5 left-0 right-0 z-40 ${isDark ? 'bg-[#0B121C]' : 'bg-[#F4F7FC]'}`}
+        style={{ top: STATUS_BAR_H + 144 }}
+      >
+        {/* Search & Translation */}
+        <div className="px-4 py-4 flex items-center gap-3">
+          <div className={`flex-1 flex items-center gap-2 px-4 py-2.5 rounded-full border ${isDark ? 'bg-[#151E2E] border-slate-800' : 'bg-white border-slate-200'}`}>
+            <Search size={18} className={isDark ? 'text-slate-400' : 'text-slate-400'} />
+            <input
+              type="text"
+              placeholder={`Search ${activeMainTab.toLowerCase()}...`}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className={`w-full bg-transparent text-sm focus:outline-none ${isDark ? 'text-white placeholder-slate-500' : 'text-slate-800 placeholder-slate-400'}`}
+            />
+          </div>
+          <button className={`p-2.5 rounded-full border ${isDark ? 'bg-[#151E2E] border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>
+            <Languages size={18} />
+          </button>
+        </div>
+
+        {/* Secondary Scrollable Tabs */}
+        <div className={`w-full overflow-x-auto no-scrollbar border-b ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
+          <div className="flex px-2 -mt-2 w-max min-w-full">
+            {["All", "Ongoing", "Completed"].map(tab => (
+              <button
+                key={tab}
+                onClick={() => setActiveSubTab(tab)}
+                className={`px-4 py-3 text-[13px] font-bold whitespace-nowrap transition-all border-b-2 ${activeSubTab === tab
+                  ? (isDark ? 'border-blue-500 text-blue-500' : 'border-[#1EBA9B] text-[#1EBA9B]')
+                  : `border-transparent hover:border-slate-500/30 ${isDark ? 'text-slate-400' : 'text-slate-500'}`
+                  }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ══ CONTENT AREA ══ */}
+      <div
+        className={`flex-1 flex flex-col`}
+        style={{ paddingTop: STATUS_BAR_H + 144 + 118 }} // Offset for BOTH fixed headers
+      >
+        {/* Filters */}
+        <div className="px-4 -mt-3 flex gap-2 overflow-x-auto no-scrollbar">
+          <button className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold whitespace-nowrap transition-colors ${isDark ? 'bg-[#151E2E] border-slate-800 text-slate-300 hover:bg-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+            Educator <ChevronDown size={14} />
+          </button>
+          <button className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold whitespace-nowrap transition-colors ${isDark ? 'bg-[#151E2E] border-slate-800 text-blue-400 hover:bg-slate-800' : 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100'}`}>
+            All subscription types <ChevronDown size={14} />
+          </button>
+        </div>
+
+        {/* List Content */}
+        <div className="flex-1 px-4 py-4 space-y-4 pb-24">
+          {loading ? (
+            <div className="flex justify-center py-10"><Loader2 className="animate-spin text-blue-500" /></div>
+          ) : filteredCourses.length === 0 ? (
+            <div className="flex flex-col items-center justify-center text-center py-10">
+              <div className="mb-5">
+                <BookOpen size={40} className={isDark ? 'text-slate-600' : 'text-slate-300'} />
+              </div>
+
+              <h3 className={`text-[17px] font-bold mb-1.5 font-display ${isDark ? 'text-white' : 'text-slate-800'}`}>No courses found</h3>
+              <p className={`text-[13px] font-medium max-w-[240px] mb-7 leading-relaxed ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                {searchQuery || activeSubTab !== "All" 
+                  ? "We couldn't find any courses matching your criteria." 
+                  : "You haven't enrolled in any courses yet."}
+              </p>
+
+              <button
+                onClick={() => navigate('/student/prime')}
+                className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[13px] font-bold border active:scale-95 transition-all ${isDark ? 'border-slate-700 text-slate-300 hover:bg-slate-800' : 'border-slate-300 text-slate-600 hover:bg-slate-50'}`}
+              >
+                <ShoppingBag size={14} />
+                Explore Prime
+              </button>
+            </div>
+          ) : (
+            filteredCourses.map(renderCard)
+          )}
+        </div>
+      </div>
+
+      {/* ── COUNSELLOR MODAL ── */}
+      <CounsellorModal
+        isOpen={showCounsellorModal}
+        onClose={() => setShowCounsellorModal(false)}
+        title="Need help with your learning?"
+      />
+    </div>
   );
 }

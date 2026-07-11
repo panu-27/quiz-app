@@ -4,7 +4,7 @@ import { ArrowLeft, ChevronDown, X, BarChart2 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 
-const STATUS_BAR_H = 43.5;
+const STATUS_BAR_H = 28.5;
 
 // Performance SVG Line & Area Chart
 const PerformanceChart = ({ data, maxValue, formatTooltip, theme }) => {
@@ -404,9 +404,6 @@ export default function PYQProgress() {
                             <h1 className={`text-[17px] font-bold truncate leading-tight ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>
                                 Performance
                             </h1>
-                            <p className={`text-[10px] font-black tracking-wider uppercase leading-none mt-1 ${theme === 'dark' ? 'text-[#8492A6]' : 'text-slate-400'}`}>
-                                {goal} • {perfSubject === 'All' ? 'All Subjects' : perfSubject}
-                            </p>
                         </div>
                     </div>
 
@@ -429,8 +426,8 @@ export default function PYQProgress() {
                         <button
                             onClick={() => navigate('/student/pyq/progress')}
                             className={`w-9 h-9 flex items-center justify-center rounded-[10px] border active:scale-95 transition-all ${theme === 'dark'
-                                    ? 'border-[#2563EB] bg-[#2563EB] text-white'
-                                    : 'border-[#2563EB] bg-[#2563EB] text-white'
+                                ? 'border-[#2563EB] bg-[#2563EB] text-white'
+                                : 'border-[#2563EB] bg-[#2563EB] text-white'
                                 }`}
                         >
                             <BarChart2 size={18} />
@@ -449,8 +446,8 @@ export default function PYQProgress() {
                         key={sub}
                         onClick={() => setPerfSubject(sub)}
                         className={`flex-shrink-0 px-4 text-sm font-bold transition-all whitespace-nowrap ${perfSubject === sub
-                                ? (theme === 'dark' ? 'text-[#93C5FD] border-b-2 border-[#93C5FD]' : 'text-[#3B82F6] border-b-2 border-[#3B82F6]')
-                                : (theme === 'dark' ? 'text-gray-400' : 'text-gray-500')}`}
+                            ? (theme === 'dark' ? 'text-[#93C5FD] border-b-2 border-[#93C5FD]' : 'text-[#3B82F6] border-b-2 border-[#3B82F6]')
+                            : (theme === 'dark' ? 'text-gray-400' : 'text-gray-500')}`}
                         style={{ paddingBottom: 6 }}
                     >
                         {sub}
@@ -468,10 +465,10 @@ export default function PYQProgress() {
                                 key={timeline}
                                 onClick={() => setPerfTimeline(timeline)}
                                 className={`flex-1 py-2 rounded-full text-xs font-bold transition-all ${isActive
-                                        ? (theme === 'dark'
-                                            ? 'bg-[#161C26] border border-[#2563EB] text-[#93C5FD]'
-                                            : 'bg-white border border-[#3B82F6] text-[#3B82F6] shadow-sm')
-                                        : (theme === 'dark' ? 'text-slate-400 border border-transparent' : 'text-slate-500 border border-transparent')
+                                    ? (theme === 'dark'
+                                        ? 'bg-[#161C26] border border-[#2563EB] text-[#93C5FD]'
+                                        : 'bg-white border border-[#3B82F6] text-[#3B82F6] shadow-sm')
+                                    : (theme === 'dark' ? 'text-slate-400 border border-transparent' : 'text-slate-500 border border-transparent')
                                     }`}
                             >
                                 {timeline}
@@ -490,12 +487,12 @@ export default function PYQProgress() {
                             key={diff}
                             onClick={() => setPerfDifficulty(diff)}
                             className={`px-4 py-2 text-xs font-bold transition-all flex-shrink-0 ${isActive
-                                    ? (theme === 'dark'
-                                        ? 'bg-[#2563EB] text-white'
-                                        : 'bg-[#3B82F6] text-white shadow-sm')
-                                    : (theme === 'dark'
-                                        ? 'bg-[#161C26] border border-[#2A3441] text-slate-400'
-                                        : 'bg-white border border-slate-200 text-slate-500')
+                                ? (theme === 'dark'
+                                    ? 'bg-[#2563EB] text-white'
+                                    : 'bg-[#3B82F6] text-white shadow-sm')
+                                : (theme === 'dark'
+                                    ? 'bg-[#161C26] border border-[#2A3441] text-slate-400'
+                                    : 'bg-white border border-slate-200 text-slate-500')
                                 }`}
                             style={{ borderRadius: 8 }}
                         >

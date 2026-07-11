@@ -11,10 +11,10 @@ export default function FeedbackPage() {
     <div className={`fixed inset-0 z-[99999] flex flex-col justify-between p-6 animate-fade-in ${theme === 'dark' ? 'bg-[#000000] text-white' : 'bg-[#FFFFFF] text-[#0F172A]'
       }`}>
       {/* Header Close Row */}
-      <div className="flex justify-between items-center w-full">
+      <div className="flex mt-4 justify-between items-center w-full relative z-10">
         <button
           onClick={() => navigate("/student")}
-          className={`p-2 -ml-2 rounded-full transition-colors ${theme === 'dark' ? 'hover:bg-white/10 text-white' : 'hover:bg-slate-100 text-slate-800'
+          className={`p-3 -ml-3 rounded-full transition-colors ${theme === 'dark' ? 'hover:bg-white/10 text-white' : 'hover:bg-slate-100 text-slate-800'
             }`}
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
@@ -33,12 +33,12 @@ export default function FeedbackPage() {
         {/* Simulated Play Store Card Container */}
         <div className="relative w-full max-w-[280px] pt-10">
           {/* Play Store Float Badge */}
-          <div className={`absolute top-0 left-1/2 ml-4 -translate-x-1/2 w-20 h-20 rounded-full flex items-center justify-center shadow-none border z-10 ${theme === 'dark' ? 'bg-[#181A1D] border-white/[0.05]' : 'bg-[#FFFFFF] border-slate-200'
+          <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-20 h-20 rounded-full flex items-center justify-center shadow-none border z-10 ${theme === 'dark' ? 'bg-[#181A1D] border-white/[0.05]' : 'bg-[#FFFFFF] border-slate-200'
             }`}>
             <img
-              src="https://img.icons8.com/color/512/google-play.png"
+              src="/playstore-svgrepo-com.svg"
               alt="Google Play Store"
-              className="w-12 h-12 object-contain pl-2"
+              className="w-12 h-12 ml-2 object-contain"
             />
           </div>
 
@@ -89,7 +89,7 @@ export default function FeedbackPage() {
             navigate("/student");
             window.open('https://en.wikipedia.org', '_blank');
           }}
-          className={`w-full py-4 font-bold text-base active:scale-[0.98] transition-all shadow-none rounded-[12px] text-center ${theme === 'dark' ? 'bg-white text-black hover:bg-slate-100' : 'bg-slate-900 text-white hover:bg-slate-800'
+          className={`w-full py-3 font-bold text-base active:scale-[0.98] transition-all shadow-none rounded-[12px] text-center ${theme === 'dark' ? 'bg-white text-black hover:bg-slate-100' : 'bg-slate-900 text-white hover:bg-slate-800'
             }`}
         >
           Rate now

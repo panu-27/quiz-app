@@ -35,7 +35,7 @@ const FALLBACK_LAST_7 = [
   { rank: 12, name: "Pranav Zinjad", points: "0", level: 1, percentile: 0, avatar: null, current: true },
 ];
 
-const STATUS_BAR_H = 44;
+const STATUS_BAR_H = 28.5;
 
 function Avatar({ src, name, size = 42, level = 1, className = "", isCurrentUser = false }) {
   const [failed, setFailed] = useState(false);

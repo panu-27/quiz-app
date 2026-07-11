@@ -4,6 +4,8 @@ import { fetchSubjects, fetchChapters } from './quizApi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../context/ThemeContext';
 
+const STATUS_BAR_H = 28.5;
+
 export default function CreatePractice({ onStartPractice, onBackToApp }) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -76,6 +78,14 @@ export default function CreatePractice({ onStartPractice, onBackToApp }) {
           })
         );
         setChaptersMap(cmap);
+
+        // Auto-select Physics chapters by default
+        const physics = subjectsData.find(s => s.name.toLowerCase().includes('physics'));
+        if (physics && cmap[physics._id]?.length > 0) {
+          const physicsChapIds = cmap[physics._id].map(c => c._id);
+          setSelectedChapters(physicsChapIds);
+          setSelectedSubjects([physics._id]);
+        }
       } catch (err) {
         console.error("Error loading subjects/chapters:", err);
       } finally {
@@ -109,6 +119,14 @@ export default function CreatePractice({ onStartPractice, onBackToApp }) {
     const hasAnySelected = selectedCount > 0;
 
     if (hasAnySelected) {
+      // Prevent deselecting if this is the only subject with chapters selected
+      const otherSubjectsHaveChapters = subjects.some(s => {
+        if (s._id === subjId) return false;
+        const otherChaps = chaptersMap[s._id] || [];
+        return otherChaps.some(c => selectedChapters.includes(c._id));
+      });
+      if (!otherSubjectsHaveChapters) return; // block — must keep at least one
+
       setSelectedChapters(prev => prev.filter(cId => !chaps.some(c => c._id === cId)));
       setSelectedSubjects(prev => prev.filter(id => id !== subjId));
     } else {
@@ -123,6 +141,10 @@ export default function CreatePractice({ onStartPractice, onBackToApp }) {
   const toggleChapter = (subjId, chapId) => {
     setSelectedChapters(prev => {
       const isSelected = prev.includes(chapId);
+      if (isSelected) {
+        // Prevent removing if this is the only selected chapter across all subjects
+        if (prev.length === 1) return prev;
+      }
       if (isSelected) return prev.filter(id => id !== chapId);
       return [...prev, chapId];
     });
@@ -179,27 +201,26 @@ export default function CreatePractice({ onStartPractice, onBackToApp }) {
     return (
       <div className={`min-h-screen flex flex-col font-sans ${isDark ? 'bg-[#0E131F] text-white' : 'bg-[#F8FAFF] text-[#1E293B]'}`}>
         {/* FIXED HEADER */}
-        <div className={`sticky top-0 z-40 pt-8 px-5 pb-4 flex flex-col gap-4 ${isDark ? 'bg-[#0E131F]' : 'bg-[#F8FAFF]'}`}>
-          <button
-            onClick={() => {
-              if (subStep > 0) {
-                setSubStep(subStep - 1);
-              } else {
-                setStep(1);
-              }
-            }}
-            className={`w-10 h-10 -ml-2 flex items-center justify-center transition-colors ${isDark ? 'text-white' : 'text-slate-850'}`}
-          >
-            <ArrowLeft size={24} />
-          </button>
-          <div>
-            <h1 className={`text-[26px] font-bold tracking-tight mb-1 ${isDark ? 'text-white' : 'text-slate-800'}`}>Create practice</h1>
-            <p className={`text-[14px] font-medium ${isDark ? 'text-[#8492A6]' : 'text-slate-500'}`}>Select difficulty and total time to practice</p>
+        <div className={`sticky top-0 z-40  px-5 flex flex-col gap-2 ${isDark ? 'bg-[#0E131F]' : 'bg-[#F8FAFF]'}`} style={{ paddingTop: STATUS_BAR_H + 10 }}>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                if (subStep > 0) {
+                  setSubStep(subStep - 1);
+                } else {
+                  setStep(1);
+                }
+              }}
+              className={`w-10 h-10 -ml-2  flex items-center justify-center transition-colors ${isDark ? 'text-white' : 'text-slate-850'}`}
+            >
+              <ArrowLeft size={24} />
+            </button>
+            <h1 className={`text-[21px] font-semibold tracking-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>Create practice</h1>
           </div>
         </div>
 
         {/* Segmented Horizontal Step Progress Bar */}
-        <div className={`px-5 pt-4 pb-2 flex gap-1.5 z-40 sticky top-[138px] ${isDark ? 'bg-[#0E131F]' : 'bg-[#F8FAFF]'}`}>
+        <div className={`px-5 pt-4 pb-2 flex gap-1.5 z-40 sticky top-[96px] ${isDark ? 'bg-[#0E131F]' : 'bg-[#F8FAFF]'}`}>
           {Array.from({ length: 1 + activeSubjects.length }).map((_, idx) => {
             const isCompleted = idx < subStep;
             const isActive = idx === subStep;
@@ -222,7 +243,7 @@ export default function CreatePractice({ onStartPractice, onBackToApp }) {
         </div>
 
         {/* Scrollable Content Container */}
-        <div className="flex-1 px-5 pt-4 space-y-8 pb-36 overflow-y-auto no-scrollbar">
+        <div className="flex-1 px-5 pt-6 space-y-8 pb-36 overflow-y-auto no-scrollbar">
           <AnimatePresence mode="wait">
             <motion.div
               key={subStep}
@@ -235,7 +256,7 @@ export default function CreatePractice({ onStartPractice, onBackToApp }) {
               {subStep === 0 ? (
                 /* Difficulty Section */
                 <div className={`rounded-[16px] p-5 space-y-4 ${isDark ? 'bg-[#161C26]' : 'bg-white'}`}>
-                  <h3 className={`text-[17px] font-bold mb-4 ${isDark ? 'text-white' : 'text-slate-800'}`}>Difficulty of questions</h3>
+                  <h3 className={`text-[17px] font-semibold mb-4 ${isDark ? 'text-white' : 'text-slate-800'}`}>Difficulty of questions</h3>
                   <div className="flex flex-wrap gap-3">
                     {['Easy', 'Medium', 'Hard'].map(level => {
                       const isSel = difficulty === level;
@@ -262,7 +283,7 @@ export default function CreatePractice({ onStartPractice, onBackToApp }) {
                 <div className={`rounded-[16px] p-5 space-y-8 ${isDark ? 'bg-[#161C26]' : 'bg-white'}`}>
                   {/* Subject Heading inside content area only */}
                   <div>
-                    <h3 className={`text-[17px] font-bold mb-1 ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                    <h3 className={`text-[17px] font-semibold mb-1 ${isDark ? 'text-white' : 'text-slate-800'}`}>
                       {currentSubject.name}
                     </h3>
                     <p className="text-[#8492A6]/60 text-[12px] font-medium">
@@ -272,7 +293,7 @@ export default function CreatePractice({ onStartPractice, onBackToApp }) {
 
                   {/* Number of Questions */}
                   <div className="space-y-4">
-                    <h3 className={`text-[17px] font-bold mb-4 ${isDark ? 'text-white' : 'text-slate-800'}`}>Number of questions</h3>
+                    <h3 className={`text-[17px] font-semibold mb-4 ${isDark ? 'text-white' : 'text-slate-800'}`}>Number of questions</h3>
                     <div className="flex flex-wrap gap-3">
                       {(() => {
                         const sName = currentSubject.name.toLowerCase();
@@ -311,7 +332,7 @@ export default function CreatePractice({ onStartPractice, onBackToApp }) {
 
                   {/* Time Limit */}
                   <div className="space-y-4">
-                    <h3 className={`text-[17px] font-bold mb-4 ${isDark ? 'text-white' : 'text-slate-800'}`}>Time limit</h3>
+                    <h3 className={`text-[17px] font-semibold mb-4 ${isDark ? 'text-white' : 'text-slate-800'}`}>Time limit</h3>
                     <div className="flex flex-wrap gap-3">
                       {(() => {
                         const isMathOrBio = currentSubject.name.toLowerCase().includes('math') || currentSubject.name.toLowerCase().includes('biol');
@@ -362,7 +383,7 @@ export default function CreatePractice({ onStartPractice, onBackToApp }) {
                 setStep(1);
               }
             }}
-            className={`flex-1 py-4 border rounded-[12px] font-bold text-[16px] transition-all active:scale-[0.98] ${isDark
+            className={`flex-1 py-3 border rounded-[12px] font-semibold text-[16px] transition-all active:scale-[0.98] ${isDark
               ? 'border-[#2A3441]  text-white hover:bg-white/5'
               : 'border-transparent bg-[#E2E8F0] text-[#475569] shadow-none hover:bg-slate-200'
               }`}
@@ -371,7 +392,7 @@ export default function CreatePractice({ onStartPractice, onBackToApp }) {
           </button>
           <button
             onClick={handleNextOrStart}
-            className="flex-1 py-4 bg-[#2563EB] text-white rounded-[12px] font-bold text-[16px] transition-all active:scale-[0.98] hover:bg-[#1D4ED8]"
+            className="flex-1 py-3 bg-[#2563EB] text-white rounded-[12px] font-semibold text-[16px] transition-all active:scale-[0.98] hover:bg-[#1D4ED8]"
           >
             {ctaText}
           </button>
@@ -384,20 +405,18 @@ export default function CreatePractice({ onStartPractice, onBackToApp }) {
   return (
     <div className={`min-h-screen flex flex-col font-sans ${isDark ? 'bg-[#0E131F] text-white' : 'bg-[#F8FAFF] text-[#1E293B]'}`}>
       {/* FIXED HEADER */}
-      <div className={`sticky top-0 z-40 pt-8 px-5 pb-4 flex flex-col gap-4 ${isDark ? 'bg-[#0E131F]' : 'bg-[#F8FAFF]'}`}>
-        <button
-          onClick={onBackToApp}
-          className={`w-10 h-10 -ml-2 flex items-center justify-center transition-colors ${isDark ? 'text-white' : 'text-slate-800'}`}
-        >
-          <ArrowLeft size={24} />
-        </button>
-
-        <div>
-          <h1 className={`text-[26px] font-bold tracking-tight mb-1 ${isDark ? 'text-white' : 'text-slate-800'}`}>Create practice</h1>
-          <p className={`text-[14px] font-medium ${isDark ? 'text-[#8492A6]' : 'text-slate-500'}`}>Select subjects or chapters to practice</p>
+      <div className={`sticky top-0 z-40  px-5 flex flex-col gap-2 ${isDark ? 'bg-[#0E131F]' : 'bg-[#F8FAFF]'}`} style={{ paddingTop: STATUS_BAR_H + 10 }}>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onBackToApp}
+            className={`w-10 h-10 -ml-2 flex items-center justify-center transition-colors ${isDark ? 'text-white' : 'text-slate-800'}`}
+          >
+            <ArrowLeft size={24} />
+          </button>
+          <h1 className={`text-[21px] font-semibold tracking-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>Create practice</h1>
         </div>
 
-        <div className="relative mt-2">
+        <div className="relative mt-2 mb-3">
           <Search className={`absolute left-4 top-1/2 -translate-y-1/2 ${isDark ? 'text-[#64748B]' : 'text-slate-400'}`} size={20} />
           <input
             type="text"
@@ -462,7 +481,7 @@ export default function CreatePractice({ onStartPractice, onBackToApp }) {
                   </button>
 
                   <div className="flex-1">
-                    <h3 className={`text-[17px] font-bold leading-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>{subj.name}</h3>
+                    <h3 className={`text-[17px] font-semibold leading-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>{subj.name}</h3>
                     <p className={`text-[13px] font-medium mt-0.5 ${isDark ? 'text-[#8492A6]' : 'text-slate-400'}`}>
                       {chaps.length} chapters • {selectedCount}/{chaps.length} selected
                     </p>
@@ -491,7 +510,7 @@ export default function CreatePractice({ onStartPractice, onBackToApp }) {
                           >
                             {isChapSel && <Check size={14} color="#fff" strokeWidth={3} />}
                           </button>
-                          <div className="flex-1 text-[16px] font-bold leading-snug tracking-wide">
+                          <div className="flex-1 text-[16px] font-semibold leading-snug tracking-wide">
                             <span className={isDark ? 'text-white' : 'text-slate-700'}>{chap.name}</span>
                             <div className={`text-[13px] font-normal mt-0.5 tracking-normal ${isDark ? 'text-[#8492A6]' : 'text-slate-400'}`}>
                               0/{chap.topicCount || 10} completed
@@ -519,7 +538,7 @@ export default function CreatePractice({ onStartPractice, onBackToApp }) {
             setSubStep(0);
             setStep(2);
           }}
-          className={`w-full py-4 rounded-[12px] font-bold text-[16px] transition-all ${selectedChapters.length > 0
+          className={`w-full py-3 rounded-[12px] font-semibold text-[16px] transition-all ${selectedChapters.length > 0
             ? 'bg-[#2563EB] text-white active:scale-[0.98]'
             : (isDark ? 'bg-[#1E293B] text-[#64748B] cursor-not-allowed' : 'bg-slate-200 text-slate-400 cursor-not-allowed')
             }`}

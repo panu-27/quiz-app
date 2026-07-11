@@ -10,6 +10,7 @@ import Topic from '../questionBank/Topic.js';
 import PYQ from '../questionBank/PYQ.js';
 import TestAttempt from '../test/quizAttempt.model.js';
 import QuestionReport from './report.model.js';
+import mongoose from 'mongoose';
 import asyncHandler from 'express-async-handler';
 
 /**
@@ -40,6 +41,7 @@ export const getChaptersBySubject = asyncHandler(async (req, res) => {
       name: chap.name,
       weightage: chap.weightage || 0,
       topicCount: await Topic.countDocuments({ chapterId: chap._id }),
+      questionCount: await PYQ.countDocuments({ chapterId: chap._id, isDeleted: false }),
     }))
   );
   res.json({ success: true, data: chaptersWithTopics });
@@ -177,21 +179,8 @@ const fetchAndFillQuestions = async ({
     questions.push(...batch);
   }
 
-  if (questions.length < targetLimit) {
-    const gap = targetLimit - questions.length;
-    const existingIds = questions.map(q => q._id);
+  // Return strict question list without any filler dummy questions
 
-    const fillers = await PYQ.aggregate([
-      { $match: { 
-          subjectId: subjectId, 
-          _id: { $nin: existingIds } 
-      } },
-      { $sort: { difficulty: difficulty === config.primary ? -1 : 1 } }, 
-      { $sample: { size: gap } }
-    ]);
-
-    questions = [...questions, ...fillers];
-  }
 
   return shuffle(questions).slice(0, targetLimit);
 };

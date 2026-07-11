@@ -7,8 +7,9 @@ import {
 } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
+import CounsellorModal from "../components/CounsellorModal";
 
-const STATUS_BAR_H = 43.5;
+const STATUS_BAR_H = 28.5;
 
 export default function TestHistory() {
   const { theme } = useTheme();
@@ -17,12 +18,23 @@ export default function TestHistory() {
   const navigate = useNavigate();
 
   const [activeMainTab, setActiveMainTab] = useState("Tests");
-  const [activeSubTab, setActiveSubTab] = useState("Upcoming Tests");
+  const [activeSubTab, setActiveSubTab] = useState("Upcoming");
   const [searchQuery, setSearchQuery] = useState("");
   const [testsData, setTestsData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCounsellorModal, setShowCounsellorModal] = useState(false);
   const [expandedTestId, setExpandedTestId] = useState(null);
+
+  useEffect(() => {
+    if (showCounsellorModal) {
+      document.body.setAttribute('data-hide-nav', 'true');
+    } else {
+      document.body.removeAttribute('data-hide-nav');
+    }
+    return () => {
+      document.body.removeAttribute('data-hide-nav');
+    };
+  }, [showCounsellorModal]);
 
   const resolveMediaUrl = (url) => {
     if (!url) return null;
@@ -58,7 +70,32 @@ export default function TestHistory() {
     const matchesSearch = test.title?.toLowerCase().includes(searchQuery.toLowerCase());
     const isQuiz = test.examType?.toLowerCase().includes("quiz");
     const matchesTab = activeMainTab === "Quizzes" ? isQuiz : !isQuiz;
-    return matchesSearch && matchesTab;
+
+    if (!matchesSearch || !matchesTab) return false;
+
+    const isCompleted = test.attempts && test.attempts.length > 0;
+    const now = new Date();
+    const startTime = test.startTime ? new Date(test.startTime) : null;
+    const endTime = test.endTime ? new Date(test.endTime) : null;
+
+    if (activeSubTab === "Upcoming") {
+      if (test.status) return test.status.toLowerCase() === "upcoming";
+      return !isCompleted && (!startTime || startTime > now);
+    }
+    if (activeSubTab === "Ongoing") {
+      if (test.status) return test.status.toLowerCase() === "ongoing";
+      return !isCompleted && startTime && startTime <= now && (!endTime || endTime > now);
+    }
+    if (activeSubTab === "Completed") {
+      if (test.status) return test.status.toLowerCase() === "completed" || isCompleted;
+      return isCompleted;
+    }
+    if (activeSubTab === "Missed") {
+      if (test.status) return test.status.toLowerCase() === "missed";
+      return !isCompleted && endTime && endTime < now;
+    }
+
+    return true;
   });
 
   const toggleExpand = (id) => {
@@ -70,7 +107,7 @@ export default function TestHistory() {
     const isExpanded = expandedTestId === test._id;
 
     return (
-      <div key={test._id} className={`rounded-xl p-4 shadow-sm border transition-all ${isDark ? 'bg-[#151E2E] border-slate-800' : 'bg-white border-slate-200'}`}>
+      <div key={test._id} className={`rounded-xl p-4  border transition-all ${isDark ? 'bg-[#151E2E] border-slate-800' : 'bg-white border-slate-200'}`}>
         <div className="flex items-center justify-between mb-2">
           <span className={`text-[10px] font-bold tracking-wider uppercase ${isDark ? 'text-[#25D3A4]' : 'text-[#1EBA9B]'}`}>
             {test.examType || "FULL SYLLABUS"}
@@ -78,7 +115,7 @@ export default function TestHistory() {
           <ChevronRight size={16} className={isDark ? 'text-slate-500' : 'text-slate-400'} />
         </div>
 
-        <h3 className={`text-lg font-bold font-display leading-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+        <h3 className={`text-[15px] font-bold tracking-wide leading-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
           {test.title}
         </h3>
 
@@ -99,9 +136,9 @@ export default function TestHistory() {
           {isCompleted ? (
             <button
               onClick={() => navigate(`/student/listedattempts/${test._id}`, { state: { test } })}
-              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg border font-bold text-xs ${isDark ? 'border-purple-500 text-purple-400 hover:bg-purple-500/10' : 'border-[#7A41F7] text-[#7A41F7] hover:bg-[#7A41F7]/10'}`}
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg border font-bold text-xs bg-blue-500 text-white border-blue-500 hover:bg-blue-600 shadow-sm transition-colors`}
             >
-              <Target size={14} /> Attempts ({test.attempts.length})
+              Show Attempts
             </button>
           ) : (
             <button
@@ -141,7 +178,7 @@ export default function TestHistory() {
             <p className="text-[10px] font-medium leading-tight mb-0.5 text-slate-300">Current goal</p>
             <div className="flex items-center gap-1 cursor-pointer">
               <span className="font-bold text-[17px] font-display tracking-tight text-white">
-                IIT JEE
+                {localStorage.getItem("selectedGoal") || "Select Goal"}
               </span>
               <ChevronDown size={18} className="text-white" strokeWidth={2.5} />
             </div>
@@ -162,7 +199,7 @@ export default function TestHistory() {
         </div>
 
         {/* Main Segmented Tabs (Tests | Quizzes) */}
-        <div className="px-4 mt-8 flex justify-center relative z-10">
+        <div className="px-4 mt-4 flex justify-center relative z-10">
           <div className="flex items-end w-full max-w-[280px] relative -mb-[1px]">
 
             {/* Tests Tab */}
@@ -212,7 +249,7 @@ export default function TestHistory() {
       </div>
       {/* ══ FIXED SEARCH & SUB-TABS AREA ══ */}
       <div
-        className={`fixed left-0 right-0 z-40 ${isDark ? 'bg-[#0B121C]' : 'bg-[#F4F7FC]'}`}
+        className={`fixed -mt-5 left-0 right-0 z-40 ${isDark ? 'bg-[#0B121C]' : 'bg-[#F4F7FC]'}`}
         style={{ top: STATUS_BAR_H + 144 }}
       >
         {/* Search & Translation */}
@@ -234,8 +271,8 @@ export default function TestHistory() {
 
         {/* Secondary Scrollable Tabs */}
         <div className={`w-full overflow-x-auto no-scrollbar border-b ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
-          <div className="flex px-2 w-max min-w-full">
-            {["Upcoming Tests", "Ongoing Tests", "Previous Year Tests"].map(tab => (
+          <div className="flex px-2 -mt-2 w-max min-w-full">
+            {["Upcoming", "Ongoing", "Completed", "Missed"].map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveSubTab(tab)}
@@ -258,7 +295,7 @@ export default function TestHistory() {
       >
 
         {/* Filters */}
-        <div className="px-4 pt-4 flex gap-2 overflow-x-auto no-scrollbar">
+        <div className="px-4 -mt-3 flex gap-2 overflow-x-auto no-scrollbar">
           <button className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold whitespace-nowrap transition-colors ${isDark ? 'bg-[#151E2E] border-slate-800 text-slate-300 hover:bg-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
             Educator <ChevronDown size={14} />
           </button>
@@ -280,63 +317,11 @@ export default function TestHistory() {
       </div>
 
       {/* ── COUNSELLOR MODAL ── */}
-      {showCounsellorModal && (
-        <div
-          className="fixed inset-0 z-[9999] flex items-end justify-center"
-          onClick={() => setShowCounsellorModal(false)}
-        >
-          <div className="absolute inset-0 bg-black/65 transition-opacity" style={{ backdropFilter: 'blur(3px)' }} />
-          <div
-            className={`relative w-full max-w-md overflow-hidden transition-transform animate-in slide-in-from-bottom-full duration-300 ${isDark ? 'bg-[#111827]' : 'bg-white'}`}
-            style={{ borderRadius: '12px 12px 0 0' }}
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex justify-center pt-4 pb-3">
-              <div className={`w-10 h-1 rounded-full ${isDark ? 'bg-white/20' : 'bg-slate-300'}`} />
-            </div>
-            <div className="px-6 pt-8 pb-2">
-              <div className="flex items-center justify-between gap-6">
-                <div className="flex-1">
-                  <h2 className={`font-black leading-tight ${isDark ? 'text-white' : 'text-slate-900'}`} style={{ fontSize: 19 }}>
-                    Need help with your subscription?
-                  </h2>
-                  <p className={`text-[12px] mt-2 leading-relaxed ${isDark ? 'text-white/55' : 'text-slate-500'}`}>
-                    Talk to our experts who will guide you with all you need to crack it.
-                  </p>
-                </div>
-                <div className={`w-[68px] h-[68px] rounded-full overflow-hidden flex-shrink-0 border-2 ${isDark ? 'border-white/10 bg-[#1F2937]' : 'border-slate-200 bg-slate-100'}`}>
-                  <img
-                    src="https://api.dicebear.com/7.x/avataaars/svg?seed=counsellorF&backgroundColor=b6e3f4&clothingColor=3c4f5c"
-                    className="w-full h-full object-cover"
-                    alt="Expert"
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="px-6 pt-6 pb-3">
-              <a
-                href="tel:+918585858585"
-                className={`w-full flex items-center justify-center gap-3 active:scale-95 transition-transform ${isDark ? 'bg-white text-[#111827]' : 'bg-[#1EBA9B] text-white shadow-md'}`}
-                style={{ borderRadius: 8, padding: '14px 24px' }}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.56 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-                </svg>
-                <span className="font-bold" style={{ fontSize: 15 }}>+91 8585858585</span>
-              </a>
-            </div>
-            <div className="px-6 pb-12">
-              <button
-                onClick={() => setShowCounsellorModal(false)}
-                className={`w-full flex items-center justify-center gap-1.5 py-4 font-bold tracking-widest active:opacity-70 transition-opacity ${isDark ? 'text-white' : 'text-[#1EBA9B]'}`}
-                style={{ fontSize: 11.5, letterSpacing: '0.08em' }}
-              >
-                GET A CALL FROM US <ChevronRight size={14} />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <CounsellorModal
+        isOpen={showCounsellorModal}
+        onClose={() => setShowCounsellorModal(false)}
+        title="Need help with your subscription?"
+      />
 
     </div>
   );

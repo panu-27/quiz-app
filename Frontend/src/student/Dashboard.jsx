@@ -11,11 +11,14 @@ import {
   ShoppingBag, Moon, Sun, CheckCircle2, PlayCircle, TrendingUp, NotebookText, Play, BrainCircuit, ArrowUp,
 } from "lucide-react";
 import StudentHeader from "./StudentHeader";
+import CounsellorModal from "../components/CounsellorModal";
 import { FakeStatsBar } from "./StudentDashboardOverlays";
 import StudentDashboardOverlays from "./StudentDashboardOverlays";
 import { PYQ_SUBJECTS } from "./pyqData";
 import GoalModal from "./GoalModal";
 import LockScreen from "./LockScreen";
+
+const STATUS_BAR_H = 28.5;
 
 const socials = [
   {
@@ -200,11 +203,31 @@ export default function StudentDashboard() {
   ];
 
   const resultsScrollRef = useRef(null);
+  const bannerScrollRef = useRef(null);
   const resultsPosters = [
     "/student/results_1.png",
     "/student/results_2.png",
     "/student/results_3.png"
   ];
+
+  useEffect(() => {
+    if (!selectedGoal) return;
+    const interval = setInterval(() => {
+      const el = bannerScrollRef.current;
+      if (!el) return;
+      const totalWidth = el.scrollWidth;
+      const currentScroll = el.scrollLeft;
+      const viewWidth = el.clientWidth;
+
+      if (currentScroll + viewWidth >= totalWidth - 10) {
+        el.scrollTo({ left: 0, behavior: "smooth" });
+      } else {
+        el.scrollTo({ left: currentScroll + viewWidth, behavior: "smooth" });
+      }
+    }, 8000);
+
+    return () => clearInterval(interval);
+  }, [selectedGoal]);
 
   useEffect(() => {
     if (!selectedGoal) return;
@@ -280,13 +303,6 @@ export default function StudentDashboard() {
       bgColorLight: "from-[#3B1C78] to-[#1D0C40]",
       bgColorDark: "from-[#190C34] to-[#0A0418]"
     },
-    {
-      title: "Custom Image Promo",
-      image: "/student/edu_banner_ad.png",
-      bgColorLight: "from-[#1F1F38] to-[#0D0D1C]",
-      bgColorDark: "from-[#0F0F1B] to-[#06060F]",
-      link: "/student/library"
-    }
   ];
 
   const handleBannerScroll = (e) => {
@@ -425,7 +441,7 @@ export default function StudentDashboard() {
       <div className="hidden md:block">
         <StudentHeader />
         {!selectedGoal ? (
-          <LockScreen onOpenGoalModal={() => setIsGoalModalOpen(true)} />
+          <div className="min-h-screen -mt-12 bg-transparent" />
         ) : (
           <div className="max-w-7xl mx-auto px-8 lg:px-8 xl:px-24 2xl:px-20 py-8">
             <div className="flex justify-end mb-4">
@@ -562,89 +578,61 @@ export default function StudentDashboard() {
           )}
 
           {/* Nav Spacer */}
-          <div className={`relative z-10 transition-all duration-300 ease-in-out ${!selectedGoal ? 'h-[116px]' : isGoalExpanded ? 'h-[324px]' : 'h-[204px]'}`} />
+          <div className={`relative z-10 transition-all duration-300 ease-in-out ${!selectedGoal ? 'h-[116px]' : 'h-[195px]'}`} />
 
           {/* Fixed Nav */}
           <div
-            className={`fixed top-0 left-0 right-0 z-30 px-4 pt-[59.5px] pb-3.5 flex flex-col gap-3 transition-all duration-300
+            className={`fixed top-0 left-0 right-0 z-30 px-4 pb-3.5 flex flex-col gap-3 transition-all duration-300
               ${(isHeaderScrolled || !selectedGoal)
                 ? (theme === 'dark' ? 'bg-[#121D2E]' : 'bg-white')
                 : 'bg-transparent border-b border-transparent'
               }
             `}
+            style={{ paddingTop: STATUS_BAR_H + 16 }}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col cursor-pointer" onClick={() => setIsGoalExpanded(!isGoalExpanded)}>
-                <span className={`text-xs font-medium transition-colors ${useDarkText ? "text-slate-500" : "text-white/70"}`}>CURRENT GOAL</span>
-                <div className={`flex items-center gap-1 text-lg font-bold transition-colors ${useDarkText ? "text-slate-800" : "text-white"}`}>
-                  {selectedGoal || "Select Goal"}
-                  <ChevronDown size={18} className={`transition-transform duration-300 ${isGoalExpanded ? 'rotate-180' : ''}`} />
+            <div className="flex items-center justify-between px-1 gap-2 min-w-0">
+              <div className="cursor-pointer min-w-0 flex-1 overflow-hidden" onClick={() => navigate('/student/goal-selection')}>
+                <p className={`text-[10px] font-medium leading-tight mb-0.5 transition-colors ${useDarkText ? "text-slate-500" : "text-white/70"}`}>Current goal</p>
+                <div className={`flex items-center gap-1 min-w-0 transition-colors ${useDarkText ? "text-slate-900" : "text-white"}`}>
+                  <span className="font-bold text-[17px] font-display tracking-tight truncate min-w-0">
+                    {selectedGoal || "Select Goal"}
+                  </span>
+                  <ChevronDown size={18} className={`flex-shrink-0`} strokeWidth={2.5} />
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-shrink-0">
                 <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all ${useDarkText ? "bg-slate-100 border-slate-200 text-slate-800" : "bg-black/20 border-white/10 text-white"}`}>
                   <span className="text-orange-400">🔥</span>
-                  <span className="text-sm font-bold">0 day</span>
+                  <span className="text-xs font-bold whitespace-nowrap">0 day</span>
                 </div>
-                <button className={`w-8 h-8 rounded-full flex items-center justify-center border transition-all ${useDarkText ? "bg-slate-100 border-slate-200 text-red-500" : "bg-black/20 border-white/10 text-red-400"}`}>
-                  <Gift size={16} />
+                <button onClick={() => setShowCounsellorModal(true)} className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center border transition-all active:scale-95 ${useDarkText ? "bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-50" : "bg-black/20 border-white/10 text-white hover:bg-white/10"}`}>
+                  <Phone size={14} className="fill-current" strokeWidth={0} />
                 </button>
-                <button onClick={toggleTheme} className={`w-8 h-8 rounded-full flex items-center justify-center border transition-all active:scale-95 ${useDarkText ? "bg-slate-100 border-slate-200 text-slate-700" : "bg-black/20 border-white/10 text-white"}`}>
+                <button onClick={toggleTheme} className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center border transition-all active:scale-95 ${useDarkText ? "bg-slate-100 border-slate-200 text-slate-700" : "bg-black/20 border-white/10 text-white"}`}>
                   {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
                 </button>
-                <button onClick={() => navigate('/student/profile')} className={`w-8 h-8 rounded-full overflow-hidden border transition-all active:scale-95 ${useDarkText ? "border-slate-200" : "border-white/20"}`}>
+                <button onClick={() => navigate('/student/profile')} className={`w-8 h-8 rounded-full flex-shrink-0 overflow-hidden border-2 transition-all active:scale-95 ${useDarkText ? "border-transparent" : "border-transparent"}`}>
                   {user?.profilePic ? (
                     <img src={resolveMediaUrl(user?.profilePic)} alt="Profile" className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full bg-orange-500 flex items-center justify-center text-white font-bold text-sm">
-                      {user?.name?.charAt(0) || "S"}
+                    <div className="w-full h-full bg-orange-500 flex items-center justify-center text-white font-bold text-xs">
+                      {user?.name?.charAt(0)?.toUpperCase() || "S"}
                     </div>
                   )}
                 </button>
               </div>
             </div>
 
-            {/* Goal selector dropdown */}
-            <div
-              className={`overflow-hidden transition-all duration-300 ease-in-out flex flex-col gap-0 -mx-4
-                ${isGoalExpanded ? 'max-h-[200px] mt-2 opacity-100 pb-2' : 'max-h-0 opacity-0 pointer-events-none m-0'}
-              `}
-            >
-              {['Boards', 'MHT-CET'].map(goal => {
-                const isSelected = selectedGoal === goal;
-                return (
-                  <button
-                    key={goal}
-                    onClick={() => selectGoal(goal)}
-                    className={`
-                      w-full py-3.5 px-4 flex items-center justify-between transition-colors
-                      ${useDarkText ? 'hover:bg-slate-100/50 text-slate-800' : 'hover:bg-white/10 text-white'}
-                      ${isSelected ? (useDarkText ? 'bg-slate-100/50 font-bold' : 'bg-white/10 font-bold') : 'font-semibold'}
-                    `}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-5 h-5 rounded-full border-[2px] flex items-center justify-center transition-colors
-                        ${isSelected ? (useDarkText ? 'border-slate-800' : 'border-white') : (useDarkText ? 'border-slate-400' : 'border-white/50')}
-                      `}>
-                        {isSelected && (
-                          <div className={`w-2.5 h-2.5 rounded-full ${useDarkText ? 'bg-slate-800' : 'bg-white'}`} />
-                        )}
-                      </div>
-                      <span className="text-[16px] tracking-wide">{goal}</span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+
 
             {/* Search */}
             {selectedGoal && (
-              <div className="bg-white flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-300 transition-colors">
-                <Search size={20} className="text-slate-400" />
+              <div className="bg-white flex items-center gap-3 px-4 py-2.5 rounded-xl border border-gray-300 transition-colors">
+                <Search size={18} className="text-slate-400" />
                 <input
                   type="text"
                   placeholder={theme === 'dark' ? 'Search for courses' : 'Search for lessons'}
-                  className="bg-transparent outline-none border-none flex-1 text-slate-800 placeholder:text-slate-400 font-medium text-[15px]"
+                  className="bg-transparent outline-none border-none flex-1 text-slate-800 placeholder:text-slate-400 font-medium text-sm"
                 />
               </div>
             )}
@@ -654,38 +642,39 @@ export default function StudentDashboard() {
           {selectedGoal && (
             <>
               <div
+                ref={bannerScrollRef}
                 onScroll={handleBannerScroll}
-                className="relative z-10 mt-6 flex overflow-x-auto overflow-y-hidden snap-x snap-mandatory no-scrollbar w-full"
+                className="relative z-10 mt-2 flex overflow-x-auto overflow-y-hidden snap-x snap-mandatory no-scrollbar w-full"
                 style={{ touchAction: 'pan-x' }}
               >
                 {banners.map((banner, index) => (
                   <div
                     key={index}
-                    className={`w-full flex-shrink-0 snap-center relative ${banner.image ? 'px-0 pb-0' : 'px-4 pb-2'}`}
+                    className={`w-full flex-shrink-0 snap-center relative ${banner.image ? 'px-0 pb-0' : 'px-4 pb-6'}`}
                   >
                     {banner.image ? (
                       <div
                         onClick={() => { if (banner.link) navigate(banner.link); }}
-                        className={`w-full h-[220px] bg-transparent ${banner.link ? 'cursor-pointer' : ''}`}
+                        className={`w-full h-[175px] bg-transparent ${banner.link ? 'cursor-pointer' : ''}`}
                       />
                     ) : (
                       <div className="overflow-hidden select-none">
-                        <h2 className="text-white text-2xl font-bold leading-tight">
-                          {banner.title} <br /> <span className="text-white/90 text-xl font-medium">{banner.subtitle}</span>
+                        <h2 className="text-white text-[19px] font-bold leading-tight">
+                          {banner.title} <br /> <span className="text-white/90 text-[15px] font-medium">{banner.subtitle}</span>
                         </h2>
-                        <div className="mt-4 inline-block border border-white/20 rounded-md px-3 py-1 bg-white/5 backdrop-blur-sm">
-                          <p className="text-white text-xs font-medium tracking-wide">{banner.details}</p>
+                        <div className="mt-2.5 inline-block border border-white/20 rounded-md px-2.5 py-0.5 bg-white/5 backdrop-blur-sm">
+                          <p className="text-white text-[11px] font-medium tracking-wide">{banner.details}</p>
                         </div>
-                        <div className="mt-6 flex items-center gap-4">
-                          <button className="bg-[#FFC000] text-black font-bold px-6 py-2.5 rounded-lg text-sm shadow-[0_4px_14px_0_rgba(255,192,0,0.39)]">
+                        <div className="mt-3.5 flex items-center gap-3">
+                          <button className="bg-[#FFC000] text-black font-bold px-4 py-1.5 rounded-lg text-[13px] shadow-[0_4px_14px_0_rgba(255,192,0,0.39)]">
                             {banner.cta}
                           </button>
-                          <div className="flex items-start gap-2">
-                            <div className="mt-0.5">{banner.badgeIcon}</div>
-                            <p className="text-white text-xs font-medium leading-tight">{banner.badgeText}</p>
+                          <div className="flex items-start gap-1.5">
+                            <div className="mt-0.5 scale-90">{banner.badgeIcon}</div>
+                            <p className="text-white text-[11px] font-medium leading-tight">{banner.badgeText}</p>
                           </div>
                         </div>
-                        <p className="text-[10px] text-white/50 mt-4">{banner.footerNote}</p>
+                        <p className="text-[9px] text-white/50 mt-2.5">{banner.footerNote}</p>
                       </div>
                     )}
                   </div>
@@ -705,48 +694,46 @@ export default function StudentDashboard() {
 
         {/* Scrollable Content */}
         {!selectedGoal ? (
-          <div className="flex-1" />
-        ) : (
+          <div className={`flex-1 min-h-[calc(100vh-116px)] ${theme === 'dark' ? 'bg-[#0B101A]' : 'bg-[#F8FAFF]'}`} />
+          ) : (
           <>
             <div className="px-4 mt-6 flex flex-col gap-6 pb-4">
 
               {/* ── Feedback Card (First Element, No Shadow) ── */}
               {!feedbackSubmitted ? (
-                <div className="rounded-md overflow-hidden relative p-5 bg-[#E8F2FF] dark:bg-[#1E293B] border border-[#BFDBFE] dark:border-slate-800/60 shadow-none flex items-center justify-between min-h-[145px]">
-                  {/* Left Side Info */}
-                  <div className="flex-1 z-10 pr-[38%]">
-                    <h4 className="text-[16px] font-bold text-[#1E3A8A] dark:text-[#93C5FD] leading-snug">
-                      How do you feel about the app?
-                    </h4>
-                    <p className="text-[11px] text-[#475569] dark:text-slate-400 mt-1 leading-normal">
-                      Your word will help us improve your learning experience
-                    </p>
+                <div className="relative overflow-hidden bg-[#D8ECFC] dark:bg-[#18202F] rounded-md p-5 flex items-center justify-between min-h-[175px] shadow-sm border border-[#BFDBFE] dark:border-slate-800/60">
+                  <div className="absolute -left-10 -bottom-10 w-32 h-32 rounded-full bg-white/40 dark:bg-white/5 blur-xl pointer-events-none" />
+                  <div className="absolute right-0 top-0 w-32 h-32 rounded-full bg-white/40 dark:bg-white/5 blur-2xl pointer-events-none" />
 
-                    {/* Actions */}
-                    <div className="flex items-center gap-2 mt-4">
+                  <div className="flex-1 z-10 pr-[38%]">
+                    <h4 className="text-[17px] font-bold text-[#1E3A8A] dark:text-white leading-snug">
+                      How is your experience?
+                    </h4>
+                    <p className="text-[12px] text-[#475569] dark:text-slate-300 mt-1.5 leading-normal">
+                      We're working hard to make learning better. Let us know what you think!
+                    </p>
+                    <div className="flex items-center gap-3 mt-4">
                       <button
                         onClick={() => {
                           setFeedbackSubmitted(true);
                           navigate("/student/feedback");
                         }}
-                        className="flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-[#334155] hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold rounded-lg text-[12.5px] border border-slate-200/60 dark:border-slate-700 active:scale-95 transition-all"
+                        className="flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 font-bold rounded-md text-xs shadow-sm hover:shadow-md active:scale-95 transition-all"
                       >
-                        <ThumbsUp size={14} className="text-[#FFC000]" fill="#FFC000" />
-                        <span>Love it!</span>
+                        👍 Loved it!
                       </button>
                       <button
                         onClick={() => {
                           setFeedbackSubmitted(true);
                           navigate("/student/feedback");
                         }}
-                        className="flex items-center justify-center p-2 bg-white dark:bg-[#334155] hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg border border-slate-200/60 dark:border-slate-700 active:scale-95 transition-all"
+                        className="flex items-center justify-center w-8 h-8 bg-white/50 dark:bg-slate-800/50 hover:bg-white/80 dark:hover:bg-slate-700/80 border border-white dark:border-slate-700 text-slate-800 dark:text-white rounded-md shadow-sm active:scale-95 transition-all"
                       >
-                        <ThumbsDown size={14} className="text-[#FFC000]" fill="#FFC000" />
+                        👎
                       </button>
                     </div>
                   </div>
 
-                  {/* Right Side Illustration */}
                   <div className="absolute right-0 bottom-0 top-0 w-[40%] pointer-events-none flex items-end justify-end">
                     <img
                       src="/feedback_illustration.png"
@@ -756,80 +743,25 @@ export default function StudentDashboard() {
                   </div>
                 </div>
               ) : (
-                <div className="rounded-md p-5 bg-[#E8F2FF] dark:bg-[#1E293B] border border-[#BFDBFE] dark:border-slate-800/60 shadow-none text-center flex flex-col items-center justify-center min-h-[145px] animate-fade-in">
-                  <div className="w-10 h-10 bg-pink-100 dark:bg-pink-950/30 rounded-full flex items-center justify-center mb-2 animate-bounce">
-                    <span className="text-lg">💖</span>
+                <div className="relative overflow-hidden rounded-md p-5 bg-[#D8ECFC] dark:bg-[#1E293B] shadow-sm text-center flex flex-col items-center justify-center min-h-[175px] animate-fade-in border border-[#BFDBFE] dark:border-slate-800/60">
+                  <div className="absolute -left-10 -bottom-10 w-32 h-32 rounded-full bg-white/40 dark:bg-white/5 blur-xl pointer-events-none" />
+                  <div className="absolute right-0 top-0 w-32 h-32 rounded-full bg-white/40 dark:bg-white/5 blur-2xl pointer-events-none" />
+
+                  <div className="relative z-10 flex flex-col items-center">
+                    <div className="w-10 h-10 bg-white/80 dark:bg-slate-800 rounded-full flex items-center justify-center mb-2 animate-bounce shadow-sm">
+                      <span className="text-lg">💖</span>
+                    </div>
+                    <h4 className="text-[16px] font-bold text-[#1E3A8A] dark:text-[#93C5FD]">
+                      Thank you for your feedback!
+                    </h4>
+                    <p className="text-[12px] text-[#475569] dark:text-slate-400 mt-1 max-w-[280px]">
+                      We appreciate your support in making our learning platform better for everyone.
+                    </p>
                   </div>
-                  <h4 className="text-[15px] font-bold text-[#1E3A8A] dark:text-[#93C5FD]">
-                    Thank you for your feedback!
-                  </h4>
-                  <p className="text-[11px] text-[#475569] dark:text-slate-400 mt-1 max-w-[280px]">
-                    We appreciate your support in making our learning platform better for everyone.
-                  </p>
                 </div>
               )}
 
-              {/* ── Scheduled Tests Mobile (Flat Layout) ── */}
-              <div>
-                <div className="flex items-center justify-between mb-2 px-0.5">
-                  <div className="flex items-center gap-2.5">
-                    <h3 className="text-[17px] font-semibold text-slate-900 dark:text-white">Scheduled Tests</h3>
-                    {!testsLoading && tests.length > 0 && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 bg-orange-100 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 rounded-md flex items-center gap-1">
-                        <span className="w-1 h-1 bg-orange-500 rounded-full animate-pulse" />Live
-                      </span>
-                    )}
-                  </div>
-                  <button 
-                    onClick={() => navigate('/student/history')}
-                    className="flex items-center gap-0.5 text-[12px] font-semibold text-[#2563EB] dark:text-[#60A5FA]"
-                  >
-                    See all <ChevronRight size={14} />
-                  </button>
-                </div>
-                {testsLoading ? (
-                  <div className="space-y-3 py-1">
-                    {[1, 2].map(i => (
-                      <div key={i} className="flex items-center justify-between py-3 border-b border-slate-200/40 dark:border-slate-800/40">
-                        <div className="flex items-center gap-3 flex-1">
-                          <Sk className="w-10 h-10 rounded-xl flex-shrink-0" />
-                          <div className="space-y-2 flex-1"><Sk className="h-4 w-2/3" /><Sk className="h-3 w-1/3" /></div>
-                        </div>
-                        <Sk className="w-16 h-8 rounded-xl flex-shrink-0 ml-4" />
-                      </div>
-                    ))}
-                  </div>
-                ) : tests.length > 0 ? (
-                  <div className="divide-y divide-slate-200/50 dark:divide-slate-800/70">
-                    {tests.map((t, idx) => (
-                      <div key={t._id} className="flex items-center justify-between py-3.5 first:pt-1 last:pb-1">
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className="w-10 h-10 rounded-xl bg-[#F3EBFF] dark:bg-purple-950/40 flex items-center justify-center text-[#7A41F7] dark:text-[#9B6AF9] flex-shrink-0">
-                            <Clock size={18} />
-                          </div>
-                          <div className="min-w-0">
-                            <h5 className="text-[14px] font-bold text-slate-900 dark:text-white truncate">{t.title}</h5>
-                            <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{t.duration} Mins</p>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => navigate(`/student/test/${t._id}`)}
-                          className="ml-3 flex-shrink-0 px-4 py-2.5 bg-[#7A41F7] text-white rounded-xl text-[12px] font-black active:scale-95 transition-transform"
-                        >
-                          Start
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-6 text-center">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center mb-1.5">
-                      <ClipboardCheck className="text-slate-350 dark:text-slate-650" size={22} />
-                    </div>
-                    <p className="text-xs font-bold text-slate-450 dark:text-slate-500">No active tests scheduled</p>
-                  </div>
-                )}
-              </div>
+
 
               {/* ── Popular Batches ── */}
               <div className="mt-6">
@@ -850,8 +782,8 @@ export default function StudentDashboard() {
                       title: "Target Coaching Classes Legends Reloaded Batch for Boards 2026",
                       tags: ["Hinglish", "Full Syllabus"],
                       startDate: "11 May 2026",
-                      price: "₹903/mo",
-                      originalPrice: "₹1,042/mo",
+                      price: "₹903",
+                      originalPrice: "₹1,042",
                       discount: "SAVE 13%",
                       poster: "/student/nexus_batch_banner.png",
                     },
@@ -861,8 +793,8 @@ export default function StudentDashboard() {
                       title: "Phoenix Elite Revision Batch for Boards 2026",
                       tags: ["English", "Revision"],
                       startDate: "18 May 2026",
-                      price: "₹750/mo",
-                      originalPrice: "₹999/mo",
+                      price: "₹750",
+                      originalPrice: "₹999",
                       discount: "SAVE 25%",
                       poster: "/student/nexus_batch_banner.png",
                     },
@@ -872,8 +804,8 @@ export default function StudentDashboard() {
                       title: "Target Coaching Classes Legends Reloaded Batch for MHT-CET 2026",
                       tags: ["Hinglish", "Full Syllabus"],
                       startDate: "11 May 2026",
-                      price: "₹903/mo",
-                      originalPrice: "₹1,042/mo",
+                      price: "₹903",
+                      originalPrice: "₹1,042",
                       discount: "SAVE 13%",
                       poster: "/student/nexus_batch_banner.png",
                     },
@@ -883,8 +815,8 @@ export default function StudentDashboard() {
                       title: "Phoenix SRG Crash Course for MHT-CET 2026",
                       tags: ["Hinglish", "Crash Course"],
                       startDate: "20 May 2026",
-                      price: "₹800/mo",
-                      originalPrice: "₹1,200/mo",
+                      price: "₹800",
+                      originalPrice: "₹1,200",
                       discount: "SAVE 33%",
                       poster: "/student/nexus_batch_banner.png",
                     },
@@ -894,8 +826,8 @@ export default function StudentDashboard() {
                       title: "Target Coaching Classes Legends Reloaded Batch for IIT JEE 2027",
                       tags: ["Hinglish", "Full Syllabus"],
                       startDate: "11 May 2026",
-                      price: "₹903/mo",
-                      originalPrice: "₹1,042/mo",
+                      price: "₹903",
+                      originalPrice: "₹1,042",
                       discount: "SAVE 13%",
                       poster: "/student/nexus_batch_banner.png",
                     },
@@ -905,8 +837,8 @@ export default function StudentDashboard() {
                       title: "Phoenix SRG Dropper Batch for IIT JEE 2026",
                       tags: ["Hinglish", "Droppers"],
                       startDate: "15 April 2026",
-                      price: "₹1,200/mo",
-                      originalPrice: "₹1,500/mo",
+                      price: "₹1,200",
+                      originalPrice: "₹1,500",
                       discount: "SAVE 20%",
                       poster: "/student/nexus_batch_banner.png",
                     },
@@ -916,8 +848,8 @@ export default function StudentDashboard() {
                       title: "Target Coaching Classes Legends Reloaded Batch for NEET 2027",
                       tags: ["Hinglish", "Full Syllabus"],
                       startDate: "11 May 2026",
-                      price: "₹903/mo",
-                      originalPrice: "₹1,042/mo",
+                      price: "₹903",
+                      originalPrice: "₹1,042",
                       discount: "SAVE 13%",
                       poster: "/student/nexus_batch_banner.png",
                     },
@@ -927,8 +859,8 @@ export default function StudentDashboard() {
                       title: "Phoenix SRG Dropper Batch for NEET 2026",
                       tags: ["Hinglish", "Droppers"],
                       startDate: "15 April 2026",
-                      price: "₹1,200/mo",
-                      originalPrice: "₹1,500/mo",
+                      price: "₹1,200",
+                      originalPrice: "₹1,500",
                       discount: "SAVE 20%",
                       poster: "/student/nexus_batch_banner.png",
                     }
@@ -936,124 +868,107 @@ export default function StudentDashboard() {
 
                   const matchedBatches = popularBatches.filter(b => {
                     if (!selectedGoal) return true;
-                    return b.goal.toLowerCase().includes(selectedGoal.toLowerCase()) || 
-                           selectedGoal.toLowerCase().includes(b.goal.toLowerCase());
+                    return b.goal.toLowerCase().includes(selectedGoal.toLowerCase()) ||
+                      selectedGoal.toLowerCase().includes(b.goal.toLowerCase());
                   });
 
-                  if (matchedBatches.length > 0) {
-                    return (
-                      <div className="flex flex-col gap-5 pb-4">
-                        {matchedBatches.map((batch) => (
-                          <div
-                            key={batch.id}
-                            className={`w-full overflow-hidden rounded-2xl border transition-all duration-200 active:scale-[0.985] ${
-                              theme === 'dark'
-                                ? 'bg-[#0F172A] border-slate-800 shadow-xl'
-                                : 'bg-white border-slate-200 shadow-[0_4px_16px_rgba(0,0,0,0.04)]'
-                            }`}
-                          >
-                            <div className="relative aspect-[16/9] w-full overflow-hidden bg-black">
-                              <img src={batch.poster} alt={batch.title} className="w-full h-full object-cover" />
-                            </div>
-                            
-                            <div className="p-4 flex flex-col gap-3">
-                              {/* Tags */}
-                              <div className="flex items-center gap-2">
-                                {batch.tags.map((tag, idx) => (
-                                  <span
-                                    key={idx}
-                                    className={`px-2.5 py-1 text-[11px] font-semibold rounded tracking-wide ${
-                                      theme === 'dark'
-                                        ? 'bg-[#1E293B] text-slate-350'
-                                        : 'bg-slate-100 text-slate-650'
-                                    }`}
-                                  >
-                                    {tag}
-                                  </span>
-                                ))}
-                              </div>
-
-                              {/* Title */}
-                              <h4 className={`text-[15px] font-bold leading-snug line-clamp-2 min-h-[42px] ${
-                                theme === 'dark' ? 'text-white' : 'text-slate-850'
-                              }`}>
-                                {batch.title}
-                              </h4>
-
-                              {/* Status Info */}
-                              <div className="flex items-center gap-2">
-                                <span className="relative flex h-2 w-2">
-                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                                </span>
-                                <span className={`text-[11px] font-medium ${
-                                  theme === 'dark' ? 'text-slate-400' : 'text-slate-500'
-                                }`}>
-                                  Ongoing | Started {batch.startDate}
-                                </span>
-                              </div>
-
-                              {/* Divider */}
-                              <div className={`border-t my-1 ${
-                                theme === 'dark' ? 'border-slate-800' : 'border-slate-100'
-                              }`} />
-
-                              {/* Price Row */}
-                              <div className="flex items-center gap-2.5">
-                                <span className={`text-[17px] font-extrabold ${
-                                  theme === 'dark' ? 'text-white' : 'text-slate-900'
-                                }`}>{batch.price}</span>
-                                <span className={`text-[13px] font-medium line-through ${
-                                  theme === 'dark' ? 'text-slate-500' : 'text-slate-400'
-                                }`}>{batch.originalPrice}</span>
-                                <span className="text-[10px] font-bold text-[#10B981] bg-[#10B981]/10 px-2 py-0.5 rounded">
-                                  {batch.discount}
-                                </span>
-                              </div>
-
-                              {/* Action Buttons */}
-                              <div className="flex items-center gap-2 mt-1">
-                                <button
-                                  onClick={() => navigate('/student/subscription')}
-                                  className="flex-1 py-3 bg-[#3B82F6] hover:bg-[#2563EB] text-white font-bold rounded-lg text-xs tracking-wider transition-colors active:scale-95"
-                                >
-                                  Buy now
-                                </button>
-                                <button
-                                  onClick={() => navigate('/student/subscription')}
-                                  className={`flex-1 py-3 border font-bold rounded-lg text-xs tracking-wider transition-colors active:scale-95 ${
-                                    theme === 'dark'
-                                      ? 'border-[#3B82F6] hover:bg-[#3B82F6]/10 text-[#3B82F6]'
-                                      : 'border-slate-200 hover:bg-slate-50 text-slate-700'
-                                  }`}
-                                >
-                                  View details
-                                </button>
-                              </div>
-
-                              {/* Contact counsellor link */}
-                              <div className="flex items-center justify-center gap-1.5 mt-1 text-[12px]">
-                                <span className={theme === 'dark' ? 'text-slate-500' : 'text-slate-400'}>Have questions?</span>
-                                <button
-                                  onClick={() => window.open('https://wa.me/918585858585', '_blank')}
-                                  className="text-[#3B82F6] hover:underline font-bold flex items-center gap-1"
-                                >
-                                  <Phone size={12} /> Talk to counsellor
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  }
+                  const finalBatches = matchedBatches.length > 0 ? matchedBatches : popularBatches;
 
                   return (
-                    <div className="flex flex-col items-center justify-center py-6 text-center w-full">
-                      <div className="w-10 h-10 rounded-full flex items-center justify-center mb-1.5">
-                        <ClipboardCheck className="text-slate-350 dark:text-slate-650" size={22} />
-                      </div>
-                      <p className="text-xs font-bold text-slate-450 dark:text-slate-500">No batches found for your goal</p>
+                    <div className="flex flex-col gap-5 pb-4">
+                      {finalBatches.map((batch) => (
+                        <div
+                          key={batch.id}
+                          className={`w-full overflow-hidden rounded-2xl border transition-all duration-200 active:scale-[0.985] ${theme === 'dark'
+                            ? 'bg-[#0F172A] border-slate-800 shadow-xl'
+                            : 'bg-white border-slate-200 shadow-[0_4px_16px_rgba(0,0,0,0.04)]'
+                            }`}
+                        >
+                          <div className="relative aspect-[16/9] w-full overflow-hidden bg-black">
+                            <img src={batch.poster} alt={batch.title} className="w-full h-full object-cover" />
+                          </div>
+
+                          <div className="p-4 flex flex-col gap-3">
+                            {/* Tags */}
+                            <div className="flex items-center gap-2">
+                              {batch.tags.map((tag, idx) => (
+                                <span
+                                  key={idx}
+                                  className={`px-2.5 py-1 text-[11px] font-semibold rounded tracking-wide ${theme === 'dark'
+                                    ? 'bg-[#1E293B] text-slate-350'
+                                    : 'bg-slate-100 text-slate-650'
+                                    }`}
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+
+                            {/* Title */}
+                            <h4 className={`text-[15px] font-bold leading-snug line-clamp-2 min-h-[42px] ${theme === 'dark' ? 'text-white' : 'text-slate-850'
+                              }`}>
+                              {batch.title}
+                            </h4>
+
+                            {/* Status Info */}
+                            <div className="flex items-center gap-2">
+                              <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                              </span>
+                              <span className={`text-[11px] font-medium ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'
+                                }`}>
+                                Ongoing | Started {batch.startDate}
+                              </span>
+                            </div>
+
+                            {/* Divider */}
+                            <div className={`border-t my-1 ${theme === 'dark' ? 'border-slate-800' : 'border-slate-100'
+                              }`} />
+
+                            {/* Price Row */}
+                            <div className="flex items-center gap-2.5">
+                              <span className={`text-[17px] font-extrabold ${theme === 'dark' ? 'text-white' : 'text-slate-900'
+                                }`}>{batch.price}</span>
+                              <span className={`text-[13px] font-medium line-through ${theme === 'dark' ? 'text-slate-500' : 'text-slate-400'
+                                }`}>{batch.originalPrice}</span>
+                              <span className="text-[10px] font-bold text-[#10B981] bg-[#10B981]/10 px-2 py-0.5 rounded">
+                                {batch.discount}
+                              </span>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex items-center gap-2 mt-1">
+                              <button
+                                onClick={() => setShowCounsellorModal(true)}
+                                className="flex-1 py-3 bg-[#3B82F6] hover:bg-[#2563EB] text-white font-bold rounded-lg text-xs tracking-wider transition-colors active:scale-95"
+                              >
+                                Buy now
+                              </button>
+                              <button
+                                onClick={() => setShowCounsellorModal(true)}
+                                className={`flex-1 py-3 border font-bold rounded-lg text-xs tracking-wider transition-colors active:scale-95 ${theme === 'dark'
+                                  ? 'border-[#3B82F6] hover:bg-[#3B82F6]/10 text-[#3B82F6]'
+                                  : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                                  }`}
+                              >
+                                View details
+                              </button>
+                            </div>
+
+                            {/* Contact counsellor link */}
+                            <div className="flex items-center justify-center gap-1.5 mt-1 text-[12px]">
+                              <span className={theme === 'dark' ? 'text-slate-500' : 'text-slate-400'}>Have questions?</span>
+                              <button
+                                onClick={() => setShowCounsellorModal(true)}
+                                className="text-[#3B82F6] hover:underline font-bold flex items-center gap-1"
+                              >
+                                <Phone size={12} /> Talk to counsellor
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   );
                 })()}
@@ -1071,7 +986,7 @@ export default function StudentDashboard() {
                       key={index}
                       className="w-[calc(100vw-24px)] xs:w-[calc(100vw-32px)] flex-shrink-0 snap-center flex flex-col gap-2"
                     >
-                      <div 
+                      <div
                         className="w-full rounded-[12px] overflow-hidden border border-slate-200 dark:border-slate-800 bg-[#E8F2FF] dark:bg-[#121A28] shadow-sm"
                         style={{ aspectRatio: "16/10" }}
                       >
@@ -1087,16 +1002,10 @@ export default function StudentDashboard() {
                 </div>
               </div>
 
-
-
-
-
-
-
               {/* ── What Our Learners Say ── */}
               <div>
                 <h3 className="text-slate-800 dark:text-white text-lg font-bold mb-3">What our learners say</h3>
-                <div 
+                <div
                   className="flex overflow-x-auto gap-3.5 no-scrollbar pb-3 -mx-4 px-4 snap-x snap-mandatory"
                   onScroll={(e) => {
                     const el = e.currentTarget;
@@ -1134,11 +1043,10 @@ export default function StudentDashboard() {
                   {reviews.map((_, idx) => (
                     <div
                       key={idx}
-                      className={`h-[3px] rounded-full flex-1 transition-all duration-300 ${
-                        activeReviewIdx === idx
-                          ? 'bg-black dark:bg-white'
-                          : 'bg-slate-200 dark:bg-slate-800'
-                      }`}
+                      className={`h-[3px] rounded-full flex-1 transition-all duration-300 ${activeReviewIdx === idx
+                        ? 'bg-black dark:bg-white'
+                        : 'bg-slate-200 dark:bg-slate-800'
+                        }`}
                     />
                   ))}
                 </div>
@@ -1146,7 +1054,7 @@ export default function StudentDashboard() {
 
             </div>
 
-            {/* ── Join Prime / Subscription Section ── OUTSIDE px-4 wrapper for true full-width ── */}
+            {/* ── Join Prime / Subscription Section ── OUTSIDE px-4 wrapper for true full-width ──
             <div className="w-full bg-transparent py-10 mt-6">
               <div className="px-4">
                 <h3 className="text-slate-900 dark:text-white text-[18px] font-bold leading-tight">
@@ -1181,63 +1089,13 @@ export default function StudentDashboard() {
                 >
                   View subscription plans
                 </button>
-                <p className="text-center mt-2 text-slate-400 dark:text-white/40 text-[12px]">Starts from ₹0/month</p>
+                <p className="text-center mt-2 text-slate-400 dark:text-white/40 text-[12px]">Starts from ₹0nth</p>
               </div>
-            </div>
+            </div> */}
 
 
 
-            {/* ── Counsellor Support CTA ── OUTSIDE px-4 wrapper for true full-width ── */}
-            <div
-              className="py-6 relative overflow-hidden w-full bg-transparent transition-colors duration-300"
-              style={{ borderRadius: 0 }}
-            >
-              {/* Background patterns */}
-              <div className={`absolute -left-10 -bottom-10 w-28 h-28 rounded-full blur-xl pointer-events-none ${theme === 'dark' ? 'bg-emerald-950/20' : 'bg-emerald-100/10'}`} />
-              <div className={`absolute -right-12 -top-4 w-32 h-32 rounded-full blur-xl pointer-events-none ${theme === 'dark' ? 'bg-emerald-950/20' : 'bg-emerald-100/10'}`} />
 
-              <div className="px-4">
-                {/* Header Row */}
-                <div className="flex items-center gap-4 mb-6">
-                  <div className={`w-20 h-20 rounded-full flex-shrink-0 overflow-hidden relative z-10 ${theme === 'dark' ? 'bg-[#1F2937]' : 'bg-white border border-slate-200 shadow-none'}`}>
-                    <img
-                      src="/student/counsellor_profile.png"
-                      className="w-full h-full object-cover"
-                      alt="Counsellor Avatar"
-                    />
-                  </div>
-                  <div className="z-10">
-                    <h4 className={`text-[18px] font-bold leading-tight ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
-                      Need {selectedGoal || "IIT JEE"} guidance?
-                    </h4>
-                    <p className={`text-[13px] mt-1.5 leading-normal ${theme === 'dark' ? 'text-slate-400' : 'text-slate-555'}`}>
-                      Our counsellor can help you with your preparation
-                    </p>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex flex-col gap-3">
-                  <button
-                    onClick={() => window.open('https://wa.me/918585858585', '_blank')}
-                    className="w-full flex items-center justify-center gap-2 py-3.5 bg-[#00966A] hover:bg-[#059669] text-white font-bold text-[14px] active:scale-[0.98] transition-all"
-                    style={{ borderRadius: 10 }}
-                  >
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-                    </svg>
-                    Chat on WhatsApp
-                  </button>
-                  <a
-                    href="tel:+918585858585"
-                    className={`w-full flex items-center justify-center gap-2 py-3.5 border font-bold text-[14px] active:scale-[0.98] transition-all text-center ${theme === 'dark' ? 'border-[#2563EB] text-[#3b82f6]' : 'border-blue-200 text-blue-600 bg-white hover:bg-slate-50'}`}
-                    style={{ borderRadius: 10 }}
-                  >
-                    <Phone size={14} className={theme === 'dark' ? 'text-[#3b82f6]' : 'text-blue-600'} /> Call +91 8585858585
-                  </a>
-                </div>
-              </div>
-            </div>
 
             {/* ── Study with Your friends banner ── */}
             <div className="px-3 xs:px-4 mt-6">
@@ -1297,17 +1155,16 @@ export default function StudentDashboard() {
               </div>
             </div>
 
+
+
             {/* ── Social Media Section ── */}
             <div className="px-3 xs:px-4 mt-10 mb-8">
               <div className="relative flex items-center justify-center my-6">
                 <div className="absolute inset-0 flex items-center">
                   <div className={`w-full border-t ${theme === 'dark' ? 'border-slate-800' : 'border-slate-200'}`} />
                 </div>
-                <div className={`relative z-10 w-12 h-12 rounded-full border-2 border-blue-400 flex items-center justify-center shadow-sm ${theme === 'dark' ? 'bg-[#111827]' : 'bg-white'}`}>
-                  <span className="text-blue-500 dark:text-blue-400 font-extrabold text-xl tracking-tighter relative">
-                    B
-                    <span className="absolute -top-1 -right-1.5 text-xs text-orange-500 font-black">⚡</span>
-                  </span>
+                <div className={`relative z-10 w-16 h-16 flex items-center justify-center`}>
+                  <img src="/logo.png" alt="App Logo" className="w-full h-full object-cover p-1.5" />
                 </div>
               </div>
 
@@ -1327,10 +1184,10 @@ export default function StudentDashboard() {
                     href={soc.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`flex items-center justify-center gap-2.5 py-3.5 rounded-md border font-bold text-xs shadow-sm transition-all active:scale-[0.97]
+                    className={`flex items-center justify-center gap-2.5 py-3.5 rounded-xl font-bold text-xs transition-all active:scale-[0.97] border border-transparent
                       ${theme === 'dark'
-                        ? 'bg-[#111827] border-slate-800 hover:bg-[#1E293B] text-slate-200'
-                        : 'bg-white border-slate-200/60 hover:bg-slate-50 text-slate-700'
+                        ? 'bg-[#1E293B] text-slate-200 hover:bg-[#334155]'
+                        : 'bg-slate-100/80 text-slate-700 hover:bg-slate-200/70'
                       }
                     `}
                   >
@@ -1345,63 +1202,11 @@ export default function StudentDashboard() {
       </div>
 
       {/* Counsellor Bottom Sheet Modal */}
-      {showCounsellorModal && (
-        <div
-          className="fixed inset-0 z-[9999] flex items-end justify-center"
-          onClick={() => setShowCounsellorModal(false)}
-        >
-          <div className="absolute inset-0 bg-black/65" style={{ backdropFilter: 'blur(3px)' }} />
-          <div
-            className={`relative w-full max-w-md overflow-hidden ${isDark ? 'bg-[#111827]' : 'bg-white'}`}
-            style={{ borderRadius: '12px 12px 0 0' }}
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex justify-center pt-4 pb-3">
-              <div className={`w-10 h-1 rounded-full ${isDark ? 'bg-white/20' : 'bg-slate-300'}`} />
-            </div>
-            <div className="px-6 pt-8 pb-2">
-              <div className="flex items-center justify-between gap-6">
-                <div className="flex-1">
-                  <h2 className={`font-black leading-tight ${isDark ? 'text-white' : 'text-slate-900'}`} style={{ fontSize: 19 }}>
-                    Need help with your subscription?
-                  </h2>
-                  <p className={`text-[12px] mt-2 leading-relaxed ${isDark ? 'text-white/55' : 'text-slate-500'}`}>
-                    Talk to our experts who will guide you with all you need to crack it.
-                  </p>
-                </div>
-                <div className={`w-[68px] h-[68px] rounded-full overflow-hidden flex-shrink-0 border-2 ${isDark ? 'border-white/10 bg-[#1F2937]' : 'border-slate-200 bg-slate-100'}`}>
-                  <img
-                    src="https://api.dicebear.com/7.x/avataaars/svg?seed=counsellorF&backgroundColor=b6e3f4&clothingColor=3c4f5c"
-                    className="w-full h-full object-cover"
-                    alt="Expert"
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="px-6 pt-6 pb-3">
-              <a
-                href="tel:+918585858585"
-                className={`w-full flex items-center justify-center gap-3 active:scale-95 transition-transform ${isDark ? 'bg-white text-[#111827]' : 'bg-[#1EBA9B] text-white shadow-md'}`}
-                style={{ borderRadius: 8, padding: '14px 24px' }}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.56 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-                </svg>
-                <span className="font-bold" style={{ fontSize: 15 }}>+91 8585858585</span>
-              </a>
-            </div>
-            <div className="px-6 pb-12">
-              <button
-                onClick={() => setShowCounsellorModal(false)}
-                className={`w-full flex items-center justify-center gap-1.5 py-4 font-bold tracking-widest active:opacity-70 transition-opacity ${isDark ? 'text-white' : 'text-[#1EBA9B]'}`}
-                style={{ fontSize: 11.5, letterSpacing: '0.08em' }}
-              >
-                GET A CALL FROM US <ChevronRight size={14} />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <CounsellorModal
+        isOpen={showCounsellorModal}
+        onClose={() => setShowCounsellorModal(false)}
+        title="Need help with your subscription?"
+      />
 
 
       {showScrollTop && (
@@ -1411,9 +1216,8 @@ export default function StudentDashboard() {
             document.documentElement.scrollTo({ top: 0, behavior: "smooth" });
             document.body.scrollTo({ top: 0, behavior: "smooth" });
           }}
-          className={`fixed right-5 z-[5000] w-11 h-11 rounded-full flex items-center justify-center shadow-[0_4px_20px_rgba(0,0,0,0.1)] active:scale-95 transition-all ${
-            user?.approved === false ? 'bottom-44' : 'bottom-28'
-          } ${isDark ? 'bg-[#111A24] text-blue-400 border border-blue-400' : 'bg-white text-[#25D3A4] border border-[#25D3A4]'}`}
+          className={`fixed right-5 z-[5000] w-11 h-11 rounded-full flex items-center justify-center shadow-[0_4px_20px_rgba(0,0,0,0.1)] active:scale-95 transition-all ${user?.approved === false ? 'bottom-44' : 'bottom-28'
+            } ${isDark ? 'bg-[#111A24] text-blue-400 border border-blue-400' : 'bg-white text-[#25D3A4] border border-[#25D3A4]'}`}
           aria-label="Scroll to top"
         >
           <ArrowUp size={20} />
