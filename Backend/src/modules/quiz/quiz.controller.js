@@ -9,7 +9,9 @@ import Chapter from '../questionBank/Chapter.js';
 import Topic from '../questionBank/Topic.js';
 import PYQ from '../questionBank/PYQ.js';
 import TestAttempt from '../test/quizAttempt.model.js';
+import { PracticeAttempt } from './practiceAttempt.model.js';
 import QuestionReport from './report.model.js';
+import Bookmark from './bookmark.model.js';
 import mongoose from 'mongoose';
 import asyncHandler from 'express-async-handler';
 
@@ -298,7 +300,7 @@ export const fetchPYQQuestions = asyncHandler(async (req, res) => {
 
 export const submitQuizAttempt = asyncHandler(async (req, res) => {
   const studentId = req.user._id;
-  const { blocks = [], timeTakenSeconds = 0 } = req.body;
+  const { blocks = [], timeTakenSeconds = 0, type = 'test', testId = null } = req.body;
 
   if (!blocks || blocks.length === 0) {
     return res.status(400).json({ success: false, message: 'No blocks provided' });
@@ -348,7 +350,7 @@ export const submitQuizAttempt = asyncHandler(async (req, res) => {
 
       return {
         subjectName: section.subjectName,
-        subjectId: section.subjectId,
+        subject: section.subjectId,
         numQuestions: questions.length,
         questions: questions.map((q) => ({
           questionId: q.questionId,
@@ -357,6 +359,7 @@ export const submitQuizAttempt = asyncHandler(async (req, res) => {
           options: q.options || [],
           correctAnswer: q.correctAnswer,
           chosenOption: q.chosenOption,
+          timeTakenSeconds: q.timeTakenSeconds || 0,
           explanation: q.explanation,
         })),
         score: sectionMarks, // This is now actual marks earned
@@ -385,6 +388,8 @@ export const submitQuizAttempt = asyncHandler(async (req, res) => {
 
   const attempt = new TestAttempt({
     studentId,
+    testId: testId || undefined, // undefined if it's a practice attempt
+    attemptType: type, // 'practice' or 'test'
     blocks: processedBlocks,
     status: 'completed',
     totalScore: totalMarksEarned, // Storing raw marks
@@ -499,3 +504,118 @@ export const getChapterPYQs = async (req, res) => {
         });
     }
 };
+
+/**
+ * GET /api/quiz/bookmarks
+ * Returns array of bookmarked question IDs for the user
+ */
+export const getBookmarks = asyncHandler(async (req, res) => {
+  const studentId = req.user._id;
+  const { populated } = req.query;
+
+  let query = Bookmark.find({ studentId });
+  
+  if (populated === 'true') {
+    query = query.populate({
+      path: 'questionId',
+      populate: [
+        { path: 'subjectId', select: 'name' },
+        { path: 'chapterId', select: 'name' },
+        { path: 'topicId', select: 'name' }
+      ]
+    });
+    
+    const bookmarks = await query;
+    // Format them to look like the normal PYQ objects for the frontend
+    const results = bookmarks.filter(b => b.questionId).map(b => {
+      const q = b.questionId.toObject();
+      q.subjectName = q.subjectId?.name;
+      q.chapterName = q.chapterId?.name;
+      q.topicName = q.topicId?.name;
+      return q;
+    });
+    return res.status(200).json({ success: true, data: results });
+  } else {
+    const bookmarks = await query.select('questionId');
+    const bookmarkIds = bookmarks.map(b => b.questionId);
+    return res.status(200).json({ success: true, data: bookmarkIds });
+  }
+});
+
+/**
+ * POST /api/quiz/bookmarks/toggle
+ * Toggles a bookmark for a specific question ID
+ */
+export const toggleBookmark = asyncHandler(async (req, res) => {
+  const studentId = req.user._id;
+  const { questionId } = req.body;
+
+  if (!questionId) {
+    return res.status(400).json({ success: false, message: 'questionId is required' });
+  }
+
+  const existing = await Bookmark.findOne({ studentId, questionId });
+  if (existing) {
+    await Bookmark.deleteOne({ _id: existing._id });
+    res.status(200).json({ success: true, message: 'Bookmark removed', action: 'removed' });
+  } else {
+    await Bookmark.create({ studentId, questionId });
+    res.status(200).json({ success: true, message: 'Bookmark added', action: 'added' });
+  }
+});
+
+export const submitPracticeQuestion = asyncHandler(async (req, res) => {
+  const studentId = req.user._id;
+  const { subjectId, subjectName, questionId, isCorrect, timeTaken } = req.body;
+  
+  if (!questionId) {
+    return res.status(400).json({ success: false, message: 'Missing questionId' });
+  }
+
+  await PracticeAttempt.create({ 
+    studentId, 
+    subjectId, 
+    questionId, 
+    isCorrect, 
+    timeTaken: timeTaken || 0 
+  });
+
+  res.json({ success: true });
+});
+
+export const getPYQProgress = asyncHandler(async (req, res) => {
+  const studentId = req.user._id;
+
+  const practiceAttempts = await PracticeAttempt.find({ studentId }).populate('subjectId', 'name');
+
+  const correctQs = new Set();
+  const wrongQs = new Set();
+  let totalTime = 0;
+  let totalAnswered = 0;
+
+  practiceAttempts.forEach(attempt => {
+    totalTime += attempt.timeTaken || 0;
+    totalAnswered++;
+    
+    if (attempt.isCorrect) {
+      correctQs.add(attempt.questionId.toString());
+      wrongQs.delete(attempt.questionId.toString());
+    } else {
+      if (!correctQs.has(attempt.questionId.toString())) {
+        wrongQs.add(attempt.questionId.toString());
+      }
+    }
+  });
+
+  res.json({
+    success: true,
+    data: {
+      correctQs: Array.from(correctQs),
+      wrongQs: Array.from(wrongQs),
+      totalTime,
+      totalAnswered,
+      totalCorrect: correctQs.size,
+      attempts: practiceAttempts // raw flat array
+    }
+  });
+});

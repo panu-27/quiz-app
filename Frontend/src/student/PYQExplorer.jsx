@@ -5,13 +5,13 @@ import {
     AlertTriangle, CheckCircle2, Loader2,
     Eye, EyeOff, X, Calendar,
     Atom, FlaskConical, Dna, ChevronRight, BarChart2,
-    Calculator, Phone,
+    Calculator, Phone, Play, Target,
 } from 'lucide-react';
 import api from '../api/axios.js';
-import { SUBJECT_MAP, YEAR_OPTIONS } from './pyqData';
 import StudentHeader from './StudentHeader';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import PracticeModeOverlay from './PracticeModeOverlay';
 
 // ─── KaTeX singleton ────────────────────────────────────────────────
 const loadKaTeX = (() => {
@@ -39,116 +39,23 @@ const loadKaTeX = (() => {
         return loading;
     };
 })();
-
-const parseMarkdown = (text) => {
-    if (text === undefined || text === null) return '';
-    const textStr = String(text);
-
-    // 1. Extract math blocks to prevent markdown parsing inside them
-    const mathBlocks = [];
-    let placeholderIndex = 0;
-    const mathRegex = /(\$\$[^\$]+\$\$|\$[^\$]+\$)/g;
-
-    let processedText = textStr.replace(mathRegex, (match) => {
-        const placeholder = `__MATH_BLOCK_${placeholderIndex}__`;
-        mathBlocks.push({ placeholder, original: match });
-        placeholderIndex++;
-        return placeholder;
-    });
-
-    // 2. Render markdown formatting on processedText
-    // Bold: **text** or __text__
-    processedText = processedText
-        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-        .replace(/__([^_]+)__/g, '<strong>$1</strong>');
-
-    // Italic: *text* or _text_
-    processedText = processedText
-        .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-        .replace(/_([^_]+)_/g, '<em>$1</em>');
-
-    // Inline code: `text`
-    processedText = processedText
-        .replace(/`([^`]+)`/g, '<code style="background: rgba(0,0,0,0.05); padding: 2px 4px; border-radius: 4px; font-family: monospace; font-size: 0.9em;">$1</code>');
-
-    // Headers
-    processedText = processedText
-        .replace(/^### (.*$)/gim, '<h3 style="font-weight: 700; font-size: 1.1em; margin-top: 8px; margin-bottom: 4px;">$1</h3>')
-        .replace(/^## (.*$)/gim, '<h2 style="font-weight: 700; font-size: 1.2em; margin-top: 10px; margin-bottom: 6px;">$1</h2>')
-        .replace(/^# (.*$)/gim, '<h1 style="font-weight: 800; font-size: 1.3em; margin-top: 12px; margin-bottom: 8px;">$1</h1>');
-
-    // Bullet & Numbered lists
-    const lines = processedText.split('\n');
-    let inList = false;
-    let listType = null;
-    const formattedLines = [];
-
-    for (let line of lines) {
-        const trimmed = line.trim();
-        const isBullet = trimmed.startsWith('- ') || trimmed.startsWith('* ');
-        const isNumber = /^\d+\.\s/.test(trimmed);
-
-        if (isBullet) {
-            if (!inList || listType !== 'ul') {
-                if (inList) formattedLines.push(`</${listType}>`);
-                formattedLines.push('<ul style="list-style-type: disc; padding-left: 20px; margin: 4px 0;">');
-                inList = true;
-                listType = 'ul';
-            }
-            const content = trimmed.substring(2);
-            formattedLines.push(`<li style="margin: 2px 0;">${content}</li>`);
-        } else if (isNumber) {
-            if (!inList || listType !== 'ol') {
-                if (inList) formattedLines.push(`</${listType}>`);
-                formattedLines.push('<ol style="list-style-type: decimal; padding-left: 20px; margin: 4px 0;">');
-                inList = true;
-                listType = 'ol';
-            }
-            const content = trimmed.replace(/^\d+\.\s/, '');
-            formattedLines.push(`<li style="margin: 2px 0;">${content}</li>`);
-        } else {
-            if (inList) {
-                formattedLines.push(`</${listType}>`);
-                inList = false;
-                listType = null;
-            }
-            formattedLines.push(line);
-        }
-    }
-    if (inList) {
-        formattedLines.push(`</${listType}>`);
-    }
-
-    processedText = formattedLines.join('\n');
-
-    // Line breaks
-    processedText = processedText.replace(/\n/g, '<br />');
-
-    // 3. Restore math blocks
-    mathBlocks.forEach(({ placeholder, original }) => {
-        processedText = processedText.replace(placeholder, original);
-    });
-
-    return processedText;
-};
-
 const KaTeXSpan = ({ html }) => {
-    const ref = useRef(null);
+    const spanRef = useRef(null);
     useEffect(() => {
-        if (!ref.current || html === undefined || html === null) return;
-        ref.current.innerHTML = parseMarkdown(html);
+        if (!spanRef.current || !html) return;
+        spanRef.current.innerHTML = html || '';
         loadKaTeX().then(() => {
-            if (ref.current && window.renderMathInElement)
-                window.renderMathInElement(ref.current, {
-                    delimiters: [
-                        { left: '$$', right: '$$', display: true },
-                        { left: '$', right: '$', display: false }
-                    ],
-                    throwOnError: false,
-                });
+            if (!spanRef.current || !window.renderMathInElement) return;
+            window.renderMathInElement(spanRef.current, {
+                delimiters: [
+                    { left: '$$', right: '$$', display: true },
+                    { left: '$', right: '$', display: false }
+                ],
+                throwOnError: false,
+            });
         });
     }, [html]);
-    return <span ref={ref} />;
+    return <span ref={spanRef} />;
 };
 
 const DIFF_STYLE = {
@@ -284,7 +191,7 @@ const TopicSkeleton = () => {
 // ════════════════════════════════════════════════════════════════════
 // QUESTION ITEM
 // ════════════════════════════════════════════════════════════════════
-export const QuestionItem = ({ q, idx, onReport, isOpen, onToggle, isBookmarked, onToggleBookmark, isDone, onToggleDone }) => {
+export const QuestionItem = ({ q, idx, onReport, isOpen, onToggle, isBookmarked, onToggleBookmark, isDone }) => {
     const { theme } = useTheme();
     const [showSolution, setShowSolution] = useState(false);
     const diff = DIFF_STYLE[q.difficulty] || DIFF_STYLE.Medium;
@@ -443,21 +350,6 @@ export const QuestionItem = ({ q, idx, onReport, isOpen, onToggle, isBookmarked,
                             {showSolution ? 'Hide Solution' : 'View Solution'}
                         </button>
 
-                        <button onClick={() => onToggleDone(q)} style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                            padding: '10px 14px', borderRadius: 10,
-                            background: isDone
-                                ? (theme === 'light' ? '#DEF7EC' : '#064E3B')
-                                : (theme === 'light' ? '#F1F5F9' : '#1F2937'),
-                            color: isDone
-                                ? (theme === 'light' ? '#03543F' : '#A7F3D0')
-                                : (theme === 'light' ? '#64748B' : '#94A3B8'),
-                            border: 'none', cursor: 'pointer',
-                            fontSize: 12, fontWeight: 700,
-                        }}>
-                            <CheckCircle2 size={14} color={isDone ? (theme === 'light' ? '#03543F' : '#34D399') : '#64748B'} />
-                            {isDone ? 'Done' : 'Mark Done'}
-                        </button>
 
                         <button onClick={() => onToggleBookmark(q)} style={{
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -489,7 +381,7 @@ export const QuestionItem = ({ q, idx, onReport, isOpen, onToggle, isBookmarked,
 // ════════════════════════════════════════════════════════════════════
 // TOPIC SECTION
 // ════════════════════════════════════════════════════════════════════
-const TopicSection = ({ topic, topicIdx, accent, filterYear, allQuestions, isExpanded, onToggle, openQuestionId, setOpenQuestionId, onReport, bookmarks, onToggleBookmark, doneQuestions, onToggleDone }) => {
+const TopicSection = ({ topic, topicIdx, accent, filterYear, allQuestions, isExpanded, onToggle, openQuestionId, setOpenQuestionId, onReport, bookmarks, onToggleBookmark, doneQuestions }) => {
     const { theme } = useTheme();
     const dotColor = DOT_COLORS[topicIdx % DOT_COLORS.length];
 
@@ -557,10 +449,9 @@ const TopicSection = ({ topic, topicIdx, accent, filterYear, allQuestions, isExp
                             isOpen={openQuestionId === q._id}
                             onToggle={() => setOpenQuestionId(openQuestionId === q._id ? null : q._id)}
                             onReport={onReport}
-                            isBookmarked={bookmarks.some(b => b._id === q._id)}
+                            isBookmarked={bookmarks.includes(q._id)}
                             onToggleBookmark={onToggleBookmark}
-                            isDone={doneQuestions.some(item => item?.questionId === q._id || item === q._id)}
-                            onToggleDone={onToggleDone}
+                            isDone={doneQuestions.includes(q._id)}
                         />
                     ))}
                 </div>
@@ -578,9 +469,7 @@ export default function PYQExplorer() {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
     const [activeSubjectId, setActiveSubjectId] = useState(subjectId || null);
-
-    const subject = SUBJECT_MAP[activeSubjectId || subjectId];
-    const accent = subject?.accent || '#4F46E5';
+    const activeSub = activeSubjectId || subjectId;
 
 
     const { user } = useAuth();
@@ -589,21 +478,10 @@ export default function PYQExplorer() {
     const [searchSubject, setSearchSubject] = useState('');
     const [chapterTab, setChapterTab] = useState('all');
 
-    const [bookmarks, setBookmarks] = useState(() => {
-        try {
-            return JSON.parse(localStorage.getItem('pyq_bookmarks') || '[]');
-        } catch {
-            return [];
-        }
-    });
+    const [bookmarks, setBookmarks] = useState([]);
 
-    const [doneQuestions, setDoneQuestions] = useState(() => {
-        try {
-            return JSON.parse(localStorage.getItem('pyq_done') || '[]');
-        } catch {
-            return [];
-        }
-    });
+    const [doneQuestions, setDoneQuestions] = useState([]);
+    const [wrongQuestions, setWrongQuestions] = useState([]);
 
     const [activeChapter, setActiveChapter] = useState(null);
     const [viewMode, setViewMode] = useState('all');
@@ -612,6 +490,10 @@ export default function PYQExplorer() {
     const [chaptersMap, setChaptersMap] = useState({});
     const [subjects, setSubjects] = useState([]);
     const [expandedSubject, setExpandedSubject] = useState(subjectId || null);
+
+    // We fetch subjects from DB, so we look it up from the state instead of static dummy data
+    const subject = subjects?.find?.(s => String(s._id) === String(activeSub));
+    const accent = '#4F46E5';
 
     const [allQuestions, setAllQuestions] = useState([]);
     const [questionsLoading, setQLoading] = useState(false);
@@ -623,10 +505,32 @@ export default function PYQExplorer() {
     const [topicOpenQId, setTopicOpenQId] = useState(null);
     const [filterYear, setFilterYear] = useState('All');
     const [yearPickerOpen, setYearPickerOpen] = useState(false);
+    const [yearOptions, setYearOptions] = useState(['All']);
     const [reportTarget, setReportTarget] = useState(null);
     const [reportDone, setReportDone] = useState(false);
     const [selectedReason, setSelectedReason] = useState(null);
     const [showCounsellorPopup, setShowCounsellorPopup] = useState(false);
+
+    // Practice Mode State
+    const [practiceMode, setPracticeMode] = useState(false);
+    const [showPracticeConfirm, setShowPracticeConfirm] = useState(false);
+    const [practiceData, setPracticeData] = useState([]);
+
+    const handleStartPractice = (mistakesOnly = false) => {
+        let chapterQs = allQuestions.filter(q => {
+            if (filterYear !== 'All' && String(q.year) !== filterYear) return false;
+            return true;
+        });
+        if (mistakesOnly) {
+            chapterQs = chapterQs.filter(q => wrongQuestions.includes(q._id));
+        }
+        if (chapterQs.length === 0) {
+            alert(mistakesOnly ? "No mistakes to practice in this chapter!" : "No questions found.");
+            return;
+        }
+        setPracticeData(chapterQs);
+        setShowPracticeConfirm(true);
+    };
 
     useEffect(() => {
         if (showCounsellorPopup) {
@@ -640,22 +544,49 @@ export default function PYQExplorer() {
     }, [showCounsellorPopup]);
 
     useEffect(() => {
-        localStorage.setItem('pyq_bookmarks', JSON.stringify(bookmarks));
-    }, [bookmarks]);
-
-    useEffect(() => {
-        localStorage.setItem('pyq_done', JSON.stringify(doneQuestions));
-    }, [doneQuestions]);
-
-    const handleToggleBookmark = useCallback((question) => {
-        setBookmarks(prev => {
-            const exists = prev.some(b => b._id === question._id);
-            if (exists) {
-                return prev.filter(b => b._id !== question._id);
-            } else {
-                return [...prev, question];
+        if (!user) return;
+        const fetchBookmarks = async () => {
+            try {
+                const res = await api.get('/quiz/bookmarks');
+                if (res.data?.success) {
+                    setBookmarks(res.data.data);
+                }
+            } catch (err) {
+                console.error("Error fetching bookmarks:", err);
             }
-        });
+        };
+        const fetchPYQProgress = async () => {
+            if (!user) return;
+            try {
+                const res = await api.get('/quiz/pyq-progress');
+                if (res.data?.success) {
+                    setDoneQuestions(res.data.data.correctQs || []);
+                    setWrongQuestions(res.data.data.wrongQs || []);
+                }
+            } catch (err) {
+                console.error("Failed to fetch PYQ progress:", err);
+            }
+        };
+        fetchBookmarks();
+        fetchPYQProgress();
+    }, [user, practiceMode]); // Refetch progress when practiceMode ends
+
+
+    const handleToggleBookmark = useCallback(async (question) => {
+        try {
+            const res = await api.post('/quiz/bookmarks/toggle', { questionId: question._id });
+            if (res.data?.success) {
+                setBookmarks(prev => {
+                    if (res.data.action === 'added') {
+                        return [...prev, question._id];
+                    } else {
+                        return prev.filter(id => id !== question._id);
+                    }
+                });
+            }
+        } catch (err) {
+            console.error("Error toggling bookmark:", err);
+        }
     }, []);
 
     const handleToggleDone = useCallback((question) => {
@@ -690,6 +621,16 @@ export default function PYQExplorer() {
                     })
                 );
                 setChaptersMap(cmap);
+
+                try {
+                    const yearRes = await api.get('/quiz/year-range');
+                    const years = yearRes.data?.data?.yearsAvailable || [];
+                    if (years.length) {
+                        setYearOptions(['All', ...years.sort((a,b)=>b-a).map(String)]);
+                    }
+                } catch (yErr) {
+                    console.error("Error loading year range:", yErr);
+                }
             } catch (err) {
                 console.error("Error loading chapters:", err);
             } finally {
@@ -1163,18 +1104,34 @@ export default function PYQExplorer() {
                         </div>
                     </div>
 
-                    {/* Right side: Calendar toggle button */}
-                    <button
-                        onClick={() => setYearPickerOpen(o => !o)}
-                        className={`w-9 h-9 flex items-center justify-center rounded-[10px] border active:scale-95 transition-all flex-shrink-0 ${filterYear !== 'All'
-                            ? 'bg-amber-500 border-amber-500 text-white'
-                            : isDark
-                                ? 'border-[#2A3441] bg-[#161C26] text-white'
-                                : 'border-slate-200 bg-white text-slate-700'
-                            }`}
-                    >
-                        <Calendar size={18} />
-                    </button>
+                    {/* Right side: Practice & Calendar toggle buttons */}
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => handleStartPractice(false)}
+                            title="Practice All"
+                            className={`w-9 h-9 flex items-center justify-center rounded-[10px] border active:scale-95 transition-all flex-shrink-0 bg-[#2563EB] border-[#2563EB] text-white`}
+                        >
+                            <Play size={18} fill="currentColor" />
+                        </button>
+                        <button
+                            onClick={() => handleStartPractice(true)}
+                            title="Practice Mistakes"
+                            className={`w-9 h-9 flex items-center justify-center rounded-[10px] border active:scale-95 transition-all flex-shrink-0 bg-rose-500 border-rose-500 text-white`}
+                        >
+                            <Target size={18} />
+                        </button>
+                        <button
+                            onClick={() => setYearPickerOpen(o => !o)}
+                            className={`w-9 h-9 flex items-center justify-center rounded-[10px] border active:scale-95 transition-all flex-shrink-0 ${filterYear !== 'All'
+                                ? 'bg-amber-500 border-amber-500 text-white'
+                                : isDark
+                                    ? 'border-[#2A3441] bg-[#161C26] text-white'
+                                    : 'border-slate-200 bg-white text-slate-700'
+                                }`}
+                        >
+                            <Calendar size={18} />
+                        </button>
+                    </div>
                 </div>
 
                 {/* 100% width toggle filter */}
@@ -1202,7 +1159,7 @@ export default function PYQExplorer() {
                 {/* Horizontal scrollable year filters (toggled) */}
                 {yearPickerOpen && (
                     <div className="flex gap-2 overflow-x-auto no-scrollbar px-4 pt-1 pb-1">
-                        {YEAR_OPTIONS.map(y => {
+                        {yearOptions.map(y => {
                             const isSelected = filterYear === y;
                             return (
                                 <button
@@ -1251,10 +1208,9 @@ export default function PYQExplorer() {
                                         isOpen={openQuestionId === q._id}
                                         onToggle={() => setOpenQuestionId(openQuestionId === q._id ? null : q._id)}
                                         onReport={setReportTarget}
-                                        isBookmarked={bookmarks.some(b => b._id === q._id)}
+                                        isBookmarked={bookmarks.includes(q._id)}
                                         onToggleBookmark={handleToggleBookmark}
-                                        isDone={doneQuestions.some(item => item.questionId === q._id)}
-                                        onToggleDone={handleToggleDone}
+                                        isDone={doneQuestions.includes(q._id)}
                                     />
                                 ))
                         }
@@ -1491,6 +1447,41 @@ export default function PYQExplorer() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Practice Mode Confirm Modal */}
+            {showPracticeConfirm && (
+                <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center p-6 bg-black/50 backdrop-blur-sm">
+                    <div className={`w-full max-w-sm rounded-2xl p-6 shadow-lg text-center ${isDark ? 'bg-[#161C26]' : 'bg-white'}`}>
+                        <div className="w-16 h-16 rounded-full bg-[#2563EB]/10 flex items-center justify-center mx-auto mb-4">
+                            <Play size={28} className="text-[#2563EB] ml-1" fill="currentColor" />
+                        </div>
+                        <h2 className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-800'}`}>Start Practice Mode?</h2>
+                        <p className={`text-sm mb-6 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                            You are about to start a practice session for {activeChapter?.name} with {practiceData.length} questions.
+                        </p>
+                        <div className="flex gap-3">
+                            <button onClick={() => setShowPracticeConfirm(false)} className={`flex-1 py-3 rounded-xl font-bold text-sm ${isDark ? 'bg-[#1F2937] text-slate-300' : 'bg-slate-100 text-slate-600'}`}>
+                                Cancel
+                            </button>
+                            <button onClick={() => { setShowPracticeConfirm(false); setPracticeMode(true); }} className="flex-1 py-3 rounded-xl font-bold text-sm bg-[#2563EB] text-white">
+                                Start Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Practice Mode Overlay Component */}
+            {practiceMode && (
+                <PracticeModeOverlay 
+                    questions={practiceData}
+                    subject={subject}
+                    chapterName={activeChapter?.name || 'Practice'}
+                    isDark={isDark}
+                    theme={theme}
+                    onClose={() => setPracticeMode(false)}
+                />
             )}
         </div>
     );

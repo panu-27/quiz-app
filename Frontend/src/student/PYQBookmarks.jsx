@@ -28,13 +28,7 @@ export default function PYQBookmarks() {
 
     const goal = localStorage.getItem("selectedGoal") || "MHT CET";
 
-    const [bookmarks, setBookmarks] = useState(() => {
-        try {
-            return JSON.parse(localStorage.getItem('pyq_bookmarks') || '[]');
-        } catch {
-            return [];
-        }
-    });
+    const [bookmarks, setBookmarks] = useState([]);
     const [activeSubjectFilter, setActiveSubjectFilter] = useState(null);
     const [searchBookmarks, setSearchBookmarks] = useState('');
     // Filter bookmarks by subject and search query
@@ -70,22 +64,39 @@ export default function PYQBookmarks() {
     const [selectedReason, setSelectedReason] = useState(null);
 
     useEffect(() => {
-        localStorage.setItem('pyq_bookmarks', JSON.stringify(bookmarks));
-    }, [bookmarks]);
+        if (!user) return;
+        const fetchBookmarks = async () => {
+            try {
+                const res = await api.get('/quiz/bookmarks?populated=true');
+                if (res.data?.success) {
+                    setBookmarks(res.data.data);
+                }
+            } catch (err) {
+                console.error("Error fetching bookmarks:", err);
+            }
+        };
+        fetchBookmarks();
+    }, [user]);
 
     useEffect(() => {
         localStorage.setItem('pyq_done', JSON.stringify(doneQuestions));
     }, [doneQuestions]);
 
-    const handleToggleBookmark = (question) => {
-        setBookmarks(prev => {
-            const exists = prev.some(b => b._id === question._id);
-            if (exists) {
-                return prev.filter(b => b._id !== question._id);
-            } else {
-                return [...prev, question];
+    const handleToggleBookmark = async (question) => {
+        try {
+            const res = await api.post('/quiz/bookmarks/toggle', { questionId: question._id });
+            if (res.data?.success) {
+                setBookmarks(prev => {
+                    if (res.data.action === 'added') {
+                        return [...prev, question];
+                    } else {
+                        return prev.filter(b => b._id !== question._id);
+                    }
+                });
             }
-        });
+        } catch (err) {
+            console.error("Error toggling bookmark:", err);
+        }
     };
 
     const handleToggleDone = (question) => {

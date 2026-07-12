@@ -36,7 +36,12 @@ const attemptQuestionSchema = new mongoose.Schema({
     default: -1
   },
 
-  explanation: String
+  explanation: String,
+
+  timeTakenSeconds: {
+    type: Number,
+    default: 0
+  }
 
 }, { _id: false });
 
@@ -119,8 +124,13 @@ const testAttemptSchema = new mongoose.Schema({
 
   testId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Test",
-    required: true
+    ref: "Test" // no longer required, since PYQ practice won't have one
+  },
+
+  attemptType: {
+    type: String,
+    enum: ["test", "practice"],
+    default: "test"
   },
 
   studentId: {

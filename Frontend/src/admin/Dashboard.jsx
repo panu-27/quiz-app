@@ -12,99 +12,12 @@ import {
   Video, Brain, Repeat, PenLine,
 } from "lucide-react";
 
-/* ─── Global styles injected once ───────────────────────────────── */
-const GLOBAL_CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap');
-  * { box-sizing: border-box; }
-  body, .admin-dash * { font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif; }
-
-  @keyframes spin { to { transform: rotate(360deg); } }
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(12px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes slideIn {
-    from { opacity: 0; transform: translateX(-50%) translateY(16px); }
-    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
-  }
-  @keyframes progressShimmer {
-    0%   { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
-  }
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50%       { opacity: 0.5; }
-  }
-  @keyframes popIn {
-    0%   { transform: scale(0.88); opacity: 0; }
-    60%  { transform: scale(1.03); }
-    100% { transform: scale(1);    opacity: 1; }
-  }
-
-  .dash-card {
-    background: #fff;
-    border-radius: 18px;
-    border: 1.5px solid #f1f1f4;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.03);
-  }
-
-  .quick-link-btn {
-    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
-  }
-  .quick-link-btn:hover {
-    transform: translateY(-2px);
-  }
-
-  .subject-btn {
-    transition: all 0.15s ease;
-  }
-  .subject-btn:hover:not(.active) {
-    border-color: #c4b5fd !important;
-    background: #faf8ff !important;
-    transform: translateY(-1px);
-  }
-
-  .cat-btn {
-    transition: all 0.15s ease;
-  }
-  .cat-btn:hover:not(.active) {
-    border-color: #c4b5fd !important;
-    background: #f5f3ff !important;
-    color: #7c3aed !important;
-  }
-
-  .batch-btn {
-    transition: all 0.15s ease;
-  }
-  .batch-btn:hover:not(.active) {
-    border-color: #a78bfa !important;
-    background: #f5f3ff !important;
-    color: #6d28d9 !important;
-  }
-
-  .upload-btn {
-    transition: opacity 0.15s, transform 0.15s;
-  }
-  .upload-btn:hover { opacity: 0.88 !important; transform: translateY(-1px); }
-  .upload-btn:active { transform: translateY(0); }
-
-  .dropzone { transition: border-color 0.25s, background 0.25s; }
-
-  .chapter-opt:hover { background: #f5f3ff !important; color: #7c3aed !important; }
-
-  .page-enter { animation: fadeUp 0.3s ease both; }
-
-  .step-pill {
-    transition: all 0.2s ease;
-  }
-`;
-
 /* ─── Config ─────────────────────────────────────────────────────── */
 const SUBJECTS = [
-  { id: "phy", name: "Physics",   icon: <Wind size={16} />,   color: "#6366f1", bg: "#eef2ff", accent: "#818cf8" },
-  { id: "che", name: "Chemistry", icon: <Beaker size={16} />, color: "#059669", bg: "#ecfdf5", accent: "#34d399" },
-  { id: "mat", name: "Maths",     icon: <Binary size={16} />, color: "#7c3aed", bg: "#f5f3ff", accent: "#a78bfa" },
-  { id: "bio", name: "Biology",   icon: <Atom size={16} />,   color: "#db2777", bg: "#fdf2f8", accent: "#f472b6" },
+  { id: "phy", name: "Physics",   icon: <Wind size={16} />,   color: "text-indigo-500",   bg: "bg-indigo-50",   border: "border-indigo-100", activeBorder: "border-indigo-500", shadow: "shadow-indigo-500/10" },
+  { id: "che", name: "Chemistry", icon: <Beaker size={16} />, color: "text-emerald-600",  bg: "bg-emerald-50",  border: "border-emerald-100", activeBorder: "border-emerald-500", shadow: "shadow-emerald-500/10" },
+  { id: "mat", name: "Maths",     icon: <Binary size={16} />, color: "text-violet-600",   bg: "bg-violet-50",   border: "border-violet-100", activeBorder: "border-violet-500", shadow: "shadow-violet-500/10" },
+  { id: "bio", name: "Biology",   icon: <Atom size={16} />,   color: "text-pink-600",     bg: "bg-pink-50",     border: "border-pink-100", activeBorder: "border-pink-500", shadow: "shadow-pink-500/10" },
 ];
 
 const CHAPTERS = {
@@ -186,9 +99,9 @@ const CATEGORIES = [
 ];
 
 const QUICK_LINKS = [
-  { title: "My Tests",    desc: "View & manage sessions",  icon: <FileText size={20} />,   path: "/admin/tests",       color: "#6366f1", bg: "linear-gradient(135deg,#eef2ff,#e0e7ff)" },
-  { title: "Create Test", desc: "AI-powered & manual",     icon: <PlusCircle size={20} />, path: "/admin/pdf",         color: "#7c3aed", bg: "linear-gradient(135deg,#f5f3ff,#ede9fe)" },
-  { title: "Performance", desc: "Grades & analytics",      icon: <BarChart3 size={20} />,  path: "/admin/performance", color: "#059669", bg: "linear-gradient(135deg,#ecfdf5,#d1fae5)" },
+  { title: "My Tests",    desc: "View & manage sessions",  icon: <FileText size={20} />,   path: "/admin/tests",       color: "text-indigo-600", bg: "bg-indigo-50", hover: "hover:shadow-indigo-500/20 hover:border-indigo-200" },
+  { title: "Create Test", desc: "AI-powered & manual",     icon: <PlusCircle size={20} />, path: "/admin/pdf",         color: "text-violet-600", bg: "bg-violet-50", hover: "hover:shadow-violet-500/20 hover:border-violet-200" },
+  { title: "Performance", desc: "Grades & analytics",      icon: <BarChart3 size={20} />,  path: "/admin/performance", color: "text-emerald-600", bg: "bg-emerald-50", hover: "hover:shadow-emerald-500/20 hover:border-emerald-200" },
 ];
 
 function greeting() {
@@ -202,46 +115,35 @@ function greeting() {
 const steps = ["Subject", "Chapter", "Category", "File & Deploy"];
 
 const StepBar = ({ current }) => (
-  <div style={{ display: "flex", alignItems: "center", padding: "20px 24px 4px", gap: 0 }}>
+  <div className="flex items-center px-6 pt-5 pb-1 gap-0 overflow-x-auto no-scrollbar">
     {steps.map((s, i) => {
       const done   = i < current;
       const active = i === current;
       return (
         <React.Fragment key={i}>
-          <div className="step-pill" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-            <div style={{
-              width: 30, height: 30, borderRadius: "50%", fontSize: 11, fontWeight: 800,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              background: done ? "#7c3aed" : active ? "#7c3aed" : "#f1f1f4",
-              color: done || active ? "#fff" : "#9ca3af",
-              border: `2.5px solid ${done || active ? "#7c3aed" : "#e5e7eb"}`,
-              boxShadow: active ? "0 0 0 4px #ede9fe" : "none",
-              transition: "all 0.25s",
-            }}>
+          <div className="flex flex-col items-center gap-1.5 transition-all duration-200">
+            <div className={`
+              w-8 h-8 rounded-full text-[11px] font-extrabold flex items-center justify-center transition-all duration-300
+              ${done ? 'bg-violet-600 text-white border-2 border-violet-600' : 
+                active ? 'bg-violet-600 text-white border-2 border-violet-600 shadow-[0_0_0_4px_#ede9fe]' : 
+                'bg-slate-100 text-slate-400 border-2 border-slate-200'}
+            `}>
               {done ? "✓" : i + 1}
             </div>
-            <span style={{
-              fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase",
-              color: done || active ? "#7c3aed" : "#c4c4cc",
-              whiteSpace: "nowrap",
-              transition: "color 0.2s",
-            }}>
+            <span className={`
+              text-[10px] font-bold tracking-widest uppercase whitespace-nowrap transition-colors duration-200
+              ${done || active ? 'text-violet-600' : 'text-slate-300'}
+            `}>
               {s}
             </span>
           </div>
           {i < steps.length - 1 && (
-            <div style={{
-              flex: 1, height: 2.5, margin: "0 6px", marginBottom: 22, borderRadius: 99,
-              background: done ? "#7c3aed" : "#f1f1f4",
-              transition: "background 0.35s ease",
-              overflow: "hidden",
-              position: "relative",
-            }}>
+            <div className={`
+              flex-1 h-[3px] mx-2 mb-5 rounded-full relative overflow-hidden transition-colors duration-300 min-w-[30px]
+              ${done ? 'bg-violet-600' : 'bg-slate-100'}
+            `}>
               {done && (
-                <div style={{
-                  position: "absolute", inset: 0,
-                  background: "linear-gradient(90deg, #7c3aed, #6366f1)",
-                }} />
+                <div className="absolute inset-0 bg-gradient-to-r from-violet-600 to-indigo-500" />
               )}
             </div>
           )}
@@ -265,64 +167,44 @@ const ChapterSelect = ({ subjectId, value, onChange, disabled }) => {
   }, []);
 
   return (
-    <div ref={ref} style={{ position: "relative" }}>
+    <div ref={ref} className="relative">
       <button
         onClick={() => !disabled && setOpen(o => !o)}
-        style={{
-          all: "unset", width: "100%", boxSizing: "border-box",
-          padding: "11px 14px", borderRadius: 12, cursor: disabled ? "not-allowed" : "pointer",
-          border: `2px solid ${value ? "#7c3aed" : "#e8e8ee"}`,
-          background: value ? "#faf8ff" : "#fafafa",
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          fontSize: 13, fontWeight: 600,
-          color: value ? "#5b21b6" : "#b0b0be",
-          opacity: disabled ? 0.45 : 1,
-          transition: "all 0.15s",
-          boxShadow: value ? "0 0 0 3px #ede9fe" : "none",
-        }}
+        disabled={disabled}
+        className={`
+          w-full px-4 py-2.5 rounded-xl flex items-center justify-between text-[13px] font-semibold transition-all duration-150
+          border-2 ${value ? 'border-violet-600 bg-violet-50 text-violet-800 shadow-[0_0_0_3px_#ede9fe]' : 'border-slate-200 bg-slate-50 text-slate-400 hover:border-violet-300 hover:bg-violet-50/50'}
+          ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+        `}
       >
-        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <span className="truncate">
           {selected
-            ? <><span style={{ color: "#a78bfa", fontFamily: "'DM Mono', monospace", fontSize: 11, marginRight: 6 }}>{selected.id.split("-")[1]}</span>{selected.label}</>
+            ? <><span className="text-violet-400 font-mono text-[11px] mr-2">{selected.id.split("-")[1]}</span>{selected.label}</>
             : "Select chapter…"}
         </span>
-        <ChevronDown size={14} style={{ flexShrink: 0, color: value ? "#7c3aed" : "#c4c4cc", transition: "transform 0.2s", transform: open ? "rotate(180deg)" : "rotate(0deg)" }} />
+        <ChevronDown size={14} className={`shrink-0 transition-transform duration-200 ${value ? 'text-violet-600' : 'text-slate-300'} ${open ? 'rotate-180' : 'rotate-0'}`} />
       </button>
 
       {open && (
-        <div style={{
-          position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, zIndex: 200,
-          background: "#fff", border: "1.5px solid #ede9fe", borderRadius: 14,
-          boxShadow: "0 12px 40px rgba(124,58,237,0.12), 0 2px 8px rgba(0,0,0,0.06)",
-          maxHeight: 256, overflowY: "auto",
-          animation: "fadeUp 0.15s ease both",
-        }}>
+        <div className="absolute top-[calc(100%+6px)] left-0 right-0 z-50 bg-white border border-violet-100 rounded-xl shadow-[0_12px_40px_rgba(124,58,237,0.12),0_2px_8px_rgba(0,0,0,0.06)] max-h-64 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-150">
           {chapters.map((ch, idx) => (
             <button
               key={ch.id}
-              className="chapter-opt"
               onClick={() => { onChange(ch.id); setOpen(false); }}
-              style={{
-                all: "unset", width: "100%", boxSizing: "border-box",
-                display: "flex", alignItems: "center", gap: 10,
-                padding: "9px 14px", cursor: "pointer", fontSize: 13, fontWeight: 500,
-                background: value === ch.id ? "#f5f3ff" : "transparent",
-                color: value === ch.id ? "#7c3aed" : "#374151",
-                borderBottom: idx < chapters.length - 1 ? "1px solid #f7f7fb" : "none",
-                transition: "background 0.12s, color 0.12s",
-              }}
+              className={`
+                w-full flex items-center gap-3 px-3.5 py-2 cursor-pointer text-[13px] font-medium transition-colors
+                ${value === ch.id ? 'bg-violet-50 text-violet-700' : 'bg-transparent text-slate-700 hover:bg-violet-50/50 hover:text-violet-600'}
+                ${idx < chapters.length - 1 ? 'border-b border-slate-50' : ''}
+              `}
             >
-              <span style={{
-                width: 22, height: 22, borderRadius: 6, flexShrink: 0,
-                background: value === ch.id ? "#7c3aed" : "#f1f1f4",
-                color: value === ch.id ? "#fff" : "#a0a0b0",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 10, fontWeight: 800, fontFamily: "'DM Mono', monospace",
-              }}>
+              <span className={`
+                w-5 h-5 rounded-md shrink-0 flex items-center justify-center text-[10px] font-extrabold font-mono
+                ${value === ch.id ? 'bg-violet-600 text-white' : 'bg-slate-100 text-slate-400'}
+              `}>
                 {String(idx + 1).padStart(2, "0")}
               </span>
-              <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ch.label}</span>
-              {value === ch.id && <CheckCircle2 size={14} style={{ color: "#7c3aed", flexShrink: 0 }} />}
+              <span className="flex-1 truncate text-left">{ch.label}</span>
+              {value === ch.id && <CheckCircle2 size={14} className="text-violet-600 shrink-0" />}
             </button>
           ))}
         </div>
@@ -333,14 +215,11 @@ const ChapterSelect = ({ subjectId, value, onChange, disabled }) => {
 
 /* ─── Section label ─────────────────────────────────────────────── */
 const SectionLabel = ({ number, children }) => (
-  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-    <div style={{
-      width: 20, height: 20, borderRadius: 6, background: "#7c3aed",
-      color: "#fff", fontSize: 10, fontWeight: 800,
-      display: "flex", alignItems: "center", justifyContent: "center",
-      flexShrink: 0,
-    }}>{number}</div>
-    <span style={{ fontSize: 11, fontWeight: 700, color: "#64748b", letterSpacing: "0.07em", textTransform: "uppercase" }}>{children}</span>
+  <div className="flex items-center gap-2 mb-3">
+    <div className="w-5 h-5 rounded-md bg-violet-600 text-white text-[10px] font-extrabold flex items-center justify-center shrink-0">
+      {number}
+    </div>
+    <span className="text-[11px] font-bold text-slate-500 tracking-widest uppercase flex items-center gap-1.5">{children}</span>
   </div>
 );
 
@@ -367,13 +246,6 @@ export default function AdminDashboard() {
   const step = !subjectId ? 0 : !chapterId ? 1 : !category ? 2 : 3;
 
   useEffect(() => {
-    /* Inject CSS once */
-    if (!document.getElementById("admin-dash-css")) {
-      const tag = document.createElement("style");
-      tag.id = "admin-dash-css";
-      tag.textContent = GLOBAL_CSS;
-      document.head.appendChild(tag);
-    }
     api.get("/teacher/my-batches")
       .then(r => setBatches(Array.isArray(r.data) ? r.data : []))
       .catch(console.error)
@@ -449,25 +321,25 @@ export default function AdminDashboard() {
     const cat = category  ? CATEGORIES.find(c => c.id === category) : null;
 
     return (
-      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", padding: "4px 24px 0" }}>
-        <span style={{ display: "flex", alignItems: "center", gap: 5, background: sub.bg, color: sub.color, fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 99, border: `1px solid ${sub.color}22` }}>
+      <div className="flex items-center gap-1.5 flex-wrap px-6 pt-1">
+        <span className={`flex items-center gap-1.5 ${sub.bg} ${sub.color} text-[11px] font-bold px-2.5 py-1 rounded-full border ${sub.border}`}>
           {sub.icon} {sub.name}
         </span>
         {ch && <>
-          <ChevronRight size={12} style={{ color: "#d1d5db" }} />
-          <span style={{ fontSize: 11, fontWeight: 600, background: "#f5f3ff", color: "#7c3aed", padding: "4px 10px", borderRadius: 99, border: "1px solid #ddd6fe" }}>
+          <ChevronRight size={12} className="text-slate-300" />
+          <span className="text-[11px] font-semibold bg-violet-50 text-violet-700 px-2.5 py-1 rounded-full border border-violet-200">
             {ch.label}
           </span>
         </>}
         {cat && <>
-          <ChevronRight size={12} style={{ color: "#d1d5db" }} />
-          <span style={{ fontSize: 11, fontWeight: 600, background: "#f0fdf4", color: "#059669", padding: "4px 10px", borderRadius: 99, border: "1px solid #a7f3d0" }}>
+          <ChevronRight size={12} className="text-slate-300" />
+          <span className="text-[11px] font-semibold bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full border border-emerald-200">
             {cat.label}
           </span>
         </>}
         <button
           onClick={reset}
-          style={{ all: "unset", cursor: "pointer", marginLeft: 2, display: "flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "#94a3b8", padding: "4px 8px", borderRadius: 99, border: "1px solid #e5e7eb" }}
+          className="ml-0.5 flex items-center gap-1 text-[11px] font-semibold text-slate-400 hover:text-slate-600 px-2 py-1 rounded-full border border-slate-200 hover:bg-slate-50 transition-colors"
         >
           <RotateCcw size={10} /> Reset
         </button>
@@ -477,73 +349,62 @@ export default function AdminDashboard() {
 
   return (
     <AdminLayout>
-      <style>{GLOBAL_CSS}</style>
       <PageHeader
         title={`${greeting()}, ${user?.name?.split(" ")[0] || "Admin"} 👋`}
         subtitle="Here's your admin overview"
         right={
-          <div style={{ display: "flex", alignItems: "center", gap: 7, background: "#f0fdf4", border: "1.5px solid #bbf7d0", borderRadius: 10, padding: "6px 14px" }}>
-            <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 0 3px #bbf7d0", animation: "pulse 2s ease-in-out infinite" }} />
-            <span style={{ fontSize: 11, fontWeight: 800, color: "#166534", textTransform: "uppercase", letterSpacing: "0.08em" }}>Live Sync</span>
+          <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-1.5 shadow-sm">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_0_3px_#bbf7d0] animate-pulse" />
+            <span className="text-[11px] font-extrabold text-emerald-800 uppercase tracking-widest">Live Sync</span>
           </div>
         }
       />
 
-      <div className="page-enter admin-dash" style={{ flex: 1, overflowY: "auto", padding: "24px clamp(16px,3vw,28px) 56px", background: "#fafafa" }}>
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-slate-50/50 pb-20">
 
         {/* Quick links */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 24 }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
           {QUICK_LINKS.map((q, i) => (
             <button
               key={i}
               onClick={() => navigate(q.path)}
-              className="dash-card quick-link-btn"
-              style={{
-                all: "unset", padding: "18px 20px", cursor: "pointer",
-                display: "flex", alignItems: "center", gap: 14,
-                borderRadius: 18, border: "1.5px solid #f1f1f4",
-                background: "#fff",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.03)",
-              }}
-              onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 8px 28px ${q.color}20`; e.currentTarget.style.borderColor = q.color + "30"; }}
-              onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.03)"; e.currentTarget.style.borderColor = "#f1f1f4"; }}
+              className={`
+                group text-left p-5 rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-200
+                flex items-center gap-4 ${q.hover} hover:-translate-y-0.5
+              `}
             >
-              <div style={{
-                width: 46, height: 46, borderRadius: 13, background: q.bg,
-                color: q.color, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-              }}>
+              <div className={`w-12 h-12 rounded-xl ${q.bg} ${q.color} flex items-center justify-center shrink-0 transition-transform group-hover:scale-110`}>
                 {q.icon}
               </div>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>{q.title}</div>
-                <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2, fontWeight: 500 }}>{q.desc}</div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[15px] font-bold text-slate-900 group-hover:text-violet-700 transition-colors">{q.title}</div>
+                <div className="text-[11px] text-slate-500 font-medium mt-0.5">{q.desc}</div>
               </div>
-              <div style={{ marginLeft: "auto", flexShrink: 0, width: 28, height: 28, borderRadius: 8, background: "#f8f8fb", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <ArrowRight size={13} style={{ color: "#c4c4cc" }} />
+              <div className="shrink-0 w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center group-hover:bg-violet-50 transition-colors">
+                <ArrowRight size={14} className="text-slate-400 group-hover:text-violet-600 transition-colors" />
               </div>
             </button>
           ))}
         </div>
 
         {/* ── Upload panel ── */}
-        <div className="dash-card" style={{ overflow: "visible" }}>
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-visible">
 
           {/* Panel header */}
-          <div style={{ padding: "18px 24px", borderBottom: "1.5px solid #f7f7fb", display: "flex", alignItems: "center", gap: 14, background: "linear-gradient(to right, #faf8ff, #fff)", borderRadius: "18px 18px 0 0" }}>
-            <div style={{
-              width: 38, height: 38, borderRadius: 11, background: "linear-gradient(135deg,#7c3aed,#6366f1)",
-              color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
-              boxShadow: "0 4px 14px rgba(124,58,237,0.32)",
-            }}>
-              <Upload size={16} />
+          <div className="px-6 py-5 border-b border-slate-100 flex items-center gap-4 bg-gradient-to-r from-violet-50/50 to-transparent rounded-t-3xl">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-violet-500/30">
+              <Upload size={18} />
             </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: "#0f172a" }}>Deploy Study Material</div>
-              <div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500, marginTop: 1 }}>Upload PDFs to student vaults — follow the steps below</div>
+            <div className="flex-1">
+              <div className="text-base font-extrabold text-slate-900 tracking-tight">Deploy Study Material</div>
+              <div className="text-xs text-slate-500 font-medium mt-0.5">Upload PDFs to student vaults — follow the steps below</div>
             </div>
             {(status === "staged" || status === "success") && (
-              <button onClick={reset} style={{ all: "unset", cursor: "pointer", display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, color: "#94a3b8", padding: "6px 12px", borderRadius: 8, border: "1.5px solid #e5e7eb", background: "#fafafa" }}>
-                <RotateCcw size={11} /> Reset
+              <button 
+                onClick={reset} 
+                className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors"
+              >
+                <RotateCcw size={12} /> Reset
               </button>
             )}
           </div>
@@ -555,43 +416,39 @@ export default function AdminDashboard() {
           <SelectionCrumb />
 
           {/* Two-col body */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(290px, 1fr))", marginTop: 18 }}>
+          <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] mt-4">
 
             {/* LEFT col */}
-            <div style={{ padding: "4px 24px 26px", borderRight: "1.5px solid #f7f7fb", display: "flex", flexDirection: "column", gap: 22 }}>
+            <div className="px-6 py-6 lg:border-r border-slate-100 flex flex-col gap-6">
 
               {/* Step 1 — Subject */}
               <div>
                 <SectionLabel number="1">Subject</SectionLabel>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <div className="grid grid-cols-2 gap-2.5">
                   {SUBJECTS.map(s => (
                     <button
                       key={s.id}
-                      className={`subject-btn${subjectId === s.id ? " active" : ""}`}
                       onClick={() => {
                         if (status !== "idle" && status !== "staged") return;
                         setSubjectId(s.id);
                         if (subjectId !== s.id) { setChapterId(null); setCategory(null); }
                       }}
-                      style={{
-                        all: "unset", padding: "10px 12px", borderRadius: 12, cursor: "pointer",
-                        border: `2px solid ${subjectId === s.id ? s.color : "#e8e8ee"}`,
-                        background: subjectId === s.id ? s.bg : "#fafafa",
-                        display: "flex", alignItems: "center", gap: 9,
-                        boxShadow: subjectId === s.id ? `0 0 0 3px ${s.color}18, 0 2px 8px ${s.color}14` : "none",
-                        opacity: status === "uploading" ? 0.55 : 1,
-                      }}
+                      className={`
+                        p-2.5 rounded-xl flex items-center gap-2.5 transition-all duration-200 border-2 text-left
+                        ${subjectId === s.id 
+                          ? `${s.bg} ${s.activeBorder} ${s.shadow} shadow-md` 
+                          : `bg-slate-50 border-slate-200 hover:border-violet-300 hover:bg-violet-50/30`
+                        }
+                        ${status === "uploading" ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
+                      `}
                     >
-                      <div style={{
-                        width: 28, height: 28, borderRadius: 8,
-                        background: subjectId === s.id ? s.color : "#f1f1f4",
-                        color: subjectId === s.id ? "#fff" : "#a0a0b0",
-                        display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                        transition: "all 0.15s",
-                      }}>
+                      <div className={`
+                        w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors
+                        ${subjectId === s.id ? `bg-white ${s.color} shadow-sm` : "bg-slate-200 text-slate-500"}
+                      `}>
                         {s.icon}
                       </div>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: subjectId === s.id ? s.color : "#4b5563" }}>
+                      <span className={`text-[13px] font-bold ${subjectId === s.id ? s.color : "text-slate-600"}`}>
                         {s.name}
                       </span>
                     </button>
@@ -600,7 +457,7 @@ export default function AdminDashboard() {
               </div>
 
               {/* Step 2 — Chapter */}
-              <div style={{ opacity: subjectId ? 1 : 0.38, transition: "opacity 0.25s", pointerEvents: subjectId ? "auto" : "none" }}>
+              <div className={`transition-opacity duration-300 ${subjectId ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
                 <SectionLabel number="2">Chapter</SectionLabel>
                 <ChapterSelect
                   subjectId={subjectId}
@@ -611,22 +468,19 @@ export default function AdminDashboard() {
               </div>
 
               {/* Step 3 — Category */}
-              <div style={{ opacity: chapterId ? 1 : 0.38, transition: "opacity 0.25s", pointerEvents: chapterId ? "auto" : "none" }}>
+              <div className={`transition-opacity duration-300 ${chapterId ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
                 <SectionLabel number="3">Category</SectionLabel>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                <div className="flex flex-wrap gap-2">
                   {CATEGORIES.map(c => (
                     <button
                       key={c.id}
-                      className={`cat-btn${category === c.id ? " active" : ""}`}
                       onClick={() => status !== "uploading" && setCategory(c.id)}
-                      style={{
-                        all: "unset", display: "flex", alignItems: "center", gap: 5,
-                        padding: "6px 12px", borderRadius: 9, fontSize: 12, fontWeight: 600, cursor: "pointer",
-                        background: category === c.id ? "#7c3aed" : "#f7f7fb",
-                        color:      category === c.id ? "#fff"    : "#64748b",
-                        border:     `1.5px solid ${category === c.id ? "#7c3aed" : "#e8e8ee"}`,
-                        boxShadow:  category === c.id ? "0 3px 10px rgba(124,58,237,0.28)" : "none",
-                      }}
+                      className={`
+                        flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 border-2
+                        ${category === c.id 
+                          ? 'bg-violet-600 text-white border-violet-600 shadow-md shadow-violet-500/30' 
+                          : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-violet-400 hover:text-violet-600 hover:bg-violet-50'}
+                      `}
                     >
                       {c.icon} {c.label}
                     </button>
@@ -635,31 +489,29 @@ export default function AdminDashboard() {
               </div>
 
               {/* Step 4 — Batches */}
-              <div style={{ opacity: category ? 1 : 0.38, transition: "opacity 0.25s", pointerEvents: category ? "auto" : "none" }}>
+              <div className={`transition-opacity duration-300 ${category ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
                 <SectionLabel number="4">
-                  <span style={{ display: "flex", alignItems: "center", gap: 5 }}><Users size={11} /> Batches</span>
+                  <span className="flex items-center gap-1.5"><Users size={12} /> Batches</span>
                 </SectionLabel>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                <div className="flex flex-wrap gap-2">
                   {batchLoad
-                    ? <span style={{ fontSize: 12, color: "#94a3b8", display: "flex", alignItems: "center", gap: 6, fontWeight: 500 }}>
-                        <Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} />Loading batches…
+                    ? <span className="text-xs text-slate-400 flex items-center gap-1.5 font-medium">
+                        <Loader2 size={14} className="animate-spin" /> Loading batches…
                       </span>
                     : batches.length === 0
-                      ? <span style={{ fontSize: 12, color: "#c4c4cc", fontWeight: 500 }}>No batches found</span>
+                      ? <span className="text-xs text-slate-400 font-medium">No batches found</span>
                       : batches.map(b => (
                           <button
                             key={b._id}
-                            className={`batch-btn${batchIds.includes(b._id) ? " active" : ""}`}
                             onClick={() => (status === "idle" || status === "staged") && toggleBatch(b._id)}
-                            style={{
-                              all: "unset", padding: "6px 13px", borderRadius: 9, fontSize: 12, fontWeight: 600, cursor: "pointer",
-                              background: batchIds.includes(b._id) ? "linear-gradient(135deg,#7c3aed,#6366f1)" : "#f7f7fb",
-                              color:      batchIds.includes(b._id) ? "#fff" : "#64748b",
-                              border:     `1.5px solid ${batchIds.includes(b._id) ? "transparent" : "#e8e8ee"}`,
-                              boxShadow:  batchIds.includes(b._id) ? "0 3px 10px rgba(124,58,237,0.28)" : "none",
-                            }}
+                            className={`
+                              flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 border-2
+                              ${batchIds.includes(b._id)
+                                ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-500/30'
+                                : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50'}
+                            `}
                           >
-                            {batchIds.includes(b._id) && <span style={{ marginRight: 4, fontSize: 10 }}>✓</span>}
+                            {batchIds.includes(b._id) && <span className="mr-1.5 text-[10px]">✓</span>}
                             {b.name}
                           </button>
                         ))
@@ -669,56 +521,38 @@ export default function AdminDashboard() {
             </div>
 
             {/* RIGHT col — dropzone */}
-            <div style={{ padding: "4px 24px 26px", display: "flex", flexDirection: "column" }}>
+            <div className="p-6 flex flex-col h-full lg:min-h-[400px]">
               <SectionLabel number="5">Upload File</SectionLabel>
-              <input type="file" ref={fileRef} onChange={onFileChange} style={{ display: "none" }} accept=".pdf" />
+              <input type="file" ref={fileRef} onChange={onFileChange} className="hidden" accept=".pdf" />
 
               <div
-                className="dropzone"
-                style={{
-                  flex: 1, minHeight: 260, borderRadius: 16,
-                  border: `2px dashed ${
-                    status === "success"  ? "#22c55e"
-                    : status === "staged" ? "#7c3aed"
-                    : canUpload           ? "#c4b5fd"
-                    : "#e8e8ee"
-                  }`,
-                  background: status === "success" ? "#f0fdf4"
-                    : status === "staged"           ? "#faf8ff"
-                    : canUpload                     ? "#fdfcff"
-                    : "#fafafa",
-                  display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                  padding: "32px 24px", textAlign: "center",
-                  opacity: canUpload || status === "success" ? 1 : 0.5,
-                  pointerEvents: canUpload || status === "success" ? "auto" : "none",
-                }}
+                className={`
+                  flex-1 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center p-8 text-center transition-all duration-300
+                  ${status === "success"  ? "border-emerald-500 bg-emerald-50"
+                  : status === "staged"   ? "border-violet-500 bg-violet-50/50"
+                  : canUpload             ? "border-violet-300 bg-white hover:border-violet-500 hover:bg-violet-50/30"
+                  : "border-slate-200 bg-slate-50"}
+                  ${canUpload || status === "success" ? "opacity-100" : "opacity-50 pointer-events-none"}
+                `}
               >
                 {/* Icon circle */}
-                <div style={{
-                  width: 60, height: 60, borderRadius: 16, marginBottom: 16,
-                  background: status === "success"   ? "linear-gradient(135deg,#22c55e,#16a34a)"
-                    : status === "uploading"          ? "linear-gradient(135deg,#7c3aed,#6366f1)"
-                    : status === "staged"             ? "linear-gradient(135deg,#7c3aed,#6366f1)"
-                    : "#f1f1f4",
-                  color: (status === "success" || status === "staged" || status === "uploading") ? "#fff" : "#b0b0be",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  boxShadow: status === "staged"     ? "0 8px 24px rgba(124,58,237,0.32)"
-                    : status === "success"            ? "0 8px 24px rgba(34,197,94,0.28)"
-                    : status === "uploading"          ? "0 8px 24px rgba(124,58,237,0.28)"
-                    : "none",
-                  transition: "all 0.28s",
-                  animation: status === "success" ? "popIn 0.35s ease both" : "none",
-                }}>
-                  {status === "success"   ? <CheckCircle2 size={26} />
-                   : status === "uploading" ? <Loader2 size={26} style={{ animation: "spin 1s linear infinite" }} />
-                   : status === "staged"   ? <FileText size={26} />
-                   : <Upload size={26} />}
+                <div className={`
+                  w-14 h-14 rounded-2xl mb-4 flex items-center justify-center transition-all duration-300
+                  ${status === "success"   ? "bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-lg shadow-emerald-500/30"
+                  : status === "uploading" ? "bg-gradient-to-br from-violet-500 to-indigo-600 text-white shadow-lg shadow-violet-500/30"
+                  : status === "staged"    ? "bg-gradient-to-br from-violet-500 to-indigo-600 text-white shadow-lg shadow-violet-500/30"
+                  : "bg-slate-100 text-slate-400"}
+                `}>
+                  {status === "success"   ? <CheckCircle2 size={28} />
+                   : status === "uploading" ? <Loader2 size={28} className="animate-spin" />
+                   : status === "staged"   ? <FileText size={28} />
+                   : <Upload size={28} />}
                 </div>
 
-                <div style={{ fontWeight: 800, fontSize: 14, color: "#0f172a", marginBottom: 4, maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <div className="font-extrabold text-[15px] text-slate-900 mb-1 max-w-[220px] truncate">
                   {status === "success" ? "🎉 Deployed!" : file ? file.name : "Choose a PDF file"}
                 </div>
-                <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 22, fontWeight: 500 }}>
+                <div className="text-xs text-slate-500 mb-6 font-medium">
                   {status === "success"
                     ? "File is now live in student vault"
                     : status === "staged"
@@ -729,49 +563,34 @@ export default function AdminDashboard() {
                 </div>
 
                 {status === "uploading" ? (
-                  <div style={{ width: "100%", maxWidth: 260 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, color: "#7c3aed", marginBottom: 10 }}>
-                      <span>Uploading…</span><span style={{ fontFamily: "'DM Mono', monospace" }}>{progress}%</span>
+                  <div className="w-full max-w-[260px]">
+                    <div className="flex justify-between text-xs font-bold text-violet-700 mb-2">
+                      <span>Uploading…</span><span className="font-mono">{progress}%</span>
                     </div>
-                    <div style={{ width: "100%", height: 6, background: "#ede9fe", borderRadius: 99, overflow: "hidden" }}>
-                      <div style={{
-                        height: "100%", borderRadius: 99,
-                        width: `${progress}%`,
-                        background: "linear-gradient(90deg, #7c3aed, #6366f1, #a78bfa)",
-                        backgroundSize: "200% 100%",
-                        animation: "progressShimmer 1.5s linear infinite",
-                        transition: "width 0.35s ease",
-                      }} />
+                    <div className="w-full h-2 bg-violet-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-violet-600 to-indigo-500 transition-all duration-300 rounded-full relative overflow-hidden" style={{ width: `${progress}%` }}>
+                      </div>
                     </div>
                   </div>
                 ) : (
-                  <div style={{ width: "100%", maxWidth: 260, display: "flex", flexDirection: "column", gap: 9 }}>
+                  <div className="w-full max-w-[240px] flex flex-col gap-2.5">
                     <button
-                      className="upload-btn"
                       onClick={() => status === "staged" ? upload() : status === "success" ? reset() : pickFile()}
-                      style={{
-                        all: "unset", width: "100%", padding: "12px", borderRadius: 11, cursor: "pointer",
-                        fontWeight: 800, fontSize: 13, textAlign: "center", boxSizing: "border-box",
-                        background: status === "success"
-                          ? "linear-gradient(135deg,#22c55e,#16a34a)"
-                          : "linear-gradient(135deg,#7c3aed,#6366f1)",
-                        color: "#fff",
-                        boxShadow: status === "success"
-                          ? "0 4px 18px rgba(34,197,94,0.34)"
-                          : "0 4px 18px rgba(124,58,237,0.36)",
-                        letterSpacing: "0.01em",
-                      }}
+                      className={`
+                        w-full py-3 px-4 rounded-xl font-bold text-[13px] text-center transition-transform hover:-translate-y-0.5 active:translate-y-0
+                        ${status === "success"
+                          ? "bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-md shadow-emerald-500/30"
+                          : "bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-500/30"}
+                      `}
                     >
                       {status === "success" ? "✦ Deploy Another" : status === "staged" ? "🚀 Start Deployment" : "Choose File"}
                     </button>
                     {status === "staged" && (
                       <button
                         onClick={reset}
-                        style={{ all: "unset", cursor: "pointer", color: "#94a3b8", display: "flex", alignItems: "center", gap: 5, justifyContent: "center", fontSize: 12, fontWeight: 600, padding: "6px", borderRadius: 8, transition: "color 0.15s" }}
-                        onMouseEnter={e => e.currentTarget.style.color = "#64748b"}
-                        onMouseLeave={e => e.currentTarget.style.color = "#94a3b8"}
+                        className="flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-slate-600 p-2 transition-colors rounded-lg hover:bg-slate-100"
                       >
-                        <Trash2 size={12} /> Discard file
+                        <Trash2 size={14} /> Discard file
                       </button>
                     )}
                   </div>
@@ -780,7 +599,7 @@ export default function AdminDashboard() {
 
               {/* Hint text */}
               {!canUpload && (
-                <p style={{ textAlign: "center", fontSize: 11, color: "#c4c4cc", fontWeight: 500, marginTop: 14, marginBottom: 0 }}>
+                <p className="text-center text-[11px] text-slate-400 font-semibold mt-4 mb-0">
                   Select subject → chapter → category to unlock upload
                 </p>
               )}
@@ -791,32 +610,24 @@ export default function AdminDashboard() {
 
       {/* Toast */}
       {toast && (
-        <div style={{
-          position: "fixed", bottom: 28, left: "50%", transform: "translateX(-50%)",
-          zIndex: 999, minWidth: 290, maxWidth: 400,
-          animation: "slideIn 0.22s cubic-bezier(.34,1.3,.64,1) both",
-        }}>
-          <div style={{
-            display: "flex", alignItems: "center", gap: 12, padding: "13px 18px", borderRadius: 16,
-            boxShadow: toast.type === "error"
-              ? "0 10px 40px rgba(190,18,60,0.14), 0 2px 8px rgba(0,0,0,0.06)"
-              : "0 10px 40px rgba(124,58,237,0.12), 0 2px 8px rgba(0,0,0,0.06)",
-            background: toast.type === "error" ? "#fff" : "#fff",
-            border: `1.5px solid ${toast.type === "error" ? "#fecdd3" : "#ddd6fe"}`,
-          }}>
-            <div style={{
-              width: 34, height: 34, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-              background: toast.type === "error" ? "#fff1f2" : "#f5f3ff",
-            }}>
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] min-w-[290px] max-w-[400px]">
+          <div className={`
+            flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl shadow-slate-200/50 bg-white border-2
+            ${toast.type === "error" ? "border-rose-200" : "border-violet-200"}
+          `}>
+            <div className={`
+              w-9 h-9 rounded-xl flex items-center justify-center shrink-0
+              ${toast.type === "error" ? "bg-rose-50 text-rose-500" : "bg-violet-50 text-violet-600"}
+            `}>
               {toast.type === "error"
-                ? <X size={15} style={{ color: "#be123c" }} />
-                : <CheckCircle2 size={15} style={{ color: "#7c3aed" }} />}
+                ? <X size={16} />
+                : <CheckCircle2 size={16} />}
             </div>
-            <span style={{ fontSize: 13, fontWeight: 600, color: toast.type === "error" ? "#be123c" : "#1e1b4b", flex: 1, lineHeight: 1.4 }}>
+            <span className={`text-[13px] font-bold flex-1 leading-snug ${toast.type === "error" ? "text-rose-600" : "text-slate-800"}`}>
               {toast.msg}
             </span>
-            <button onClick={() => setToast(null)} style={{ all: "unset", cursor: "pointer", color: "#c4c4cc", lineHeight: 0, padding: 2 }}>
-              <X size={14} />
+            <button onClick={() => setToast(null)} className="text-slate-400 hover:text-slate-600 p-1">
+              <X size={16} />
             </button>
           </div>
         </div>

@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ChevronDown, X, BarChart2 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import api from '../api/axios.js';
 
 const STATUS_BAR_H = 28.5;
 
@@ -290,83 +291,98 @@ export default function PYQProgress() {
         { value: 'Monthly', label: 'Monthly' },
     ];
 
-    const MOCK_STATS = {
-        All: {
-            Weekly: {
-                All: { solved: 450, solvedData: [110, 95, 120, 125], time: "1m 15s", timeData: [78, 72, 75, 75], accuracy: 78, accuracyData: [75, 80, 76, 81] },
-                Easy: { solved: 220, solvedData: [50, 60, 55, 55], time: "0m 45s", timeData: [42, 45, 48, 45], accuracy: 88, accuracyData: [85, 90, 87, 90] },
-                Medium: { solved: 150, solvedData: [40, 25, 45, 40], time: "1m 20s", timeData: [85, 78, 82, 80], accuracy: 72, accuracyData: [70, 75, 71, 74] },
-                Hard: { solved: 80, solvedData: [20, 10, 20, 30], time: "2m 45s", timeData: [170, 160, 165, 165], accuracy: 55, accuracyData: [50, 55, 53, 62] },
-            },
-            Monthly: {
-                All: { solved: 1800, solvedData: [420, 480, 450, 450], time: "1m 12s", timeData: [74, 71, 72, 72], accuracy: 79, accuracyData: [77, 78, 80, 81] },
-                Easy: { solved: 900, solvedData: [210, 240, 225, 225], time: "0m 42s", timeData: [41, 40, 43, 42], accuracy: 89, accuracyData: [88, 89, 90, 89] },
-                Medium: { solved: 600, solvedData: [140, 160, 150, 150], time: "1m 18s", timeData: [80, 77, 78, 77], accuracy: 73, accuracyData: [71, 72, 75, 74] },
-                Hard: { solved: 300, solvedData: [70, 80, 75, 75], time: "2m 38s", timeData: [160, 155, 158, 158], accuracy: 56, accuracyData: [54, 55, 57, 58] },
+    const [rawAttempts, setRawAttempts] = useState([]);
+
+    useEffect(() => {
+        if (!user) return;
+        api.get('/quiz/pyq-progress').then(res => {
+            if (res.data?.success && res.data.data.attempts) {
+                setRawAttempts(res.data.data.attempts);
             }
-        },
-        Physics: {
-            Weekly: {
-                All: { solved: 120, solvedData: [30, 25, 35, 30], time: "1m 24s", timeData: [86, 80, 85, 85], accuracy: 74, accuracyData: [70, 75, 72, 79] },
-                Easy: { solved: 60, solvedData: [15, 15, 15, 15], time: "0m 50s", timeData: [48, 52, 50, 50], accuracy: 86, accuracyData: [82, 88, 85, 89] },
-                Medium: { solved: 40, solvedData: [10, 8, 12, 10], time: "1m 35s", timeData: [98, 92, 95, 95], accuracy: 68, accuracyData: [65, 70, 66, 71] },
-                Hard: { solved: 20, solvedData: [5, 2, 8, 5], time: "3m 10s", timeData: [195, 180, 190, 195], accuracy: 50, accuracyData: [45, 50, 48, 57] },
-            },
-            Monthly: {
-                All: { solved: 480, solvedData: [110, 130, 120, 120], time: "1m 20s", timeData: [82, 79, 80, 80], accuracy: 75, accuracyData: [73, 74, 76, 77] },
-                Easy: { solved: 240, solvedData: [55, 65, 60, 60], time: "0m 48s", timeData: [47, 46, 49, 50], accuracy: 87, accuracyData: [86, 87, 88, 87] },
-                Medium: { solved: 160, solvedData: [37, 43, 40, 40], time: "1m 30s", timeData: [92, 89, 90, 89], accuracy: 69, accuracyData: [67, 68, 71, 70] },
-                Hard: { solved: 80, solvedData: [18, 22, 20, 20], time: "3m 0s", timeData: [185, 178, 180, 177], accuracy: 51, accuracyData: [49, 50, 52, 53] },
-            }
-        },
-        Chemistry: {
-            Weekly: {
-                All: { solved: 95, solvedData: [20, 22, 28, 25], time: "0m 52s", timeData: [54, 50, 53, 51], accuracy: 82, accuracyData: [80, 84, 81, 83] },
-                Easy: { solved: 50, solvedData: [12, 10, 15, 13], time: "0m 32s", timeData: [34, 30, 33, 31], accuracy: 92, accuracyData: [90, 94, 91, 93] },
-                Medium: { solved: 30, solvedData: [5, 8, 9, 8], time: "1m 0s", timeData: [62, 58, 61, 59], accuracy: 78, accuracyData: [76, 80, 77, 79] },
-                Hard: { solved: 15, solvedData: [3, 4, 4, 4], time: "1m 45s", timeData: [108, 102, 106, 104], accuracy: 62, accuracyData: [60, 64, 61, 63] },
-            },
-            Monthly: {
-                All: { solved: 380, solvedData: [90, 100, 95, 95], time: "0m 50s", timeData: [52, 49, 50, 49], accuracy: 83, accuracyData: [81, 82, 84, 85] },
-                Easy: { solved: 200, solvedData: [48, 52, 50, 50], time: "0m 30s", timeData: [32, 29, 30, 29], accuracy: 93, accuracyData: [92, 93, 94, 93] },
-                Medium: { solved: 120, solvedData: [28, 32, 30, 30], time: "0m 58s", timeData: [60, 57, 58, 57], accuracy: 79, accuracyData: [77, 78, 80, 81] },
-                Hard: { solved: 60, solvedData: [14, 16, 15, 15], time: "1m 42s", timeData: [105, 101, 103, 102], accuracy: 63, accuracyData: [61, 62, 64, 65] },
-            }
-        },
-        Maths: {
-            Weekly: {
-                All: { solved: 150, solvedData: [35, 38, 37, 40], time: "2m 10s", timeData: [134, 128, 131, 127], accuracy: 76, accuracyData: [74, 78, 75, 77] },
-                Easy: { solved: 70, solvedData: [16, 18, 18, 18], time: "1m 15s", timeData: [77, 73, 76, 74], accuracy: 86, accuracyData: [84, 88, 85, 87] },
-                Medium: { solved: 55, solvedData: [13, 15, 14, 13], time: "2m 15s", timeData: [137, 133, 136, 134], accuracy: 72, accuracyData: [70, 74, 71, 73] },
-                Hard: { solved: 25, solvedData: [6, 5, 5, 9], time: "4m 20s", timeData: [265, 255, 262, 258], accuracy: 52, accuracyData: [50, 54, 51, 53] },
-            },
-            Monthly: {
-                All: { solved: 600, solvedData: [140, 160, 150, 150], time: "2m 5s", timeData: [129, 123, 126, 122], accuracy: 77, accuracyData: [75, 76, 78, 79] },
-                Easy: { solved: 280, solvedData: [65, 75, 70, 70], time: "1m 12s", timeData: [74, 70, 73, 69], accuracy: 87, accuracyData: [85, 86, 88, 89] },
-                Medium: { solved: 220, solvedData: [51, 59, 55, 55], time: "2m 10s", timeData: [132, 128, 131, 129], accuracy: 73, accuracyData: [71, 72, 74, 75] },
-                Hard: { solved: 100, solvedData: [24, 26, 25, 25], time: "4m 12s", timeData: [256, 248, 253, 249], accuracy: 53, accuracyData: [51, 52, 54, 55] },
-            }
-        },
-        Biology: {
-            Weekly: {
-                All: { solved: 85, solvedData: [25, 10, 20, 30], time: "0m 45s", timeData: [46, 42, 45, 47], accuracy: 80, accuracyData: [78, 82, 79, 81] },
-                Easy: { solved: 40, solvedData: [12, 5, 10, 13], time: "0m 28s", timeData: [30, 26, 28, 28], accuracy: 90, accuracyData: [88, 92, 89, 91] },
-                Medium: { solved: 25, solvedData: [8, 3, 6, 8], time: "0m 52s", timeData: [54, 50, 52, 52], accuracy: 76, accuracyData: [74, 78, 75, 77] },
-                Hard: { solved: 20, solvedData: [5, 2, 4, 9], time: "1m 30s", timeData: [92, 88, 90, 90], accuracy: 60, accuracyData: [58, 62, 59, 61] },
-            },
-            Monthly: {
-                All: { solved: 340, solvedData: [80, 90, 85, 85], time: "0m 42s", timeData: [44, 40, 42, 42], accuracy: 81, accuracyData: [79, 80, 82, 83] },
-                Easy: { solved: 160, solvedData: [38, 42, 40, 40], time: "0m 26s", timeData: [28, 24, 26, 26], accuracy: 91, accuracyData: [90, 91, 92, 91] },
-                Medium: { solved: 100, solvedData: [23, 27, 25, 25], time: "0m 50s", timeData: [52, 48, 50, 50], accuracy: 77, accuracyData: [75, 76, 78, 79] },
-                Hard: { solved: 80, solvedData: [19, 21, 20, 20], time: "1m 26s", timeData: [88, 84, 86, 86], accuracy: 61, accuracyData: [59, 60, 62, 63] },
-            }
-        }
+        }).catch(err => console.error(err));
+    }, [user]);
+
+    const computeStats = () => {
+        let bucketSolved = [0, 0, 0, 0];
+        let bucketCorrect = [0, 0, 0, 0];
+        let bucketTime = [0, 0, 0, 0];
+        
+        const now = new Date();
+        const MS_PER_DAY = 1000 * 60 * 60 * 24;
+        const bucketSizeDays = perfTimeline === 'Weekly' ? 7 : 30; // 7 days or 30 days
+        
+        rawAttempts.forEach(att => {
+            const date = new Date(att.createdAt || att.startedAt);
+            const daysAgo = Math.floor((now - date) / MS_PER_DAY);
+            
+            let bucketIndex = 3 - Math.floor(daysAgo / bucketSizeDays);
+            if (bucketIndex < 0) return; 
+            if (bucketIndex > 3) bucketIndex = 3; 
+
+            att.blocks.forEach(block => {
+                block.sections.forEach(sec => {
+                    const subjName = (sec.subjectName || '').toLowerCase();
+                    const filterSubj = perfSubject.toLowerCase();
+                    if (filterSubj !== 'all' && !subjName.includes(filterSubj)) return;
+                    
+                    sec.questions.forEach(q => {
+                        if (q.chosenOption !== -1) {
+                            bucketSolved[bucketIndex]++;
+                            bucketTime[bucketIndex] += (q.timeTakenSeconds || 0);
+                            if (q.chosenOption === q.correctAnswer) {
+                                bucketCorrect[bucketIndex]++;
+                            }
+                        }
+                    });
+                });
+            });
+        });
+
+        const solved = bucketSolved.reduce((a,b)=>a+b, 0);
+        const totalTimeSecs = bucketTime.reduce((a,b)=>a+b, 0);
+        const correct = bucketCorrect.reduce((a,b)=>a+b, 0);
+        
+        const accuracy = solved > 0 ? Math.round((correct / solved) * 100) : 0;
+        const avgTime = solved > 0 ? Math.round(totalTimeSecs / solved) : 0;
+        
+        const accuracyData = bucketSolved.map((s, i) => s > 0 ? Math.round((bucketCorrect[i] / s) * 100) : 0);
+        const timeData = bucketSolved.map((s, i) => s > 0 ? Math.round(bucketTime[i] / s) : 0);
+
+        const m = Math.floor(avgTime / 60);
+        const s = avgTime % 60;
+        const timeStr = `${m}m ${s < 10 ? '0' : ''}${s}s`;
+
+        return {
+            solved,
+            solvedData: bucketSolved,
+            time: timeStr,
+            timeData,
+            accuracy,
+            accuracyData
+        };
     };
 
-    const stats = MOCK_STATS[perfSubject]?.[perfTimeline]?.[perfDifficulty] || MOCK_STATS.All.Weekly.All;
-    const labels = perfTimeline === 'Weekly'
-        ? ["04 May - 10 May", "11 May - 17 May", "18 May - 24 May", "25 May - 31 May"]
-        : ["Feb", "Mar", "Apr", "May"];
+    const stats = computeStats();
+    const getDynamicLabels = () => {
+        const now = new Date();
+        const formatter = new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' });
+        const monthFormatter = new Intl.DateTimeFormat('en', { month: 'short' });
+        
+        if (perfTimeline === 'Weekly') {
+            return [3, 2, 1, 0].map(weeksAgo => {
+                const start = new Date(now.getTime() - (weeksAgo * 7 + 6) * 24 * 60 * 60 * 1000);
+                const end = new Date(now.getTime() - (weeksAgo * 7) * 24 * 60 * 60 * 1000);
+                if (weeksAgo === 0) return 'This Week';
+                return `${formatter.format(start)} - ${formatter.format(end)}`;
+            });
+        } else {
+            return [3, 2, 1, 0].map(monthsAgo => {
+                const d = new Date(now.getFullYear(), now.getMonth() - monthsAgo, 1);
+                return monthFormatter.format(d);
+            });
+        }
+    };
+    const labels = getDynamicLabels();
 
     const solvedChartData = labels.map((l, i) => ({ label: l, value: stats.solvedData[i] }));
     const timeChartData = labels.map((l, i) => ({ label: l, value: stats.timeData[i] }));

@@ -23,7 +23,10 @@ import {
   listStudentAttempts,
   reportQuestion,
   getChapterPYQs,
-
+  getBookmarks,
+  toggleBookmark,
+  getPYQProgress,
+  submitPracticeQuestion,
 } from './quiz.controller.js';
 
 import auth from '../../middlewares/auth.middleware.js';
@@ -303,5 +306,13 @@ router.get('/attempts/:attemptId', auth, getAttemptDetails);
 router.post('/question-report', reportQuestion);
 
 router.get('/pyq/:chapterId', getChapterPYQs);
+
+// Bookmarks
+router.get('/bookmarks', auth, getBookmarks);
+router.post('/bookmarks/toggle', auth, toggleBookmark);
+
+// PYQ Progress
+router.get('/pyq-progress', auth, getPYQProgress);
+router.post('/submit-practice-question', auth, submitPracticeQuestion);
 
 export default router;

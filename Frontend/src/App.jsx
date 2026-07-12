@@ -27,7 +27,7 @@ import PYQBookmarks from "./student/PYQBookmarks";
 import PYQPapers from "./student/PYQPapers";
 import QBank from "./student/QBank";
 import FeedbackPage from "./student/FeedbackPage";
-import StudentVersionGate from "./student/StudentVersionGate"; // ← NEW
+import StudentVersionGate from "./student/Studentversiongate"; // ← NEW
 import StudentSubscription from "./student/StudentSubscription";
 import MyLearning from "./student/MyLearning";
 import Prime from "./student/Prime";
