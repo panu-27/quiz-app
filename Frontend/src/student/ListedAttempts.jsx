@@ -264,14 +264,14 @@ export default function ListedAttempts() {
       {user?.approved === false && (
         <div className="fixed bottom-0 left-0 right-0 z-[5010] bg-gradient-to-r from-[#1EBA9B] to-[#25D3A4] text-white px-5 py-4 flex items-center justify-between shadow-[0_-4px_20px_rgba(30,186,155,0.2)]">
           <div className="flex flex-col">
-            <span className="font-bold text-[15px] leading-tight">Get access to all the batches</span>
-            <span className="text-[13px] text-white/90 mt-0.5">Starts at ₹902/month</span>
+            <span className="font-bold text-[12px] leading-tight">Get access to all the batches</span>
+            <span className="text-[13px] text-white/90 mt-0.5">Please fill out this form</span>
           </div>
           <button
-            onClick={() => window.open('https://en.wikipedia.org', '_blank')}
-            className="bg-white text-[#1EBA9B] px-5 py-2.5 rounded-lg font-bold text-[14px] active:scale-95 transition-transform"
+            onClick={() => window.open('https://forms.gle/oHKY3wtTYrpGGDp76', '_blank')}
+            className="bg-white text-[#1EBA9B] px-5 py-2 rounded-lg font-bold text-[14px] active:scale-95 transition-transform whitespace-nowrap"
           >
-            Join Plus
+            Enquiry Form
           </button>
         </div>
       )}

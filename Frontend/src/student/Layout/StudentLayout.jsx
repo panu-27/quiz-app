@@ -187,13 +187,13 @@ export default function StudentLayout() {
               <div className="absolute bottom-full left-0 right-0 bg-gradient-to-r from-[#1EBA9B] to-[#25D3A4] text-white px-5 py-2.5 flex items-center justify-between shadow-[0_-4px_15px_rgba(30,186,155,0.2)]">
                 <div className="flex flex-col">
                   <span className="font-bold text-[13px] leading-tight">Get access to all batches</span>
-                  <span className="text-[13px] text-white/90 mt-0.5">Starts at ₹902/month</span>
+                  <span className="text-[13px] text-white/90 mt-0.5">Please fill out this form</span>
                 </div>
                 <button
-                  onClick={() => window.open('https://en.wikipedia.org', '_blank')}
-                  className="bg-white text-[#1EBA9B] px-5 py-2 rounded-lg font-bold text-[13px] active:scale-95 transition-transform shadow-sm"
+                  onClick={() => window.open('https://forms.gle/oHKY3wtTYrpGGDp76', '_blank')}
+                  className="bg-white text-[#1EBA9B] px-5 py-2 rounded-lg font-bold text-[13px] active:scale-95 transition-transform shadow-sm whitespace-nowrap"
                 >
-                  Join Plus
+                  Enquiry Form
                 </button>
               </div>
             )}
