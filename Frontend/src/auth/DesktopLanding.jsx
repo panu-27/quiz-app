@@ -17,13 +17,13 @@ export default function DesktopLanding() {
             <button className="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center text-red-500 hover:bg-red-50 transition">
               <Gift size={20} />
             </button>
-            <button 
+            <button
               onClick={() => navigate("/login")}
               className="px-6 py-2.5 rounded-lg border border-slate-300 font-semibold text-slate-700 hover:bg-slate-50 transition"
             >
               Log in
             </button>
-            <button 
+            <button
               onClick={() => navigate("/register")}
               className="px-6 py-2.5 rounded-lg bg-slate-800 text-white font-semibold hover:bg-slate-900 transition"
             >
@@ -36,88 +36,41 @@ export default function DesktopLanding() {
       {/* Hero Section */}
       <section className="max-w-[1200px] mx-auto px-6 py-20 flex flex-col md:flex-row items-center gap-12">
         <div className="flex-1 max-w-xl">
-          <h1 className="text-[44px] md:text-5xl font-bold text-[#3C4852] leading-[1.15] tracking-tight mb-6">
-            Crack your goal with <br /> India's top educators
+          <h1 className="text-[44px] md:text-4xl font-serif font-semibold text-[#3C4852] leading-[1.15] tracking-tight mb-6">
+            Crack your goal with Manchar's Best Coaching Institute
           </h1>
-          <p className="text-[#3C4852] text-lg mb-8 font-medium">
-            Over <span className="text-[#08BD80] font-semibold">10 crore</span> learners trust us for their preparation
+          <p className="text-[#3C4852] text-lg mb-6 font-medium">
+            Over <span className="text-[#08BD80] font-semibold underline">1000+</span> learners trust us for their preparation
           </p>
-          
+
           <div className="space-y-4 max-w-[420px]">
             <div className="flex items-center border border-slate-300 rounded-lg overflow-hidden h-14 bg-white focus-within:border-[#08BD80] focus-within:ring-1 focus-within:ring-[#08BD80] transition-all hover:border-slate-400">
-              <div className="flex items-center gap-2 px-4 h-full cursor-pointer">
-                <img src="https://static.uacdn.net/thumbnail/country-flag-icons/in.png" alt="India" className="w-5 h-auto rounded-sm" />
-                <span className="font-semibold text-[15px] text-[#3C4852]">+91</span>
-                <ChevronDown size={16} className="text-slate-400" />
-              </div>
-              <input 
-                type="tel" 
-                maxLength="10"
-                placeholder="Enter your mobile number" 
-                className="flex-1 px-4 h-full outline-none text-[#3C4852] font-medium placeholder:text-slate-400 placeholder:font-normal text-[15px]"
+              <input
+                type="email"
+                placeholder="Enter your email address"
+                className="flex-1 px-3 h-full outline-none text-[#3C4852] font-medium placeholder:text-slate-400 placeholder:font-normal text-[15px]"
                 onFocus={() => navigate("/register")}
               />
             </div>
-            <p className="text-[13px] text-slate-500 font-medium">We'll send an OTP for verification</p>
-            <button 
+            <p className="text-[13px] text-slate-500 font-medium">We'll use this for your account security</p>
+            <button
               onClick={() => navigate("/register")}
-              className="w-full h-14 rounded-lg bg-[#08BD80] text-white font-semibold text-lg hover:bg-[#009965] transition mt-2 shadow-sm"
+              className="w-full h-12 rounded-lg bg-[#08BD80] text-white font-semibold text-lg hover:bg-[#009965] transition shadow-sm"
             >
               Join for free
             </button>
           </div>
         </div>
-        
+
         <div className="flex-1 flex justify-center relative w-full mt-10 md:mt-0">
           <img src="/home-illustration.svg" alt="Students studying" className="w-full max-w-[560px] object-contain" />
         </div>
       </section>
 
-      {/* Goals Section */}
-      <section className="max-w-[1200px] mx-auto px-6 py-32">
-        <h2 className="text-[32px] md:text-[40px] font-bold text-[#3C4852] mb-2 tracking-tight">Select your goal / exam</h2>
-        <p className="text-slate-600 font-medium mb-10 text-[15px]">
-          <span className="font-semibold text-[#08BD80]">200+</span> exams available for your preparation
-        </p>
 
-        {/* Search Bar */}
-        <div className="relative max-w-[800px] mb-16">
-          <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-          <input 
-            type="text" 
-            placeholder="Type the goal / exam you're preparing for" 
-            className="w-full h-14 pl-12 pr-6 rounded-lg bg-white border border-slate-300 shadow-[0_2px_12px_rgba(0,0,0,0.04)] text-[#3C4852] font-medium text-[15px] focus:outline-none focus:border-[#08BD80] focus:ring-1 focus:ring-[#08BD80] transition placeholder:font-normal placeholder:text-slate-400"
-          />
-        </div>
-
-        <h3 className="text-xl font-semibold text-[#3C4852] mb-6 tracking-tight">Popular goals</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { name: "UPSC CSE - GS", icon: "upsc.svg" },
-            { name: "IIT JEE", icon: "iit_jee.svg" },
-            { name: "NEET UG", icon: "neet_ug.svg" },
-            { name: "Bank exams", icon: "bank_exams.svg" },
-            { name: "SSC JE & state AE exams", icon: "ssc.svg" },
-            { name: "CAT & other MBA entrance tests", icon: "cat.svg" },
-            { name: "CBSE class 12", icon: "class_12.svg" },
-            { name: "CA Intermediate", icon: "ca.svg" }
-          ].map((goal, i) => (
-            <div key={i} className="flex flex-col items-center justify-center gap-6 aspect-square p-6 bg-white border border-slate-200 rounded-xl cursor-pointer hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] hover:border-slate-300 transition-all duration-300 group">
-              <img src={`https://static.uacdn.net/production/_next/static/images/home/goalIcons/${goal.icon}`} alt={goal.name} className="w-[60px] h-[60px] object-contain group-hover:scale-105 transition-transform duration-300" />
-              <span className="font-semibold text-[#3C4852] text-[16px] text-center tracking-wide group-hover:text-[#08BD80] transition-colors">{goal.name}</span>
-            </div>
-          ))}
-        </div>
-        
-        <div className="mt-10 flex justify-start">
-          <button className="h-10 px-6 rounded-lg border border-slate-300 text-[#3C4852] font-semibold text-[13px] hover:bg-slate-50 shadow-sm transition">
-            See all goals (200+)
-          </button>
-        </div>
-      </section>
 
       {/* Feature Cards Section */}
-      <section className="max-w-[1200px] mx-auto px-6 py-32">
+      {/* <section className="max-w-[1200px] mx-auto px-6 py-32">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
           <div className="flex flex-col gap-6">
             <img src="/daily_live_classes.png" alt="Daily live classes" className="w-full object-contain rounded-xl shadow-sm" />
@@ -141,10 +94,10 @@ export default function DesktopLanding() {
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* App Download Section */}
-      <section className="max-w-[1200px] mx-auto px-6 py-32 flex flex-col md:flex-row items-center justify-between gap-12">
+      {/* <section className="max-w-[1200px] mx-auto px-6 py-32 flex flex-col md:flex-row items-center justify-between gap-12">
         <div className="flex-1 max-w-xl">
           <h2 className="text-[32px] md:text-[40px] font-bold text-[#3C4852] leading-[1.15] tracking-tight mb-4">
             Get the learning app
@@ -168,7 +121,7 @@ export default function DesktopLanding() {
             className="w-full max-w-[400px] object-contain drop-shadow-2xl rounded-2xl" 
           />
         </div>
-      </section>
+      </section> */}
 
       {/* Footer */}
       <footer className="w-full bg-[#181a1b] text-[#a0a5aa] flex flex-col justify-between mt-12" style={{ minHeight: '100vh' }}>
@@ -203,11 +156,11 @@ export default function DesktopLanding() {
               </a>
             </div>
           </div>
-          
+
           {/* Right Grid */}
           <div className="flex-1">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-16">
-              
+
               {/* Row 1 */}
               <div className="flex flex-col gap-4">
                 <h5 className="text-[15px] font-semibold text-white mb-1">Company</h5>
