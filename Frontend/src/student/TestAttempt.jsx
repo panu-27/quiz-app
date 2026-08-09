@@ -10,6 +10,7 @@ import ExamLobby from "./TestEnvironment/ExamLobby";
 import ViolationModal from "./TestEnvironment/ViolationModal";
 import { useViolations } from "./TestEnvironment/ViolationContext";
 import { Menu, Lock } from "lucide-react";
+import useBackButton from "../hooks/useBackButton";
 
 /*
   BLOCK / SECTION LOCKING RULES
@@ -62,6 +63,34 @@ export default function TestAttempt() {
   // Detect if running inside Electron desktop app
   const isElectron = typeof window !== 'undefined' && !!window.electron?.isElectron;
 
+  /* ── Hardware Back Button Interceptors ── */
+  
+  // 1. Base page guard: If exam is active, intercept back to show exit confirmation
+  useBackButton(() => {
+    if (!examStarted || hasSubmitted) return false;
+    exitApp();
+    return true;
+  }, examStarted && !hasSubmitted);
+
+  // 2. Sidebar overlay
+  useBackButton(() => {
+    setIsSidebarOpen(false);
+    return true;
+  }, isSidebarOpen);
+
+  // 3. General Modal (acts as Cancel)
+  useBackButton(() => {
+    if (modal?.onCancel) modal.onCancel();
+    else setModal(null);
+    return true;
+  }, !!modal);
+
+  // 4. Violation Modal
+  useBackButton(() => {
+    dismissViolationModal();
+    return true;
+  }, !!violationModal);
+
   /* ── Fullscreen helpers (web only — Electron uses kiosk) ── */
   const enterFullscreen = useCallback(() => {
     if (isElectron) return; // Electron handles via kiosk
@@ -69,7 +98,7 @@ export default function TestAttempt() {
     try {
       if (el.requestFullscreen)            el.requestFullscreen();
       else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-    } catch {}
+    } catch (e) { console.error("Fullscreen error", e); }
   }, [isElectron]);
 
   const exitFullscreen = useCallback(() => {
@@ -79,7 +108,7 @@ export default function TestAttempt() {
         if (document.exitFullscreen)            document.exitFullscreen();
         else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
       }
-    } catch {}
+    } catch (e) { console.error("Fullscreen error", e); }
   }, [isElectron]);
 
   /* keep refs in sync */
@@ -592,31 +621,6 @@ export default function TestAttempt() {
      SUBJECT TABS BAR
      ───────────────────────────────────────────────────────────────── */
   const currentViolationData = getViolations(testId);
-
-  const renderSubjectBtn = (blockIdx, sub, subIdx) => {
-    const isActive = activeBlock === blockIdx && activeSubject === sub;
-    const locked   = (blockIdx === 0 && isBlock1Locked) || (blockIdx === 1 && isBlock2Locked);
-
-    return (
-      <button
-        key={`${blockIdx}-${sub}`}
-        onClick={() => navigateToSubject(blockIdx, sub)}
-        title={locked ? (blockIdx === 1 ? "Locked — Section 1 still running" : "Section 1 is locked") : sub}
-        className={`flex items-center gap-1 transition-all whitespace-nowrap border font-semibold rounded-full
-          px-2 py-0.5 text-[11px] md:px-3 md:py-1 md:text-[12px]
-          ${isActive  ? 'bg-[#337ab7] border-[#2e6da4] text-white'
-          : locked    ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed'
-                      : 'bg-white border-gray-300 text-gray-700 hover:border-[#337ab7] hover:text-[#337ab7]'}`}
-      >
-        <span className={`w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center shrink-0
-          ${isActive ? 'bg-white text-[#337ab7]' : locked ? 'bg-gray-200 text-gray-400' : 'bg-gray-200 text-gray-600'}`}>
-          {locked ? <Lock size={7} /> : (subIdx + 1)}
-        </span>
-        <span>{sub}</span>
-      </button>
-    );
-  };
-
   /* ─────────────────────────────────────────────────────────────────
      MAIN RENDER
      ───────────────────────────────────────────────────────────────── */

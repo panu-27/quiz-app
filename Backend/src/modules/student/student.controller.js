@@ -21,6 +21,24 @@ export const getProfile = async (req, res) => {
   }
 };
 
+export const changeClass = async (req, res) => {
+  try {
+    const student = await service.changeClass(req.user.id, req.body.className);
+    res.json({ message: "Class updated successfully", student });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+export const getActiveClasses = async (req, res) => {
+  try {
+    const activeClasses = await service.getActiveClasses(req.user);
+    res.json(activeClasses);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
 export const startAttempt = async (req, res) => {
   try {
     const { testId } = req.params;
@@ -188,6 +206,15 @@ export const getMyLibrary = async (req, res) => {
   try {
     const library = await service.getMyLibrary(req.user, req.query);
     res.json(library);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+export const getMySyllabus = async (req, res) => {
+  try {
+    const syllabus = await service.getMySyllabus(req.user);
+    res.json(syllabus || null);
   } catch (err) {
     res.status(400).json({ message: err.message });
   }

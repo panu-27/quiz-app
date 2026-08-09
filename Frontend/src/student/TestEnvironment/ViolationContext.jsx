@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 
 /* ─────────────────────────────────────────────────────────────────
    ViolationContext
@@ -23,7 +23,7 @@ function loadStore() {
 function saveStore(store) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
-  } catch {}
+  } catch (e) { console.error("Error saving violations", e); }
 }
 
 export function ViolationProvider({ children }) {
@@ -82,6 +82,7 @@ export function ViolationProvider({ children }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useViolations() {
   const ctx = useContext(ViolationContext);
   if (!ctx) throw new Error('useViolations must be used inside <ViolationProvider>');

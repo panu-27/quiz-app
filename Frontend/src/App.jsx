@@ -7,6 +7,7 @@ import { useEffect, useRef } from "react";
 import { ScreenOrientation } from "@capacitor/screen-orientation";
 import { Capacitor } from "@capacitor/core";
 import { App as CapApp } from "@capacitor/app";
+import { executeBackAction } from "./hooks/useBackButton";
 
 /* ── student ── */
 import StudentDashboard from "./student/Dashboard";
@@ -29,7 +30,7 @@ import QBank from "./student/QBank";
 import FeedbackPage from "./student/FeedbackPage";
 import StudentVersionGate from "./student/Studentversiongate"; // ← NEW
 import StudentSubscription from "./student/StudentSubscription";
-import MyLearning from "./student/MyLearning";
+import NoticeBoard from "./student/NoticeBoard";
 import Prime from "./student/Prime";
 import PrimeCourse from "./student/PrimeCourse";
 import PrimeVideo from "./student/PrimeVideo";
@@ -37,10 +38,13 @@ import ListedAttempts from "./student/ListedAttempts";
 import PdfViewerPage from "./student/PdfViewerPage";
 import SettingsPage from "./student/SettingsPage";
 import StudentDownloads from "./student/StudentDownloads";
-import StudentUpdates from "./student/StudentUpdates";
+
 import StudentFAQs from "./student/StudentFAQs";
 import DeleteAccountPage from "./student/DeleteAccountPage";
 import ChangePasswordPage from "./student/ChangePasswordPage";
+import PrivacyPolicyPage from "./student/PrivacyPolicyPage";
+import CookiePolicyPage from "./student/CookiePolicyPage";
+import RefundPolicyPage from "./student/RefundPolicyPage";
 import GoalSelectionPage from "./student/GoalSelectionPage";
 
 /* ── super / institute admin ── */
@@ -70,6 +74,7 @@ import Performance from "./admin/Performance";
 import StudyMaterialPage from "./admin/StudyMaterialPage";
 import PYQBook from "./admin/PYQBook";
 import Rankings from "./admin/Rankings";
+import TeacherNotices from "./admin/TeacherNotices";
 
 function LegacyCreateTestRedirect() {
   const location = useLocation();
@@ -103,18 +108,81 @@ export default function App() {
     locationRef.current = location;
   }, [location]);
 
+let lastBackPressTime = 0;
+
+function showExitToast() {
+  const toast = document.createElement('div');
+  toast.innerText = "Press back again to exit";
+  toast.style.position = 'fixed';
+  toast.style.bottom = '100px';
+  toast.style.left = '50%';
+  toast.style.transform = 'translateX(-50%)';
+  toast.style.backgroundColor = 'rgba(0,0,0,0.8)';
+  toast.style.color = 'white';
+  toast.style.padding = '10px 20px';
+  toast.style.borderRadius = '20px';
+  toast.style.fontSize = '14px';
+  toast.style.fontWeight = '500';
+  toast.style.zIndex = '9999';
+  toast.style.opacity = '0';
+  toast.style.transition = 'opacity 0.3s ease-in-out';
+  toast.style.pointerEvents = 'none';
+  toast.style.fontFamily = 'system-ui, -apple-system, sans-serif';
+  document.body.appendChild(toast);
+  
+  // Fade in
+  requestAnimationFrame(() => {
+    toast.style.opacity = '1';
+  });
+  
+  // Fade out and remove
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => {
+      if (document.body.contains(toast)) {
+        document.body.removeChild(toast);
+      }
+    }, 300);
+  }, 2000);
+}
+
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
 
     const sub = CapApp.addListener("backButton", ({ canGoBack }) => {
+      // 0. Check if any component intercepts the back button (e.g., Modals, Search Overlays)
+      if (executeBackAction()) {
+        return;
+      }
+
       const currentPath = locationRef.current.pathname;
       const currentSearch = locationRef.current.search;
       
-      const rootPaths = ["/", "/login", "/register", "/student", "/admin", "/institute-admin", "/super"];
+      const rootPaths = ["/", "/login", "/student", "/admin", "/institute-admin", "/super"];
 
-      // 1. If we are exactly on a root page, exit the app
+      // 1. If we are exactly on a root page, ask for double press to exit
       if (rootPaths.includes(currentPath) && !currentSearch) {
-        CapApp.exitApp();
+        if (Date.now() - lastBackPressTime < 2000) {
+          CapApp.exitApp();
+        } else {
+          lastBackPressTime = Date.now();
+          showExitToast();
+        }
+        return;
+      }
+
+      // 1.5. Hub-and-Spoke Navigation: If pressing back on secondary root tabs, go to Home hub
+      const secondaryRootTabs = [
+        "/student/library",
+        "/student/prime",
+        "/student/history",
+        "/student/notices",
+        "/student/profile",
+        "/student/pyq/bookmarks",
+        "/student/pyq/progress"
+      ];
+      if (secondaryRootTabs.includes(currentPath) && !currentSearch) {
+        navigate('/student', { replace: true });
         return;
       }
 
@@ -182,6 +250,7 @@ export default function App() {
             <Route path="analytics/quiz/:attemptId" element={<AttemptAnalytics />} />
             <Route path="analytics/quiz/:attemptId/answers" element={<AnswerSheet />} />
             <Route path="listedattempts/:testId" element={<ListedAttempts />} />
+            <Route path="listedattempts/quiz/:testId" element={<ListedAttempts />} />
             <Route path="pdf/:source/:id" element={<PdfViewerPage />} />
             <Route path="leaderboard/:testId" element={<LeaderboardPage />} />
             <Route path="profile" element={<StudentProfile />} />
@@ -199,17 +268,20 @@ export default function App() {
             <Route path="pyq/:subjectId" element={<PYQExplorer />} />
             <Route path="feedback" element={<FeedbackPage />} />
             <Route path="subscription" element={<StudentSubscription />} />
-            <Route path="learning" element={<MyLearning />} />
+            <Route path="notices" element={<NoticeBoard />} />
             <Route path="prime" element={<Prime />} />
             <Route path="prime/course/:courseId" element={<PrimeCourse />} />
             <Route path="prime/video/:videoId" element={<PrimeVideo />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="downloads" element={<StudentDownloads />} />
-            <Route path="updates" element={<StudentUpdates />} />
+
             <Route path="faqs" element={<StudentFAQs />} />
             <Route path="goal-selection" element={<GoalSelectionPage />} />
             <Route path="delete-account" element={<DeleteAccountPage />} />
             <Route path="change-password" element={<ChangePasswordPage />} />
+            <Route path="privacy-policy" element={<PrivacyPolicyPage />} />
+            <Route path="cookie-policy" element={<CookiePolicyPage />} />
+            <Route path="refund-policy" element={<RefundPolicyPage />} />
           </Route>
 
           {/* ── Admin ── */}
@@ -223,6 +295,7 @@ export default function App() {
           <Route path="/admin/performance" element={<ProtectedRoute role="TEACHER"><Performance /></ProtectedRoute>} />
           <Route path="/admin/pyq/:subject" element={<ProtectedRoute role="TEACHER"><PYQBook /></ProtectedRoute>} />
           <Route path="/admin/rankings" element={<ProtectedRoute role="TEACHER"><Rankings /></ProtectedRoute>} />
+          <Route path="/admin/notices" element={<ProtectedRoute role="TEACHER"><TeacherNotices /></ProtectedRoute>} />
           <Route path="/admin/create-test" element={<ProtectedRoute role="TEACHER"><LegacyCreateTestRedirect /></ProtectedRoute>} />
 
           {/* ── Institute Admin ── */}

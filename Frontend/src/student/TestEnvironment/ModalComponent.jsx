@@ -1,10 +1,10 @@
-import React, { useRef } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const ModalComponent = ({ data }) => {
   const navigate = useNavigate();
   // Stable ID — computed once on mount, not on every render
-  const modalId = useRef(Math.floor(Math.random() * 90000)).current;
+  const [modalId] = useState(() => Math.floor(Math.random() * 90000));
 
   if (!data) return null;
 

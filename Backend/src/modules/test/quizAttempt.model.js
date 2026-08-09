@@ -144,6 +144,21 @@ const testAttemptSchema = new mongoose.Schema({
     default: 1
   },
 
+  customTitle: {
+    type: String,
+    default: "Practice Quiz"
+  },
+
+  isPinned: {
+    type: Boolean,
+    default: false
+  },
+
+  parentAttemptId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "QuizAttempt",
+    default: null
+  },
 
   assignedSet: {
     type: String,
@@ -200,10 +215,7 @@ const testAttemptSchema = new mongoose.Schema({
 
 
 
-testAttemptSchema.index(
-  { testId: 1, studentId: 1, attemptNumber: 1 },
-  { unique: true }
-);
+// Removed unique index to allow multiple practice attempts without testId
 
 
 export default mongoose.model("QuizAttempt", testAttemptSchema);

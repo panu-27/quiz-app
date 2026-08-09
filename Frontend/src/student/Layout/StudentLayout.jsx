@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Outlet, useLocation, useNavigate, Navigate } from "react-router-dom";
-import { Home, PlayCircle, Book, ScrollText, Zap } from "lucide-react";
+import { Home, PlayCircle, Book, ScrollText, Zap, Bell } from "lucide-react";
 import { StatusBar, Style } from "@capacitor/status-bar";
 import { Capacitor } from "@capacitor/core";
 import { App } from "@capacitor/app";
@@ -105,10 +105,13 @@ export default function StudentLayout() {
     '/student/settings',
     '/student/delete-account',
     '/student/downloads',
-    '/student/updates',
     '/student/faqs',
     '/student/change-password',
-    '/student/goal-selection'
+    '/student/goal-selection',
+    '/student/notices',
+    '/student/privacy-policy',
+    '/student/cookie-policy',
+    '/student/refund-policy'
   ].includes(location.pathname);
 
   const showNavbar = isTestPage || isAnalysisPage || hideForPdf || isQuizTest || isQuizPage || isPYQPage || isProfilePage || isFeedbackPage || isListedAttempts || isPdfPage || isSettingsPages;
@@ -117,7 +120,7 @@ export default function StudentLayout() {
     location.pathname === "/student" ||
     location.pathname === "/student/" ||
     location.pathname === "/student/history" ||
-    location.pathname === "/student/learning" ||
+    location.pathname === "/student/notices" ||
     location.pathname === "/student/prime" ||
     location.pathname === "/student/library" ||
     location.pathname === "/student/quiz";
@@ -167,101 +170,63 @@ export default function StudentLayout() {
   return (
     <div className="min-h-screen flex flex-col bg-[#F8FAFF]">
 
-      <main
-        className="bg-white flex-1 z-50 pb-0"
-      >
-        <Outlet />
-      </main>
+      <div className="flex flex-1 overflow-hidden relative">
 
-      {/* ── Bottom Navigation Bar ── */}
-      {showChrome && (
-        <div className={`fixed bottom-0 left-0 right-0 z-[4000] transition-colors duration-300 ${isDarkPage ? 'bg-[#0B121C]' : 'bg-white'
-          }`}
-          style={{
-            borderTop: isDarkPage ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.07)',
-          }}
-        >
-          {/* ── Non-Approved Plus Banner ── */}
-          {user?.approved === false && (
-            <div className="absolute bottom-full left-0 right-0 bg-gradient-to-r from-[#1EBA9B] to-[#25D3A4] text-white px-5 py-2.5 flex items-center justify-between">
-              <div className="flex flex-col">
-                <span className="font-bold text-[13px] leading-tight">Get access to all the batches</span>
-                <span className="text-[13px] text-white/90 mt-0.5">Starts at ₹902/month</span>
+
+        {/* ── Main Content Area ── */}
+        <main className={`flex-1 bg-[#F8FAFF] dark:bg-[#0B121C] relative flex flex-col overflow-y-auto ${!showNavbar ? 'pb-20 lg:pb-0' : ''}`}>
+          <Outlet />
+        </main>
+
+        {/* ── Bottom Navigation Bar (mobile/tablet only) ── */}
+        {!showNavbar && (
+          <div className={`lg:hidden fixed bottom-0 left-0 right-0 z-[4000] transition-colors duration-300 ${isDarkPage ? 'bg-[#0B121C]' : 'bg-white'}`}
+            style={{ borderTop: isDarkPage ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.07)' }}
+          >
+            {user?.approved === false && (
+              <div className="absolute bottom-full left-0 right-0 bg-gradient-to-r from-[#1EBA9B] to-[#25D3A4] text-white px-5 py-2.5 flex items-center justify-between shadow-[0_-4px_15px_rgba(30,186,155,0.2)]">
+                <div className="flex flex-col">
+                  <span className="font-bold text-[13px] leading-tight">Get access to all batches</span>
+                  <span className="text-[13px] text-white/90 mt-0.5">Starts at ₹902/month</span>
+                </div>
+                <button
+                  onClick={() => window.open('https://en.wikipedia.org', '_blank')}
+                  className="bg-white text-[#1EBA9B] px-5 py-2 rounded-lg font-bold text-[13px] active:scale-95 transition-transform shadow-sm"
+                >
+                  Join Plus
+                </button>
               </div>
-              <button
-                onClick={() => window.open('https://en.wikipedia.org', '_blank')}
-                className="bg-white text-[#1EBA9B] px-5 py-2 rounded-sm font-bold text-[13px] active:scale-95 transition-transform"
-              >
-                Join Plus
-              </button>
-            </div>
-          )}
-
-          <nav className="flex items-center justify-around px-1 pt-3 pb-6">
-
-            {/* Home */}
-            <NavTabBtn
-              imgSrc="/bottom/home.svg"
-              imgActiveSrc="/bottom/home-active.svg"
-              label="Home"
-              isActive={location.pathname === '/student' || location.pathname === '/student/'}
-              isDark={isDarkPage}
-              onClick={() => navigate('/student')}
-              activeColor="#1EBA9B"
-              activeFilter="brightness(0) saturate(100%) invert(65%) sepia(40%) saturate(600%) hue-rotate(120deg) brightness(95%)"
-            />
-
-            {/* Prime */}
-            <NavTabBtn
-              imgSrc="/bottom/prime.svg"
-              imgActiveSrc="/bottom/prime-active.svg"
-              label="Prime"
-              isActive={location.pathname === '/student/prime'}
-              isDark={isDarkPage}
-              onClick={() => navigate('/student/prime')}
-              activeColor="#A855F7"
-              activeFilter="brightness(0) saturate(100%) invert(48%) sepia(80%) saturate(2000%) hue-rotate(258deg) brightness(110%)"
-            />
-
-            {/* QBank */}
-            <NavTabBtn
-              imgSrc="/bottom/qbank.svg"
-              imgActiveSrc="/bottom/qbank-active.svg"
-              label="QBank"
-              isActive={location.pathname.startsWith('/student/qbank') || location.pathname.startsWith('/student/library') || location.pathname.startsWith('/student/pyq')}
-              isDark={isDarkPage}
-              onClick={() => navigate('/student/library')}
-              activeColor="#6366F1"
-              activeFilter="brightness(0) saturate(100%) invert(42%) sepia(70%) saturate(1500%) hue-rotate(222deg) brightness(105%)"
-            />
-
-            {/* Tests */}
-            <NavTabBtn
-              imgSrc="/bottom/tests.svg"
-              imgActiveSrc="/bottom/tests-active.svg"
-              label="Tests"
-              isActive={location.pathname === '/student/history'}
-              isDark={isDarkPage}
-              onClick={() => navigate('/student/history')}
-              activeColor="#3B82F6"
-              activeFilter="brightness(0) saturate(100%) invert(44%) sepia(90%) saturate(1500%) hue-rotate(210deg) brightness(105%)"
-            />
-
-            {/* My Learning */}
-            <NavTabBtn
-              imgSrc="/bottom/learning.svg"
-              imgActiveSrc="/bottom/learning-active.svg"
-              label="My Learning"
-              isActive={location.pathname === '/student/learning'}
-              isDark={isDarkPage}
-              onClick={() => navigate('/student/learning')}
-              activeColor="#1EBA9B"
-              activeFilter="brightness(0) saturate(100%) invert(65%) sepia(40%) saturate(600%) hue-rotate(120deg) brightness(95%)"
-            />
-
-          </nav>
-        </div>
-      )}
+            )}
+            <nav className="flex items-center justify-around px-1 pt-3 pb-6">
+              <NavTabBtn
+                Icon={Home} label="Home"
+                isActive={location.pathname === '/student' || location.pathname === '/student/'}
+                isDark={isDarkPage} onClick={() => navigate('/student', { replace: true })} activeColor="#1EBA9B"
+              />
+              <NavTabBtn
+                Icon={Zap} label="Prime"
+                isActive={location.pathname === '/student/prime'}
+                isDark={isDarkPage} onClick={() => navigate('/student/prime', { replace: true })} activeColor="#A855F7"
+              />
+              <NavTabBtn
+                Icon={Book} label="QBank"
+                isActive={location.pathname.startsWith('/student/qbank') || location.pathname.startsWith('/student/library') || location.pathname.startsWith('/student/pyq')}
+                isDark={isDarkPage} onClick={() => navigate('/student/library', { replace: true })} activeColor="#6366F1"
+              />
+              <NavTabBtn
+                Icon={ScrollText} label="Tests"
+                isActive={location.pathname === '/student/history'}
+                isDark={isDarkPage} onClick={() => navigate('/student/history', { replace: true })} activeColor="#3B82F6"
+              />
+              <NavTabBtn
+                Icon={Bell} label="Updates"
+                isActive={location.pathname === '/student/notices'}
+                isDark={isDarkPage} onClick={() => navigate('/student/notices', { replace: true })} activeColor="#F59E0B"
+              />
+            </nav>
+          </div>
+        )}
+      </div>
 
       <style>{`
         @keyframes qfl-ripple {
@@ -281,9 +246,8 @@ export default function StudentLayout() {
   );
 }
 
-function NavTabBtn({ imgSrc, imgActiveSrc, label, isActive, isDark, onClick, activeColor, activeFilter }) {
+function NavTabBtn({ imgSrc, imgActiveSrc, Icon, label, isActive, isDark, onClick, activeColor, activeFilter }) {
   const src = isActive ? imgActiveSrc : imgSrc;
-  // Active: per-tab color. Inactive: dimmed white (dark) or dimmed black (light)
   const imgFilter = isActive
     ? activeFilter
     : (isDark ? 'brightness(0) invert(1)' : 'none');
@@ -294,35 +258,37 @@ function NavTabBtn({ imgSrc, imgActiveSrc, label, isActive, isDark, onClick, act
       className="flex flex-col items-center gap-0.5 min-w-[56px] relative"
       style={{ WebkitTapHighlightColor: 'transparent' }}
     >
-      {/* Icon image */}
-      <div
-        className="relative flex items-center justify-center w-12 h-8 transition-all duration-250"
-      >
-        <img
-          src={src}
-          alt={label}
-          width={isActive ? 31 : 26}
-          height={isActive ? 31 : 26}
-          style={{
-            filter: imgFilter,
-            opacity: isActive ? 1 : (isDark ? 0.4 : 0.45),
-            transition: 'opacity 0.2s ease, filter 0.2s ease, width 0.2s ease, height 0.2s ease',
-          }}
-        />
+      <div className="relative flex items-center justify-center w-12 h-8 transition-all duration-250">
+        {Icon ? (
+           <Icon size={isActive ? 24 : 22} color={isActive ? activeColor : (isDark ? '#fff' : '#000')} style={{ opacity: isActive ? 1 : 0.45, transition: 'all 0.2s ease' }} strokeWidth={isActive ? 2.5 : 2} />
+        ) : (
+          <img src={src} alt={label} width={isActive ? 31 : 26} height={isActive ? 31 : 26} style={{ filter: imgFilter, opacity: isActive ? 1 : (isDark ? 0.4 : 0.45), transition: 'opacity 0.2s ease, filter 0.2s ease, width 0.2s ease, height 0.2s ease' }} />
+        )}
       </div>
+      <span style={{ fontSize: '11px', fontWeight: isActive ? 700 : 500, color: isActive ? activeColor : (isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.5)'), transition: 'color 0.2s ease', lineHeight: 1 }}>
+        {label}
+      </span>
+    </button>
+  );
+}
 
-      {/* Label */}
-      <span
-        style={{
-          fontSize: '11px',
-          fontWeight: isActive ? 700 : 500,
-          color: isActive
-            ? activeColor
-            : (isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.5)'),
-          transition: 'color 0.2s ease',
-          lineHeight: 1,
-        }}
-      >
+function DesktopNavBtn({ Icon, label, isActive, onClick, activeColor }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 relative group overflow-hidden ${
+        isActive 
+          ? 'bg-slate-100 dark:bg-white/10 text-slate-900 dark:text-white shadow-sm' 
+          : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5'
+      }`}
+    >
+      {isActive && (
+        <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${activeColor} rounded-r-full`} />
+      )}
+      <div className={`flex items-center justify-center transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`}>
+        <Icon size={22} strokeWidth={isActive ? 2.5 : 2} className={isActive ? 'opacity-100' : 'opacity-70 group-hover:opacity-100'} />
+      </div>
+      <span className={`font-medium tracking-wide transition-all ${isActive ? 'font-semibold text-[15px]' : 'text-[15px]'}`}>
         {label}
       </span>
     </button>

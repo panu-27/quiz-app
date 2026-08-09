@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../api/axios.js';
 import { QuestionItem } from './PYQExplorer';
 import { YEAR_OPTIONS } from './pyqData';
+import useBackButton from '../hooks/useBackButton';
 
 const STATUS_BAR_H = 28.5;
 const DOT_COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EC4899', '#8B5CF6', '#EF4444', '#06B6D4'];
@@ -29,7 +30,7 @@ export default function PYQBookmarks() {
     const goal = localStorage.getItem("selectedGoal") || "MHT CET";
 
     const [bookmarks, setBookmarks] = useState([]);
-    const [activeSubjectFilter, setActiveSubjectFilter] = useState(null);
+    const [activeSubjectFilter, setActiveSubjectFilter] = useState('Physics');
     const [searchBookmarks, setSearchBookmarks] = useState('');
     // Filter bookmarks by subject and search query
     const filteredBookmarks = (activeSubjectFilter ? bookmarks.filter(b => {
@@ -63,6 +64,19 @@ export default function PYQBookmarks() {
     const [reportDone, setReportDone] = useState(false);
     const [selectedReason, setSelectedReason] = useState(null);
 
+    useBackButton(() => {
+        if (yearPickerOpen) {
+            setYearPickerOpen(false);
+            return true;
+        }
+        if (reportTarget) {
+            setReportTarget(null);
+            setSelectedReason(null);
+            return true;
+        }
+        return false;
+    }, yearPickerOpen || !!reportTarget);
+
     useEffect(() => {
         if (!user) return;
         const fetchBookmarks = async () => {
@@ -84,7 +98,13 @@ export default function PYQBookmarks() {
 
     const handleToggleBookmark = async (question) => {
         try {
-            const res = await api.post('/quiz/bookmarks/toggle', { questionId: question._id });
+            const payload = {
+                questionId: question._id || question.questionId,
+                subjectId: question.subjectId,
+                chapterId: question.chapterId,
+                topicId: question.topicId
+            };
+            const res = await api.post('/quiz/bookmarks/toggle', payload);
             if (res.data?.success) {
                 setBookmarks(prev => {
                     if (res.data.action === 'added') {
@@ -167,12 +187,12 @@ export default function PYQBookmarks() {
 
                     {/* Subject Filter Tabs */}
                     <div className={`flex gap-1 overflow-x-auto w-full px-5 py-2 ${isDark ? 'bg-[#0E131F]' : 'bg-[#F8FAFF]'} [&::-webkit-scrollbar]:hidden`} style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                        {['All','Physics','Chemistry','Math','Biology'].map((sub) => (
+                        {['Physics','Chemistry','Math','Biology'].map((sub) => (
                             <button
                                 key={sub}
-                                onClick={() => setActiveSubjectFilter(sub === 'All' ? null : sub)}
+                                onClick={() => setActiveSubjectFilter(sub)}
                                 className={`flex-1 min-w-[80px] text-center text-sm font-medium transition-colors ${
-                                    (activeSubjectFilter === null && sub === 'All') || activeSubjectFilter === sub
+                                    activeSubjectFilter === sub
                                         ? (isDark ? 'text-[#93C5FD] border-b-2 border-[#93C5FD]' : 'text-[#3B82F6] border-b-2 border-[#3B82F6]')
                                         : (isDark ? 'text-gray-400' : 'text-gray-600')}`}
                                 style={{ paddingBottom: 2 }}
@@ -486,11 +506,6 @@ export default function PYQBookmarks() {
                                               }`}
                                           >
                                               <div className="flex-1 min-w-0">
-                                                  <p className={`text-[10px] font-black tracking-wider uppercase leading-none mb-1.5 ${
-                                                      isDark ? 'text-[#8492A6]' : 'text-slate-400'
-                                                  }`}>
-                                                      {subjectName}
-                                                  </p>
                                                   <h3 className={`text-[16px] font-bold leading-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>
                                                       {chapter}
                                                   </h3>

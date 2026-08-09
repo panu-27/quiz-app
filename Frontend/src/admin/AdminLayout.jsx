@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import {
   LayoutDashboard, FileText, BarChart3, BookOpen, PenLine,
   FileUp, Database, RefreshCw, Eye, LogOut,
-  Menu, X, ChevronDown,
+  Menu, X, ChevronDown, Send
 } from "lucide-react";
 
 /* ─── nav tree ──────────────────────────────────────────── */
@@ -63,6 +63,13 @@ const NAV = [
     label: "Rankings",
     icon: <BarChart3 className="w-4 h-4" />,
     path: "/admin/rankings",
+  },
+  {
+    id: "notices",
+    label: "Notices",
+    icon: <Send className="w-4 h-4" />,
+    path: "/admin/notices",
+    badge: "New"
   },
 ];
 

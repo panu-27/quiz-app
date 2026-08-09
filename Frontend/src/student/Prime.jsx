@@ -105,7 +105,7 @@ const TopEducatorCard = ({ index, title, teacherImg, bg, isDark }) => (
     {/* Card */}
     <div className="w-full h-[200px] rounded-[16px] overflow-hidden relative shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:shadow-lg" style={{ background: bg }}>
       <div className="px-3 pt-6 pb-2">
-        <h3 className="text-white font-black italic text-[14px] text-center leading-tight drop-shadow-md tracking-tight">
+        <h3 className="text-white font-black italic text-[14px] text-center leading-tight drop-shadow-md tracking-tight blur-[4px] select-none">
           {title}
         </h3>
       </div>
@@ -140,8 +140,8 @@ const TopEducatorCard = ({ index, title, teacherImg, bg, isDark }) => (
   </div>
 );
 
-const VideoCard = ({ title, count, subject, author, bgColor, teacherImg, id, onClick }) => (
-  <div onClick={onClick} className="w-[196px] flex-shrink-0 bg-white dark:bg-[#151924] rounded-[16px] p-2 flex flex-col gap-3 shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-md border border-slate-200 dark:border-slate-800/50 cursor-pointer active:scale-95 transition-transform">
+const VideoCard = ({ title, count, subject, author, bgColor, teacherImg, id, onClick, isLocked }) => (
+  <div onClick={isLocked ? undefined : onClick} className={`w-[196px] flex-shrink-0 bg-white dark:bg-[#151924] rounded-[16px] p-2 flex flex-col gap-3 shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-md border border-slate-200 dark:border-slate-800/50 transition-transform ${isLocked ? 'cursor-default' : 'cursor-pointer active:scale-95'}`}>
 
     {/* Stack Container */}
     <div className="relative pt-3">
@@ -172,11 +172,13 @@ const VideoCard = ({ title, count, subject, author, bgColor, teacherImg, id, onC
         </div>
 
         {/* Faded Locked Overlay */}
-        <div className="absolute inset-0 bg-black/40 z-20 flex items-center justify-center pointer-events-none">
-          <div className="bg-black/60 backdrop-blur-md p-2 rounded-full border border-white/10 shadow-[0_0_15px_rgba(0,0,0,0.6)]">
-            <Lock size={18} className="text-white opacity-90" />
+        {isLocked && (
+          <div className="absolute inset-0 bg-black/40 z-20 flex items-center justify-center pointer-events-none">
+            <div className="bg-black/60 backdrop-blur-md p-2 rounded-full border border-white/10 shadow-[0_0_15px_rgba(0,0,0,0.6)]">
+              <Lock size={18} className="text-white opacity-90" />
+            </div>
           </div>
-        </div>
+        )}
       </div> {/* Close Main Image Block */}
     </div> {/* Close Stack Container */}
 
@@ -276,13 +278,13 @@ export default function Prime() {
 
         {/* Top Header Row */}
         <div className="flex items-center justify-between px-5 py-2 mt-2">
-          <div>
+          <div onClick={() => { if (!user?.approved) navigate('/student/goal-selection'); }}>
             <p className="text-[10px] font-medium leading-tight mb-0.5 text-slate-500">Current goal</p>
-            <div className="flex items-center gap-1 cursor-pointer">
+            <div className={`flex items-center gap-1 ${!user?.approved ? 'cursor-pointer' : ''}`}>
               <span className={`font-bold text-[17px] font-display tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
                 {localStorage.getItem("selectedGoal") || "Select Goal"}
               </span>
-              <ChevronDown size={18} className={isDark ? 'text-white' : 'text-slate-900'} strokeWidth={2.5} />
+              {!user?.approved && <ChevronDown size={18} className={isDark ? 'text-white' : 'text-slate-900'} strokeWidth={2.5} />}
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -358,7 +360,7 @@ export default function Prime() {
             <ChevronRight size={18} className="text-[#C084FC]" />
           </div>
           <div className="flex gap-4 overflow-x-auto overflow-y-hidden hide-scrollbar pb-6 pt-2 -mx-4 px-4">
-            {SYLLABUS_VIDEOS.map(video => <VideoCard key={video.id} {...video} onClick={() => navigate(`/student/prime/course/${video.id}`)} />)}
+            {SYLLABUS_VIDEOS.map(video => <VideoCard key={video.id} {...video} isLocked={user?.approved === false} onClick={() => navigate(`/student/prime/course/${video.id}`)} />)}
           </div>
         </div>
 
@@ -371,7 +373,7 @@ export default function Prime() {
             <ChevronRight size={18} className="text-[#C084FC]" />
           </div>
           <div className="flex gap-4 overflow-x-auto overflow-y-hidden hide-scrollbar pb-6 pt-2 -mx-4 px-4">
-            {PYQ_VIDEOS.map(video => <VideoCard key={video.id} {...video} onClick={() => navigate(`/student/prime/course/${video.id}`)} />)}
+            {PYQ_VIDEOS.map(video => <VideoCard key={video.id} {...video} isLocked={user?.approved === false} onClick={() => navigate(`/student/prime/course/${video.id}`)} />)}
           </div>
         </div>
 

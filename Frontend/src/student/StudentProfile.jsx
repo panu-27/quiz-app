@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import StudentHeader from "./StudentHeader";
 import api from "../api/axios";
+import useBackButton from "../hooks/useBackButton";
 
 const STATUS_BAR_H = 28.5;
 
@@ -473,20 +474,21 @@ function FullSettingsView({ onBack, name, email, avatarUrl, onAvatarChange }) {
     );
 }
 
-function MobileSettingsPage({ onBack, name, email, avatarUrl, onAvatarChange }) {
+function MobileSettingsPage({ onBack, name, email, avatarUrl, onAvatarChange, profile }) {
     const { theme } = useTheme();
     const { user } = useAuth();
     const isDark = theme === "dark";
     const [showFullSettings, setShowFullSettings] = useState(false);
-    const [isGoalExpanded, setIsGoalExpanded] = useState(false);
-    const [selectedGoal, setSelectedGoal] = useState(localStorage.getItem("selectedGoal") || "IIT JEE");
+    const [selectedGoal] = useState(localStorage.getItem("selectedGoal") || "IIT JEE");
+    const navigate = useNavigate();
 
-    const selectGoal = (goal) => {
-        localStorage.setItem("selectedGoal", goal);
-        setSelectedGoal(goal);
-        setIsGoalExpanded(false);
-        window.location.reload();
-    };
+    useBackButton(() => {
+        if (showFullSettings) {
+            setShowFullSettings(false);
+            return true;
+        }
+        return false;
+    }, showFullSettings);
 
     // We can pass stats from the parent StudentProfile, but for now we'll just mock or use the defaults from localStorage/api if needed.
     // Actually, StudentProfile parent passes stats? Let's check: It didn't pass stats before, so we'll just use dummy/fallback or fetch if needed.
@@ -513,14 +515,16 @@ function MobileSettingsPage({ onBack, name, email, avatarUrl, onAvatarChange }) 
 
                     <div className="relative">
                         <button
-                            onClick={() => navigate('/student/goal-selection')}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border ${isDark ? 'border-slate-800 bg-slate-800/50 hover:bg-slate-800' : 'border-slate-200 bg-slate-50 hover:bg-slate-100'} transition-colors`}
+                            onClick={() => {
+                                if (!user?.approved) navigate('/student/goal-selection');
+                            }}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${!user?.approved ? 'border' : ''} ${isDark ? (!user?.approved ? 'border-slate-800 bg-slate-800/50 hover:bg-slate-800' : 'bg-transparent') : (!user?.approved ? 'border-slate-200 bg-slate-50 hover:bg-slate-100' : 'bg-transparent')} transition-colors ${!user?.approved ? 'cursor-pointer px-3' : 'cursor-default px-1'}`}
                         >
                             <div className="w-4 h-4 flex items-center justify-center -ml-0.5 scale-75 origin-center">
                                 {getGoalIcon(selectedGoal)}
                             </div>
                             <span className={`text-[12px] font-bold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{selectedGoal}</span>
-                            <ChevronDown size={12} className={`text-slate-400`} />
+                            {!user?.approved && <ChevronDown size={12} className={`text-slate-400`} />}
                         </button>
                     </div>
                 </div>
@@ -546,6 +550,35 @@ function MobileSettingsPage({ onBack, name, email, avatarUrl, onAvatarChange }) 
                         <p className={`text-[13px] font-semibold mt-1 uppercase tracking-wider ${user?.approved === false ? 'text-rose-500' : 'text-emerald-500'}`}>
                             {user?.approved === false ? 'Free User' : 'Pro User'}
                         </p>
+                    </div>
+                </div>
+
+                {/* Enrollments / Batch Info */}
+                {/* Enrollments / Batch Info */}
+                <div className={`rounded-xl p-4 ${isDark ? 'bg-[#151E2E]' : 'bg-white border border-slate-200'}`}>
+                    <div className="flex items-center gap-2 mb-3">
+                        <h3 className={`text-[17px] font-bold font-display ${isDark ? 'text-white' : 'text-slate-900'}`}>My Classroom</h3>
+                    </div>
+                    <div className="relative">
+                        <div className={`rounded-xl p-4 border transition-all ${isDark ? 'bg-[#0A0F1A] border-slate-700/50' : 'bg-slate-50 border-slate-100'}`}>
+                            <div className="flex items-center justify-between mb-2">
+                                <span className={`text-[11px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                                    {user?.approved === false ? 'Current Goal' : 'Approved Access'}
+                                </span>
+                                {user?.approved !== false && (
+                                    <span className="px-2 py-0.5 rounded-md bg-[#00E2B8]/10 text-[#00E2B8] text-[10px] font-bold border border-[#00E2B8]/20">Full App</span>
+                                )}
+                            </div>
+                            <h4 className={`text-[15px] font-bold font-display leading-tight mb-1 ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                                {profile?.batchId?.className || selectedGoal || "Premium Class"}
+                            </h4>
+                            {user?.approved !== false && (
+                                <p className={`text-[12px] font-medium flex items-center gap-1.5 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                                    <Zap size={14} className="text-orange-500" />
+                                    {profile?.batchId?.name || "Premium Batch"}
+                                </p>
+                            )}
+                        </div>
                     </div>
                 </div>
 
@@ -621,6 +654,14 @@ function DesktopLeftSkeleton() {
     );
 }
 
+const DEFAULT_WEEKS = [
+    { label: "Week 1", bold: false, days: [true, false, true, true, false, true, true] },
+    { label: "Week 2", bold: false, days: [true, true, true, false, true, true, true] },
+    { label: "Week 3", bold: false, days: [false, true, true, true, true, false, true] },
+    { label: "Week 4", bold: false, days: [true, true, false, true, true, true, true] },
+    { label: "This Week", bold: true, days: [true, true, false, false, false, false, false] }
+];
+
 export default function StudentProfile() {
     const navigate = useNavigate();
     const { user: authUser } = useAuth();
@@ -631,10 +672,7 @@ export default function StudentProfile() {
     const [avatarUrl, setAvatarUrl] = useState(null);
     const [mobileSettings, setMobileSettings] = useState(false);
     const [desktopPanel, setDesktopPanel] = useState(null);
-    const [isGoalExpanded, setIsGoalExpanded] = useState(false);
-    const [selectedGoal, setSelectedGoal] = useState(localStorage.getItem("selectedGoal") || "IIT JEE");
-    const [leaderboardData, setLeaderboardData] = useState([]);
-    const [currentUserRank, setCurrentUserRank] = useState(null);
+    const [selectedGoal] = useState(localStorage.getItem("selectedGoal") || "IIT JEE");
 
     const FALLBACK_ALL_TIME = [
         { rank: 1, name: "Mushafir", points: 8684187, level: 33, percentile: 100, avatar: null },
@@ -645,13 +683,6 @@ export default function StudentProfile() {
 
     const avatarRef = useRef(null);
     const passwordRef = useRef(null);
-
-    const selectGoal = (goal) => {
-        localStorage.setItem("selectedGoal", goal);
-        setSelectedGoal(goal);
-        setIsGoalExpanded(false);
-        window.location.reload();
-    };
 
     useEffect(() => {
         let cancelled = false;
@@ -669,33 +700,10 @@ export default function StudentProfile() {
         return () => { cancelled = true; };
     }, []);
 
-    useEffect(() => {
-        let cancelled = false;
-        async function fetchLeaderboard() {
-            try {
-                const { data } = await api.get("/leaderboard/stats/all");
-                if (!cancelled) {
-                    if (Array.isArray(data) && data.length > 0) {
-                        setLeaderboardData(data.slice(0, 4));
-                        setCurrentUserRank(data.find(u => u.current || u.name?.toLowerCase().includes('pranav') || u.studentName?.toLowerCase().includes('pranav')) || { rank: 12, name: authUser?.name || "You", points: "0", level: 1, percentile: 0 });
-                    } else {
-                        setLeaderboardData(FALLBACK_ALL_TIME.slice(0, 4));
-                        setCurrentUserRank({ rank: 12, name: authUser?.name || "You", points: "0", level: 1, percentile: 0 });
-                    }
-                }
-            } catch {
-                if (!cancelled) {
-                    setLeaderboardData(FALLBACK_ALL_TIME.slice(0, 4));
-                    setCurrentUserRank({ rank: 12, name: authUser?.name || "You", points: "0", level: 1, percentile: 0 });
-                }
-            }
-        }
-        fetchLeaderboard();
-        return () => { cancelled = true; };
-    }, [authUser]);
+    // Leaderboard logic removed
 
     const getVal = (f) => profile?.[f] || authUser?.[f] || "N/A";
-    const name = getVal("name");
+    const name = profile?.name || authUser?.name || "Pranav Zinjad";
     const resolveMediaUrl = (url) => {
         if (!url) return null;
         if (url.startsWith('http') || url.startsWith('data:') || url.startsWith('blob:')) return url;
@@ -768,7 +776,7 @@ export default function StudentProfile() {
                     email={getVal("email")}
                     avatarUrl={resolved}
                     onAvatarChange={setAvatarUrl}
-
+                    profile={profile}
                 />
             </>
         );
@@ -780,21 +788,21 @@ export default function StudentProfile() {
         {
             color: "bg-[#EBF3FF]",
             badge: "bg-[#D1E5FF]",
-            label: "Institute",
-            icon: <Globe size={18} className="text-[#2563EB]" />,
-            value: profile?.instituteId?.name || "Name HQ",
+            label: "Class",
+            icon: <BookOpen size={18} className="text-[#2563EB]" />,
+            value: profile?.batchId?.className || selectedGoal || "Premium Class",
             status: "Verified",
             statusColor: "text-[#2563EB]",
         },
-        {
+        ...(authUser?.approved !== false ? [{
             color: "bg-[#FFF4EB]",
             badge: "bg-[#FFE9D6]",
-            label: "Batch",
+            label: "Division",
             icon: <Zap size={18} className="text-orange-500" />,
-            value: profile?.batchId?.name || "Elite Batch",
+            value: profile?.batchId?.name || "Premium Batch",
             status: "Active",
             statusColor: "text-orange-500",
-        },
+        }] : [])
     ];
 
     return (
@@ -1033,19 +1041,22 @@ MOBILE (< lg) — Unacademy-style layout
 
                         <div className="relative">
                             <button
-                                onClick={() => navigate('/student/goal-selection')}
+                                onClick={() => {
+                                    if (!authUser?.approved) navigate('/student/goal-selection');
+                                }}
                                 className={`
             group flex items-center gap-2
-            h-10 px-4
+            h-10
             rounded-2xl
-            border
+            ${!authUser?.approved ? 'border px-4 backdrop-blur-xl' : 'px-1'}
             transition-all duration-200
-            backdrop-blur-xl
 
-            ${isDark
+            ${!authUser?.approved ? (isDark
                                         ? 'bg-[#151E2E]/80 border-slate-800 hover:border-slate-700'
-                                        : 'bg-white/90 border-slate-200 hover:border-slate-300'
+                                        : 'bg-white/90 border-slate-200 hover:border-slate-300')
+                                        : 'bg-transparent'
                                     }
+            ${!authUser?.approved ? 'cursor-pointer' : 'cursor-default'}
         `}
                             >
                                 <div className="w-4 h-4 flex items-center justify-center">
@@ -1064,13 +1075,15 @@ MOBILE (< lg) — Unacademy-style layout
                                     {selectedGoal}
                                 </span>
 
-                                <ChevronDown
-                                    size={14}
-                                    className={`
-                text-slate-400
-                transition-transform duration-200
-            `}
-                                />
+                                {!authUser?.approved && (
+                                    <ChevronDown
+                                        size={14}
+                                        className={`
+                    text-slate-400
+                    transition-transform duration-200
+                `}
+                                    />
+                                )}
                             </button>
                         </div>
                     </div>
@@ -1110,9 +1123,9 @@ MOBILE (< lg) — Unacademy-style layout
                         </div>
 
                         <div className="flex-1 min-w-0">
-                            <h2 className={`text-[18px] font-semibold font-display leading-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Pranav Zinjad</h2>
-                            <p className={`text-[12px] font-semibold mt-1 uppercase tracking-wider ${authUser?.approved === false ? 'text-blue-500' : 'text-blue-500'}`}>
-                                {authUser?.approved === false ? 'Free User' : (profile?.batchId?.name || 'Pro User')}
+                            <h2 className={`text-[18px] font-semibold font-display leading-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>{name}</h2>
+                            <p className={`text-[12px] font-semibold mt-1 uppercase tracking-wider ${authUser?.approved === false ? 'text-rose-500' : 'text-emerald-500'}`}>
+                                {authUser?.approved === false ? 'Free User' : 'Pro User'}
                             </p>
                         </div>
                     </div>
@@ -1121,17 +1134,47 @@ MOBILE (< lg) — Unacademy-style layout
                 {/* Scrollable Content */}
                 <div className={`flex-1 overflow-y-auto px-2 pt-2 pb-28 space-y-3 ${isDark ? 'bg-[#0A0F1A]' : 'bg-[#F4F7FC]'}`}>
 
+                    {/* Enrollments / Batch Info */}
+                    <div className={`rounded-xl p-4 ${isDark ? 'bg-[#151E2E]' : 'bg-white border border-slate-200'}`}>
+                        <div className="flex items-center gap-2 mb-3">
+                            <h3 className={`text-[17px] font-bold font-display ${isDark ? 'text-white' : 'text-slate-900'}`}>My Classroom</h3>
+                        </div>
+                        <div className="relative">
+                            <div className={`grid ${authUser?.approved === false ? 'grid-cols-1' : 'grid-cols-2'} gap-3 transition-all`}>
+                                {/* Card 1: Class */}
+                                <div className={`p-4 rounded-xl relative overflow-hidden ${isDark ? 'bg-[#0A0F1A]' : 'bg-slate-50'}`}>
+                                    <div className={`text-[10px] font-bold uppercase tracking-wider mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>CLASS</div>
+                                    <div className={`text-[16px] leading-tight font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                                        {profile?.batchId?.className || selectedGoal || "Premium Class"}
+                                    </div>
+                                    <div className="absolute -bottom-2 -right-2 w-12 h-12 rounded-full bg-[#DBEAFE] flex items-center justify-center">
+                                        <BookOpen size={18} className="text-[#3B82F6] -mt-2 -ml-2" />
+                                    </div>
+                                </div>
 
-
-
+                                {/* Card 2: Batch */}
+                                {authUser?.approved !== false && (
+                                    <div className={`p-4 rounded-xl relative overflow-hidden ${isDark ? 'bg-[#0A0F1A]' : 'bg-slate-50'}`}>
+                                        <div className={`text-[10px] font-bold uppercase tracking-wider mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>DIVISION</div>
+                                        <div className={`text-[16px] leading-tight font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                                            {profile?.batchId?.name || "Premium Batch"}
+                                        </div>
+                                        <div className="absolute -bottom-2 -right-2 w-12 h-12 rounded-full bg-[#FFEDD5] flex items-center justify-center">
+                                            <Zap size={18} className="text-[#F97316] -mt-2 -ml-2" />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
                     {/* My Library */}
                     <div className={`rounded-xl p-4 ${isDark ? 'bg-[#151E2E]' : 'bg-white border border-slate-200'}`}>
                         <h3 className={`text-[17px] font-bold font-display mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>My library</h3>
                         <div className="grid grid-cols-2 gap-3">
                             {[
-                                { icon: <PlaySquare size={18} className="text-[#00E2B8]" />, label: 'Enrollments', action: () => navigate('/student/learning') },
+                                { icon: <PlaySquare size={18} className="text-[#00E2B8]" />, label: 'Home', action: () => navigate('/student/learning') },
                                 { icon: <Download size={18} className="text-[#A855F7]" />, label: 'Downloads', action: () => navigate('/student/downloads') },
-                                { icon: <Bell size={18} className="text-[#00E2B8]" />, label: 'Updates', action: () => navigate('/student/updates') },
+                                { icon: <Bell size={18} className="text-[#00E2B8]" />, label: 'Updates', action: () => navigate('/student/notices') },
                                 { icon: <Award size={18} className="text-amber-500" />, label: 'Leaderboard', action: () => navigate('/student/personal') },
                                 { icon: <HelpCircle size={18} className="text-[#3B82F6]" />, label: 'FAQs', action: () => navigate('/student/faqs') },
                                 { icon: <Settings size={18} className={isDark ? 'text-slate-400' : 'text-slate-500'} />, label: 'Settings', action: () => navigate('/student/settings') },
@@ -1154,41 +1197,37 @@ MOBILE (< lg) — Unacademy-style layout
                         <p className={`text-[13px] font-medium mb-6 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                             Daily stats on how much you learn &amp; practice
                         </p>
-                        <div className={`flex justify-between items-center relative py-2 ${authUser?.approved === false ? 'opacity-40' : ''}`}>
-                            <div className="flex flex-col gap-6">
-                                <div>
+                        <div className={`flex justify-between items-center relative py-2`}>
+                            <div className="flex flex-col gap-6 relative">
+                                <div className="opacity-40 relative">
                                     <div className="text-[20px] font-bold text-[#3B82F6]">20 / 30</div>
                                     <div className={`text-[12px] font-medium ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Mins watched</div>
+                                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#064E3B] px-2.5 py-1 rounded-full flex items-center gap-1.5 border border-[#047857]/30 z-10 w-max">
+                                        <Lock size={10} className="text-[#10B981] fill-[#10B981]" />
+                                        <span className="text-[9px] font-bold text-[#34D399] uppercase tracking-wider">AVAILABLE WITH PLUS</span>
+                                    </div>
                                 </div>
                                 <div>
-                                    <div className="text-[20px] font-bold text-[#00E2B8]">12 / 30</div>
+                                    <div className="text-[20px] font-bold text-[#00E2B8]">{profile?.activityData?.currentStreak || 0} / 10</div>
                                     <div className={`text-[12px] font-medium ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Questions attempted</div>
                                 </div>
                             </div>
 
                             {/* The Rings */}
                             <div className="relative w-32 h-32 flex items-center justify-center shrink-0">
-                                {/* Outer Ring */}
-                                <svg className="absolute w-full h-full -rotate-90">
+                                {/* Outer Ring (Locked) */}
+                                <svg className="absolute w-full h-full -rotate-90 opacity-40">
                                     <circle cx="64" cy="64" r="54" stroke={isDark ? "rgba(59, 130, 246, 0.15)" : "rgba(59, 130, 246, 0.1)"} strokeWidth="6" fill="transparent" />
                                     <circle cx="64" cy="64" r="54" stroke="#3B82F6" strokeWidth="6" fill="transparent"
-                                        strokeDasharray={339.29} strokeDashoffset={339.29 - (339.29 * 66) / 100} strokeLinecap="round" />
+                                        strokeDasharray={339.29} strokeDashoffset={339.29} strokeLinecap="round" />
                                 </svg>
                                 {/* Inner Ring */}
                                 <svg className="absolute w-24 h-24 -rotate-90">
                                     <circle cx="48" cy="48" r="40" stroke={isDark ? "rgba(0, 226, 184, 0.15)" : "rgba(0, 226, 184, 0.1)"} strokeWidth="6" fill="transparent" />
                                     <circle cx="48" cy="48" r="40" stroke="#00E2B8" strokeWidth="6" fill="transparent"
-                                        strokeDasharray={251.32} strokeDashoffset={251.32 - (251.32 * 40) / 100} strokeLinecap="round" />
+                                        strokeDasharray={251.32} strokeDashoffset={251.32 - (251.32 * Math.min(100, ((profile?.activityData?.currentStreak || 0) / 10) * 100)) / 100} strokeLinecap="round" />
                                 </svg>
                             </div>
-
-                            {/* PLUS Badge overlay (only shown when NOT approved) */}
-                            {authUser?.approved === false && (
-                                <div className="absolute top-1/2 left-[48%] -translate-x-1/2 -translate-y-1/2 bg-[#064E3B] px-2.5 py-1 rounded-full flex items-center gap-1.5 border border-[#047857]/30 z-10 opacity-100">
-                                    <Lock size={10} className="text-[#10B981] fill-[#10B981]" />
-                                    <span className="text-[9px] font-bold text-[#34D399] uppercase tracking-wider">AVAILABLE WITH PLUS</span>
-                                </div>
-                            )}
                         </div>
                     </div>
 
@@ -1242,7 +1281,7 @@ MOBILE (< lg) — Unacademy-style layout
                     <div className={`rounded-xl p-4 ${isDark ? 'bg-[#151E2E]' : 'bg-white border border-slate-200'}`}>
                         <div className="flex justify-between items-center mb-5">
                             <h3 className={`text-[17px] font-bold font-display ${isDark ? 'text-white' : 'text-slate-900'}`}>Streak</h3>
-                            <span className={`text-[12px] font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Daily goal: 10 mins</span>
+                            <span className={`text-[12px] font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Practice Daily</span>
                         </div>
 
                         <div className={`rounded-xl border flex divide-x mb-6 ${isDark ? 'border-[#2A3649] divide-[#2A3649]' : 'border-slate-200 divide-slate-200'}`}>
@@ -1252,12 +1291,12 @@ MOBILE (< lg) — Unacademy-style layout
                                     <div className="w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center shrink-0">
                                         <Flame size={14} className="text-white" />
                                     </div>
-                                    <span className="text-[15px] font-bold text-orange-500">0 days</span>
+                                    <span className="text-[15px] font-bold text-orange-500">{profile?.activityData?.currentStreak || 0} days</span>
                                 </div>
                             </div>
                             <div className="flex-1 p-4 flex flex-col gap-2">
                                 <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>LONGEST</span>
-                                <div className={`text-[15px] font-bold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>68 days</div>
+                                <div className={`text-[15px] font-bold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{profile?.activityData?.longestStreak || 0} days</div>
                             </div>
                         </div>
 
@@ -1271,19 +1310,20 @@ MOBILE (< lg) — Unacademy-style layout
                             </div>
 
                             {/* Weeks */}
-                            {[
-                                { label: '10 - 16 May' },
-                                { label: '17 - 23 May' },
-                                { label: '24 - 30 May' },
-                                { label: 'This week', bold: true }
-                            ].map((week, wIdx) => (
+                            {(profile?.activityData?.weeks?.length > 0 ? profile.activityData.weeks : DEFAULT_WEEKS).map((week, wIdx) => (
                                 <div key={wIdx} className="flex items-center justify-between">
                                     <span className={`text-[11px] w-16 shrink-0 ${week.bold ? 'font-bold' : 'font-medium'} ${isDark ? 'text-white' : 'text-slate-800'}`}>
                                         {week.label}
                                     </span>
                                     <div className="flex items-center justify-between flex-1 pl-2 pr-2">
-                                        {[0, 1, 2, 3, 4, 5, 6].map((day) => (
-                                            <div key={day} className={`w-[22px] h-[22px] rounded-full border-[1.5px] ${isDark ? 'border-[#2A3649]' : 'border-slate-200'}`} />
+                                        {week.days.map((practiced, dayIdx) => (
+                                            practiced ? (
+                                                <div key={dayIdx} className="w-[22px] h-[22px] rounded-full bg-orange-500 flex items-center justify-center shrink-0 shadow-[0_0_6px_rgba(249,115,22,0.4)]">
+                                                    <Flame size={13} className="text-white fill-white" />
+                                                </div>
+                                            ) : (
+                                                <div key={dayIdx} className={`w-[22px] h-[22px] rounded-full border-[1.5px] ${isDark ? 'border-[#2A3649]' : 'border-slate-200'}`} />
+                                            )
                                         ))}
                                     </div>
                                 </div>
@@ -1291,7 +1331,7 @@ MOBILE (< lg) — Unacademy-style layout
                         </div>
                     </div>
                 </div>
-            </div>
+            </div >
 
         </>
     );

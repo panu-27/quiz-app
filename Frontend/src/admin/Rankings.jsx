@@ -289,17 +289,29 @@ export default function Rankings() {
             >
               <LayoutGrid size={15} /> All Students
             </button>
-            {batches.map((b, i) => (
-              <button
-                key={b._id}
-                onClick={() => setActiveBatch(b._id)}
-                style={{ all: "unset", display: "flex", alignItems: "center", justifyContent: "space-between", width: "calc(100% - 24px)", padding: "10px 12px", borderRadius: 10, cursor: "pointer", background: activeBatch === b._id ? chipColor(i).bg : "transparent", color: activeBatch === b._id ? chipColor(i).color : "#64748b", fontWeight: activeBatch === b._id ? 700 : 500, fontSize: 13, marginBottom: 2 }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <Users size={15} /> {b.name}
-                </div>
-                <ChevronRight size={12} style={{ opacity: 0.5 }} />
-              </button>
+            {Object.entries(
+              batches.reduce((acc, b) => {
+                const c = b.className || "General Class";
+                if (!acc[c]) acc[c] = [];
+                acc[c].push(b);
+                return acc;
+              }, {})
+            ).map(([cName, classBatches]) => (
+              <div key={cName} style={{ marginTop: 8 }}>
+                <div style={{ fontSize: 9, fontWeight: 800, color: "#a78bfa", textTransform: "uppercase", padding: "2px 12px 4px" }}>{cName}</div>
+                {classBatches.map((b, i) => (
+                  <button
+                    key={b._id}
+                    onClick={() => setActiveBatch(b._id)}
+                    style={{ all: "unset", display: "flex", alignItems: "center", justifyContent: "space-between", width: "calc(100% - 24px)", padding: "10px 12px", borderRadius: 10, cursor: "pointer", background: activeBatch === b._id ? chipColor(i).bg : "transparent", color: activeBatch === b._id ? chipColor(i).color : "#64748b", fontWeight: activeBatch === b._id ? 700 : 500, fontSize: 13, marginBottom: 2 }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <Users size={15} /> {b.name}
+                    </div>
+                    <ChevronRight size={12} style={{ opacity: 0.5 }} />
+                  </button>
+                ))}
+              </div>
             ))}
           </div>
         </div>

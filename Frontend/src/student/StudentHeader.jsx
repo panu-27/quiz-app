@@ -83,19 +83,21 @@ export default function StudentHeader() {
         {/* GOAL SELECTOR */}
         <div className="relative">
           <button
-            onClick={() => navigate('/student/goal-selection')}
-            className="
+            onClick={() => {
+              if (!user?.approved) navigate('/student/goal-selection');
+            }}
+            className={`
               flex items-center gap-2
               text-xs sm:text-sm font-bold
               bg-white dark:bg-[#121A28] border border-slate-200 dark:border-slate-800
               px-3.5 py-2 rounded-xl
               text-slate-700 dark:text-slate-250 hover:bg-slate-50 dark:hover:bg-slate-900 transition
-              shadow-sm active:scale-95 duration-150
-            "
+              shadow-sm ${!user?.approved ? 'active:scale-95 cursor-pointer' : 'cursor-default'} duration-150
+            `}
           >
             <span className="text-purple-600 dark:text-purple-400 font-extrabold uppercase text-[10px] tracking-wider block sm:inline">Goal:</span>
             <span>{selectedGoal || "Select Goal"}</span>
-            <ChevronDown size={14} className="text-slate-400" />
+            {!user?.approved && <ChevronDown size={14} className="text-slate-400" />}
           </button>
         </div>
 

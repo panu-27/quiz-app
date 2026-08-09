@@ -276,6 +276,36 @@ export const getWeeklyLeaderboard = async (req, res) => {
 
     const total = rankings.length;
 
+    let rankTrend = [];
+    if (loggedUserId && mongoose.Types.ObjectId.isValid(loggedUserId)) {
+        const attempts = await TestAttempt.find({ studentId: loggedUserId, status: 'completed', attemptNumber: 1 })
+            .populate('testId', 'title')
+            .sort({ createdAt: -1 })
+            .limit(10)
+            .lean();
+            
+        // reverse to be chronological (oldest to newest)
+        const recentAttempts = attempts.reverse();
+        
+        for (const att of recentAttempts) {
+            if (!att.testId) continue;
+            const testId = att.testId._id;
+            const higherScores = await Leaderboard.countDocuments({
+                testId,
+                $or: [
+                    { score: { $gt: att.totalScore } },
+                    { score: att.totalScore, timeTaken: { $lt: att.timeTaken || 99999999 } }
+                ]
+            });
+            rankTrend.push({
+                testName: att.testId.title || "Test",
+                rank: higherScores + 1,
+                score: att.totalScore,
+                date: att.createdAt
+            });
+        }
+    }
+
     res.json(
       rankings.map(entry => {
         const userStats = entry.studentId?.stats || {};
@@ -291,6 +321,7 @@ export const getWeeklyLeaderboard = async (req, res) => {
           points: entry.totalScore || 0,
           avatar: entry.studentId?.profilePic || null,
           current: entry.studentId?._id?.toString() === loggedUserId,
+          rankTrend: entry.studentId?._id?.toString() === loggedUserId ? rankTrend : undefined,
           stats: {
             stateRank:  userStats.stateRank  ?? "N/A",
             instRank:   userStats.instRank   ?? "N/A",

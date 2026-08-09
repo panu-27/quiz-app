@@ -494,7 +494,6 @@ body{font-family:'Inter',-apple-system,sans-serif;color:#111827;background:#fff;
 .qw{
   padding:6px 0 6px;
   border-bottom:1px solid #f3f4f6;
-  page-break-inside:avoid;
 }
 .ql{display:flex;gap:8px;align-items:flex-start}
 .qn{
@@ -565,7 +564,7 @@ body{font-family:'Inter',-apple-system,sans-serif;color:#111827;background:#fff;
   .cover{page-break-after:always}
   .ch-block{page-break-before:always}
   .ch-block:first-child{page-break-before:auto}
-  .qw,.topic-row,.yr-row{page-break-inside:avoid}
+  .topic-row,.yr-row{page-break-inside:avoid}
 }
 </style>
 </head>
@@ -627,8 +626,6 @@ body{font-family:'Inter',-apple-system,sans-serif;color:#111827;background:#fff;
   /* ── Puppeteer ────────────────────────────────────────────────── */
 const browser = await puppeteer.launch({
     headless: "new",
-    // 1. ADD THIS LINE (Verify path with 'which chromium-browser' on VPS)
-    executablePath: '/usr/bin/chromium-browser', 
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",
@@ -688,6 +685,243 @@ const headerHTML = `
       margin: { top: "14mm", right: "14mm", bottom: "12mm", left: "14mm" },
     });
 
+    return buffer;
+  } finally {
+    await browser.close();
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   generateAnalysisPuppeteerPDF
+   Tailored for Attempt Analysis
+═══════════════════════════════════════════════════════════════════ */
+export async function generateAnalysisPuppeteerPDF(payload) {
+  const { default: puppeteer } = await import("puppeteer");
+
+  const {
+    title = "Test Analysis",
+    instituteName = "Nexus",
+    stats = { score: 0, maxScore: 0, correct: 0, wrong: 0, unattempted: 0, accuracy: 0 },
+    groupedAnalysis = [],
+  } = payload;
+
+  const LETTERS = ["A", "B", "C", "D", "E"];
+
+  let bodyHTML = "";
+
+  for (const subj of groupedAnalysis) {
+    let chQNum = 1;
+
+    bodyHTML += `<div class="ch-block">
+      <p class="ch-super">Subject Analysis</p>
+      <h2 class="ch-name">${subj.subjectName} <span style="font-size: 10pt; font-weight: 500; color: #64748b; text-transform: none;">(Score: ${subj.score > 0 ? '+'+subj.score : subj.score} | Correct: ${subj.correct} | Wrong: ${subj.wrong})</span></h2>
+    </div>`;
+
+    for (const q of subj.questions) {
+      const qText = q.questionText || "";
+      const opts = q.options || [];
+      const allShort = opts.length === 4 && opts.every(t => typeof t === "string" && t.length <= 42);
+
+      let optsHTML;
+      if (allShort) {
+        optsHTML = `<table class="og"><tr>
+          <td class="oc"><b class="ol">(${LETTERS[0]})</b><span class="ot">${opts[0]}</span></td>
+          <td class="oc"><b class="ol">(${LETTERS[1]})</b><span class="ot">${opts[1]}</span></td>
+        </tr><tr>
+          <td class="oc"><b class="ol">(${LETTERS[2]})</b><span class="ot">${opts[2]}</span></td>
+          <td class="oc"><b class="ol">(${LETTERS[3]})</b><span class="ot">${opts[3]}</span></td>
+        </tr></table>`;
+      } else {
+        optsHTML = `<div class="os">${
+          opts.map((t, i) => `<div class="or"><b class="ol">(${LETTERS[i]})</b><span class="ot">${t}</span></div>`).join("")
+        }</div>`;
+      }
+
+      const correctLetter = typeof q.correctAnswer === "number" && q.correctAnswer >= 0 ? LETTERS[q.correctAnswer] : "?";
+      const correctText = typeof q.correctAnswer === "number" && opts[q.correctAnswer] ? opts[q.correctAnswer] : "";
+      
+      const selectedLetter = typeof q.selectedOption === "number" && q.selectedOption >= 0 ? LETTERS[q.selectedOption] : "None";
+
+      let statusColor = "#94a3b8"; // unattempted
+      let statusBg = "#f1f5f9";
+      let statusBorder = "#cbd5e1";
+      if (q.isCorrect) {
+        statusColor = "#10b981"; // correct
+        statusBg = "#f0fdf4";
+        statusBorder = "#6ee7b7";
+      } else if (q.selectedOption !== null && q.selectedOption !== undefined && q.selectedOption !== -1) {
+        statusColor = "#ef4444"; // wrong
+        statusBg = "#fef2f2";
+        statusBorder = "#fca5a5";
+      }
+
+      bodyHTML += `<div class="qw ak">
+        <div class="ql">
+          <span class="qn">${chQNum}.</span>
+          <div class="qb">
+            <span class="qt">${qText}</span>
+            ${optsHTML}
+            <div class="ak-box" style="background: ${statusBg}; border-color: ${statusBorder};">
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                 <div style="font-size: 8.5pt; font-weight: 700; color: #475569;">
+                   Your Answer: <strong style="color: ${statusColor}; font-size: 9.5pt;">${selectedLetter}</strong>
+                   &nbsp;&nbsp;|&nbsp;&nbsp;
+                   Correct Answer: <strong style="color: #10b981; font-size: 9.5pt;">${correctLetter}</strong>
+                 </div>
+              </div>
+            </div>
+            ${q.explanation ? `<div class="ak-exp">&#9658;&nbsp;<b>Explanation:</b> ${q.explanation}</div>` : ""}
+          </div>
+        </div>
+      </div>`;
+      
+      chQNum++;
+    }
+  }
+
+  const today = new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>${instituteName} · ${title}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"/>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{
+    delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}],
+    throwOnError:false
+  })"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:9.5pt;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{font-family:'Inter',-apple-system,sans-serif;color:#111827;background:#fff;line-height:1.5}
+@page { margin-top: 14mm; margin-bottom: 12mm; }
+@page :first { margin-top: 0 !important; margin-bottom: 0 !important; margin-left: 0 !important; margin-right: 0 !important; }
+
+.cover { width: 210mm; height: 297mm; background: #ffffff; display: flex; flex-direction: column; overflow: hidden; position: relative; page-break-after: always; }
+.cv-bg-split { position: absolute; top: 0; right: 0; width: 100%; height: 55%; background: #fef08a; clip-path: polygon(100% 0, 100% 100%, 0 40%, 0 0); z-index: 1; }
+.cv-accent-tri { position: absolute; top: 0; left: 0; width: 60%; height: 45%; background: #eab308; clip-path: polygon(0 0, 100% 0, 0 100%); z-index: 2; }
+.cv-circle { position: absolute; bottom: -50px; right: -50px; width: 280px; height: 280px; background: #fde047; border-radius: 50%; z-index: 1; }
+.cv-circle-large { position: absolute; bottom: 120px; left: -80px; width: 350px; height: 350px; background: #fef9c3; border-radius: 50%; z-index: 1; }
+.cv-body { flex: 1; display: flex; flex-direction: column; padding: 25mm 20mm; position: relative; z-index: 10; }
+.cv-top-section { text-align: right; color: #ffffff; margin-bottom: 40px; }
+.cv-series-label { font-size: 9pt; font-weight: 800; letter-spacing: 3px; color: #ffffff; text-shadow: 0 1px 2px rgba(0,0,0,0.2); text-transform: uppercase; }
+.cv-main-title-box { margin-top: auto; margin-bottom: auto; }
+.cv-brand-line { width: 60px; height: 4px; background: #ca8a04; margin-bottom: 20px; }
+.cv-institute-tag { font-size: 14pt; font-weight: 700; color: #ca8a04; letter-spacing: 1px; display: block; }
+.cv-subject-title { font-size: 42pt; font-weight: 900; color: #0f172a; line-height: 1.1; margin: 10px 0 20px; text-transform: uppercase; letter-spacing: -2px; }
+.cv-doc-type-pill { display: inline-block; background: #ca8a04; color: #ffffff; padding: 6px 18px; font-size: 11pt; font-weight: 700; border-radius: 4px; letter-spacing: 2px; }
+.cv-bottom-info { display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid #e2e8f0; padding-top: 30px; }
+.cv-stats-row { display: flex; gap: 30px; }
+.cv-stat-item { display: flex; flex-direction: column; }
+.cv-stat-lab { font-size: 8pt; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
+.cv-stat-val { font-size: 20pt; font-weight: 900; color: #0f172a; }
+.cv-date-box { text-align: right; }
+.cv-date-label { font-size: 7pt; font-weight: 800; color: #334155; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+.cv-date-val { font-size: 10pt; font-weight: 700; color: #ca8a04; }
+
+.content{padding:6mm 0 14mm}
+.ch-block{page-break-before:always;padding-bottom:10px;margin-bottom:14px;border-bottom:2px solid #111827;}
+.ch-block:first-child{page-break-before:auto}
+.ch-super{font-size:6pt;font-weight:700;color:#6d28d9;letter-spacing:.24em;text-transform:uppercase;margin-bottom:3px;}
+.ch-name{font-size:14pt;font-weight:800;color:#111827;letter-spacing:-.3px;line-height:1.1;text-transform:uppercase;}
+.qw{padding:6px 0 12px;border-bottom:1px solid #f3f4f6;}
+.ql{display:flex;gap:8px;align-items:flex-start}
+.qn{font-size:9.5pt;font-weight:700;color:#374151;flex-shrink:0;width:24px;text-align:right;line-height:1.55;}
+.qb{flex:1;display:flex;flex-direction:column}
+.qt{font-size:9.5pt;font-weight:600;color:#111827;line-height:1.6;display:block;margin-bottom:8px;}
+.og{width:100%;border-collapse:collapse;margin-bottom:1px}
+.oc{padding:2px 10px 2px 0;vertical-align:top;width:50%;font-size:9pt;color:#374151;line-height:1.45;}
+.ol{font-weight:700;color:#374151;margin-right:4px;white-space:nowrap;font-style:normal}
+.ot{font-size:9pt}
+.os{display:flex;flex-direction:column;gap:2px;margin-bottom:1px}
+.or{display:flex;gap:7px;align-items:flex-start;padding:2px 0}
+.or .ol{flex-shrink:0;font-weight:700;color:#374151;width:24px}
+.or .ot{font-size:9pt;color:#374151;line-height:1.45}
+
+.ak-box{display:flex;align-items:center;gap:8px;margin-top:10px;padding:8px 12px;border:1.5px solid #6ee7b7;border-radius:6px;}
+.ak-exp{font-size:8.5pt;color:#475569;line-height:1.55;margin-top:8px;padding:8px 12px;background:#f8fafc;border-left:3px solid #cbd5e1;border-radius:0 4px 4px 0;}
+.katex{font-size:1em}
+.katex-display{margin:4px 0;overflow-x:auto}
+@media print{
+  .cover{page-break-after:always}
+  .ch-block{page-break-before:always}
+  .ch-block:first-child{page-break-before:auto}
+}
+</style>
+</head>
+<body>
+<div class="cover">
+  <div class="cv-bg-split"></div>
+  <div class="cv-accent-tri"></div>
+  <div class="cv-circle-large"></div>
+  <div class="cv-circle"></div>
+  <div class="cv-body">
+    <div class="cv-top-section">
+      <div class="cv-series-label">ATTEMPT ANALYSIS</div>
+    </div>
+    <div class="cv-main-title-box">
+      <div class="cv-brand-line"></div>
+      <span class="cv-institute-tag">${instituteName}</span>
+      <h1 class="cv-subject-title">${title}</h1>
+      <div class="cv-doc-type-pill">DETAILED REPORT</div>
+    </div>
+    <div class="cv-bottom-info">
+      <div class="cv-stats-row">
+        <div class="cv-stat-item"><span class="cv-stat-lab">Score</span><span class="cv-stat-val" style="color:#ca8a04;">${stats.score}</span></div>
+        <div class="cv-stat-item"><span class="cv-stat-lab">Accuracy</span><span class="cv-stat-val">${stats.accuracy}%</span></div>
+        <div class="cv-stat-item"><span class="cv-stat-lab">Correct</span><span class="cv-stat-val" style="color:#10b981;">${stats.correct}</span></div>
+        <div class="cv-stat-item"><span class="cv-stat-lab">Wrong</span><span class="cv-stat-val" style="color:#ef4444;">${stats.wrong}</span></div>
+      </div>
+      <div class="cv-date-box">
+        <div class="cv-date-label">GENERATED ON</div>
+        <div class="cv-date-val">${today}</div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="content">
+  ${bodyHTML}
+</div>
+</body>
+</html>`;
+
+  const browser = await puppeteer.launch({
+    headless: "new",
+    args: [
+      "--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu"
+    ],
+  });
+
+  try {
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: "networkidle0", timeout: 30000 });
+    await page.evaluate(() => document.fonts.ready);
+    try {
+      await page.waitForFunction(() => document.querySelectorAll(".katex").length > 0 || !document.body.textContent.includes("$"), { timeout: 8000 });
+    } catch { }
+    await new Promise(r => setTimeout(r, 700));
+
+    const headerHTML = `
+<div style="font-family: Inter, sans-serif; font-size: 6.5pt; font-weight: 800; color: #ffffff; mix-blend-mode: difference; letter-spacing: .08em; text-transform: uppercase; width: 100%; display: flex; justify-content: space-between; padding: 0 14mm; margin-top: 2mm;">
+  <span>${instituteName.toUpperCase()} · ${title.toUpperCase()}</span>
+</div>`;
+
+    const footerHTML = `<div style="font-family:Inter,sans-serif;font-size:6.5pt;color:#94a3b8;width:100%;text-align:center;padding:0 14mm;"><span class="pageNumber"></span></div>`;
+
+    const buffer = await page.pdf({
+      format: "A4",
+      printBackground: true,
+      displayHeaderFooter: true,
+      headerTemplate: headerHTML,
+      footerTemplate: footerHTML,
+      margin: { top: "14mm", right: "14mm", bottom: "12mm", left: "14mm" },
+    });
+    
     return buffer;
   } finally {
     await browser.close();

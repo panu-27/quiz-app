@@ -15,9 +15,10 @@ import StudentHeader from './StudentHeader';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import api from '../api/axios';
-import { SUBJECTS, CHAPTERS, CATEGORIES } from './libraryConfig';
+
 import CounsellorModal from '../components/CounsellorModal';
 import { PYQ_SUBJECTS } from './pyqData';
+import useBackButton from '../hooks/useBackButton';
 
 const STATUS_BAR_H = 28.5;
 const BOTTOM_NAV_H = 70;
@@ -187,27 +188,21 @@ const SUBJ_META = {
   bio: { label: "BIOLOGY", color: "#EC4899", icon: <Dna size={13} /> },
 };
 
-const ALL_TOPICS = Object.entries(CHAPTERS).flatMap(([subjId, chs]) =>
-  chs.map((ch, i) => ({
-    id: ch.id,
-    name: ch.label,
-    subjId,
-    subjLabel: SUBJ_META[subjId]?.label || subjId.toUpperCase(),
-    subjColor: SUBJ_META[subjId]?.color || "#7A41F7",
-    subjIcon: SUBJ_META[subjId]?.icon,
-    chaptersCount: chs.length,
-  }))
-);
-
-const FILTER_TABS = ["All", "Physics", "Chemistry", "Maths", "Biology"];
-const SUBJ_ID_MAP = { Physics: "phy", Chemistry: "che", Maths: "mat", Biology: "bio" };
+const fallbackSubjMeta = (name) => {
+  const nm = name.toLowerCase();
+  if (nm.includes("phys")) return SUBJ_META.phy;
+  if (nm.includes("chem")) return SUBJ_META.che;
+  if (nm.includes("math")) return SUBJ_META.mat;
+  if (nm.includes("bio")) return SUBJ_META.bio;
+  return { label: name.toUpperCase(), color: "#7A41F7", icon: <BookOpen size={13} /> };
+};
 
 /* ══════════════════════════════════════════════════════════
    PDF ITEM (with lock logic)
 ══════════════════════════════════════════════════════════ */
 function PdfItem({ item, index, isApproved, onOpen, openingId }) {
   const { theme } = useTheme();
-  const locked = isApproved ? index === 0 : index !== 0;
+  const locked = !isApproved && !item.isFree;
   const isOpening = openingId === item._id;
 
   return (
@@ -246,9 +241,7 @@ function PdfItem({ item, index, isApproved, onOpen, openingId }) {
           : "text-slate-500"
           }`}>
           {locked
-            ? isApproved
-              ? "Locked by institute"
-              : "Upgrade to unlock"
+            ? "Upgrade to unlock"
             : "Tap to open PDF"}
         </p>
       </div>
@@ -401,30 +394,6 @@ function TopicFullScreen({ topic, isApproved, onBack, resolveFileUrl }) {
       })
       .then(({ data }) => {
         let list = Array.isArray(data) ? data : Object.values(data).flat();
-        if (list.length === 0) {
-          list = [
-            {
-              _id: 'mock-1',
-              title: `${topic.name} - Comprehensive Notes`,
-              subjectId: topic.subjId,
-              subject: topic.subjLabel,
-              category: 'notes',
-              chapterId: topic.id,
-              fileUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-              fileSize: '2.4 MB'
-            },
-            {
-              _id: 'mock-2',
-              title: `${topic.name} - PYQs 2019-2023`,
-              subjectId: topic.subjId,
-              subject: topic.subjLabel,
-              category: 'pyqs',
-              chapterId: topic.id,
-              fileUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-              fileSize: '4.1 MB'
-            }
-          ];
-        }
         setItems(list);
       })
       .catch(() => setItems([]))
@@ -432,16 +401,21 @@ function TopicFullScreen({ topic, isApproved, onBack, resolveFileUrl }) {
   }, [topic.id, topic.subjId]);
 
   const handleOpen = (item) => {
-    navigate(`/student/pdf/library/${item._id}`, { state: { pdfUrl: item.fileUrl, title: item.title } });
+    if (item.fileUrl) {
+      window.open(resolveFileUrl(item.fileUrl), '_blank');
+    }
   };
 
   const { theme } = useTheme();
 
-  const CATEGORY_TABS = ["All", "Notes", "PYQs", "Formulas"];
+  const CATEGORY_TABS = ["All", "Notes", "PYQs", "Formulas", "Mind Maps", "Synopsis", "Revision"];
   const CATEGORY_MAP = {
     Notes: "notes",
     PYQs: "pyqs",
     Formulas: "formulas",
+    "Mind Maps": "mindmaps",
+    Synopsis: "synopsis",
+    Revision: "revision",
   };
 
   const filteredItems = items.filter((item) => {
@@ -535,8 +509,7 @@ function TopicFullScreen({ topic, isApproved, onBack, resolveFileUrl }) {
         ) : (
           <div className="space-y-3">
             {filteredItems.map((item, idx) => {
-              const originalIdx = items.findIndex((x) => x._id === item._id);
-              const locked = isApproved ? originalIdx === 0 : originalIdx !== 0;
+              const locked = !isApproved && !item.isFree;
               const isOpening = decrypting && openingId === item._id;
 
               return (
@@ -663,7 +636,56 @@ export default function StudentLibrary() {
   const { theme, toggleTheme } = useTheme();
 
   const { chapterId } = useParams();
-  const selectedTopic = chapterId ? ALL_TOPICS.find(t => t.id === chapterId) : null;
+
+  // Dynamic Syllabus State
+  const [syllabus, setSyllabus] = useState(null);
+  const [allTopics, setAllTopics] = useState([]);
+  const [filterTabs, setFilterTabs] = useState(["All"]);
+  const [subjIdMap, setSubjIdMap] = useState({});
+
+  useEffect(() => {
+    const fetchSyllabus = async () => {
+      try {
+        const res = await api.get('/student/my-syllabus');
+        const data = res.data;
+        if (data && data.subjects) {
+          setSyllabus(data);
+          
+          const topics = [];
+          const tabs = ["All"];
+          const idMap = {};
+
+          data.subjects.forEach(sub => {
+            tabs.push(sub.name);
+            idMap[sub.name] = sub.name; // ID is the name itself
+            
+            const meta = fallbackSubjMeta(sub.name);
+
+            sub.chapters.forEach(ch => {
+              topics.push({
+                id: ch.name,
+                name: ch.name,
+                subjId: sub.name,
+                subjLabel: meta.label,
+                subjColor: meta.color,
+                subjIcon: meta.icon,
+                chaptersCount: sub.chapters.length,
+              });
+            });
+          });
+
+          setAllTopics(topics);
+          setFilterTabs(tabs);
+          setSubjIdMap(idMap);
+        }
+      } catch (err) {
+        console.error("Failed to fetch syllabus:", err);
+      }
+    };
+    fetchSyllabus();
+  }, []);
+
+  const selectedTopic = chapterId ? allTopics.find(t => t.id === chapterId) : null;
 
   /* ── Stage navigation ── */
   const [selectedSubject, setSelectedSubject] = useState(null);
@@ -673,10 +695,63 @@ export default function StudentLibrary() {
   /* ── QBank Mobile States ── */
   const [search, setSearch] = useState("");
   const [activeSubj, setActiveSubj] = useState("All");
+
+  /* ── Desktop state ── */
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeCategoryDesktop, setActiveCategoryDesktop] = useState('All'); // renamed to avoid conflict
+  const [desktopSubject, setDesktopSubject] = useState('All');
+  const [activeTab, setActiveTab] = useState('resources');
+  const [resources, setResources] = useState([]);
+  const [resourcesLoading, setResourcesLoading] = useState(true);
+  const [deskOpenFile, setDeskOpenFile] = useState(null);
+  const [deskDecrypting, setDeskDecrypting] = useState(false);
   const scrollRef = useRef(null);
+  
+  const searchRef = useRef(null);
+  const [searchFocused, setSearchFocused] = useState(false);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setSearchFocused(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Counsellor Modal
   const [showCounsellorModal, setShowCounsellorModal] = useState(false);
+
+  useBackButton(() => {
+    setSearchFocused(false);
+    return true;
+  }, searchFocused);
+
+  useBackButton(() => {
+    setShowCounsellorModal(false);
+    return true;
+  }, showCounsellorModal);
+
+  useBackButton(() => {
+    if (deskOpenFile) {
+      setDeskOpenFile(null);
+      return true;
+    }
+    if (selectedCategory) {
+      setSelectedCategory(null);
+      return true;
+    }
+    if (selectedChapter) {
+      setSelectedChapter(null);
+      return true;
+    }
+    if (selectedSubject) {
+      setSelectedSubject(null);
+      return true;
+    }
+    return false;
+  }, deskOpenFile || selectedCategory || selectedChapter || selectedSubject);
 
   useEffect(() => {
     if (showCounsellorModal) {
@@ -690,40 +765,6 @@ export default function StudentLibrary() {
   }, [showCounsellorModal]);
 
   const isApproved = !!user?.isApproved;
-
-  /* ── Top-rank (exact same as dashboard) ── */
-  const [topRankName, setTopRankName] = useState(_cache.topRank?.name ?? 'Brandon Matrovs');
-  const [topRankPic, setTopRankPic] = useState(_cache.topRank?.pic ?? null);
-  const [rankLoading, setRankLoading] = useState(_cache.topRank === null);
-
-  useEffect(() => {
-    if (_cache.topRank !== null) {
-      setTopRankName(_cache.topRank.name);
-      setTopRankPic(_cache.topRank.pic);
-      setRankLoading(false);
-    } else {
-      (async () => {
-        try {
-          const token = localStorage.getItem('token');
-          const res = await api.get('/leaderboard/stats/top-one', { headers: { Authorization: `Bearer ${token}` } });
-          const name = res.data?.name || res.data?.studentName || res.data?.student?.name;
-          const pic = res.data?.avatar || res.data?.student?.avatar;
-          _cache.topRank = { name: name || 'Brandon Matrovs', pic: pic || null };
-          if (name) setTopRankName(name);
-          if (pic) setTopRankPic(pic);
-        } catch { _cache.topRank = { name: 'Brandon Matrovs', pic: null }; }
-        finally { setRankLoading(false); }
-      })();
-    }
-  }, []);
-
-  /* ── Quiz cards data (exact same as dashboard) ── */
-  const quizzes = [
-    { name: 'Physics Quiz', color: 'bg-[#EBF3FF]', badge: 'bg-[#D1E5FF]', tag: 'Physics', icon: <Atom size={18} />, chapters: 28, pyq: '1.2k', subj: 'physics' },
-    { name: 'Chemistry Quiz', color: 'bg-[#FFF4EB]', badge: 'bg-[#FFE9D6]', tag: 'Chemistry', icon: <FlaskConical size={18} />, chapters: 28, pyq: '1.3k+', subj: 'chemistry' },
-    { name: 'Math Quiz', color: 'bg-[#F3EBFF]', badge: 'bg-[#E6D6FF]', tag: 'Math', icon: <Calculator size={18} />, chapters: 25, pyq: '1.5k+', subj: 'maths' },
-    { name: 'Biology Quiz', color: 'bg-[#EBFDEB]', badge: 'bg-[#D6F7D6]', tag: 'Biology', icon: <Dna size={18} />, chapters: 27, pyq: '1.8k+', subj: 'biology' },
-  ];
 
   const handleSelectSubject = sub => { setSelectedSubject(sub); setSelectedChapter(null); setSelectedCategory(null); };
   const handleSelectChapter = ch => { setSelectedChapter(ch); setSelectedCategory(null); };
@@ -751,47 +792,12 @@ export default function StudentLibrary() {
 
   const handleLogout = () => { localStorage.clear(); window.location.href = '/'; };
 
-  /* ── Desktop state (UNCHANGED) ── */
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState('All');
-  const [desktopSubject, setDesktopSubject] = useState('All');
-  const [activeTab, setActiveTab] = useState('resources');
-  const [resources, setResources] = useState([]);
-  const [resourcesLoading, setResourcesLoading] = useState(true);
-  const [deskOpenFile, setDeskOpenFile] = useState(null);
-  const [deskDecrypting, setDeskDecrypting] = useState(false);
-  const [deskShowViewer, setDeskShowViewer] = useState(false);
-  const [deskViewerReady, setDeskViewerReady] = useState(false);
+  /* ── Desktop state moved up ── */
 
   useEffect(() => {
-    setResourcesLoading(true);
     api.get('/student/my-library')
       .then(({ data }) => {
         let fetched = data ? Object.values(data).flat() : [];
-        if (fetched.length === 0) {
-          fetched = [
-            {
-              _id: 'mock-1',
-              title: 'Motion in 1D - Comprehensive Notes',
-              subjectId: 'phy',
-              subject: 'Physics',
-              category: 'notes',
-              chapterId: 'phy-01',
-              fileUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-              fileSize: '2.4 MB'
-            },
-            {
-              _id: 'mock-2',
-              title: 'Thermodynamics - PYQs 2019-2023',
-              subjectId: 'phy',
-              subject: 'Physics',
-              category: 'pyqs',
-              chapterId: 'phy-02',
-              fileUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-              fileSize: '4.1 MB'
-            }
-          ];
-        }
         setResources(fetched);
       })
       .catch(() => setResources([]))
@@ -808,40 +814,24 @@ export default function StudentLibrary() {
   const categoryIcons = { Notes: '/student/notes.svg', PYQs: '/student/pdf.svg', Formulas: '/student/formulas.svg', Default: '/student/notes.svg' };
 
   const filteredResources = resources.filter(r => {
-    const matchCat = activeCategory === 'All' || r.category === activeCategory;
+    const matchCat = activeCategoryDesktop === 'All' || r.category === activeCategoryDesktop;
     const matchSub = desktopSubject === 'All' || r.subject === desktopSubject;
     const matchSrch = r.title.toLowerCase().includes(searchQuery.toLowerCase());
     return matchCat && matchSub && matchSrch;
   });
 
-  const desktopCategories = ['All', 'Notes', 'PYQs', 'Formulas'];
+  const desktopCategories = ['All', 'Notes', 'PYQs', 'Formulas', 'Mind Maps', 'Synopsis', 'Revision'];
   const desktopSubjects = ['All', 'Physics', 'Chemistry', 'Maths', 'Biology'];
-  const mobileStage = selectedCategory ? 4 : selectedChapter ? 3 : selectedSubject ? 2 : 1;
-
-  /* ── Top-rank content (exact same as dashboard) ── */
-  const TopRankContent = () => (
-    <div className="flex items-center gap-2 relative z-10">
-      <div className="w-7 h-7 text-xs rounded-full border-2 border-white/40 flex items-center justify-center text-white font-bold flex-shrink-0 -ml-3">#1</div>
-      <div className="relative flex-shrink-0">
-        <div className="w-14 h-14 rounded-full bg-pink-200 border-2 border-white/20 overflow-hidden">
-          <img src={topRankPic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(topRankName)}`} alt="Top student" className="w-full h-full object-cover" />
-        </div>
-      </div>
-      <div className="text-white min-w-0 flex-1 pr-12">
-        <p className="text-[15px] font-bold truncate">{topRankName}</p>
-        <p className="text-[12px] opacity-70 font-medium">Top of the week 🏆</p>
-      </div>
-    </div>
-  );
 
   // Sticky header logic removed in favor of native CSS sticky positioning
 
-  const filteredTopics = ALL_TOPICS.filter((t) => {
-    const matchSubj =
+  const filteredTopics = allTopics.filter((t) => {
+    const matchesSearch = t.name.toLowerCase().includes(search.toLowerCase());
+    const matchesSubject =
       activeSubj === "All" ||
-      (SUBJ_ID_MAP[activeSubj] && t.subjId === SUBJ_ID_MAP[activeSubj]);
-    const matchSearch = t.name.toLowerCase().includes(search.toLowerCase());
-    return matchSubj && matchSearch;
+      (subjIdMap[activeSubj] && t.subjId === subjIdMap[activeSubj]);
+
+    return matchesSearch && matchesSubject;
   });
 
   return (
@@ -872,7 +862,7 @@ export default function StudentLibrary() {
             {activeTab === 'resources' && (
               <div className="bg-white rounded-2xl p-4 border border-slate-100">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Category</p>
-                <div className="space-y-1">{desktopCategories.map(cat => <button key={cat} onClick={() => setActiveCategory(cat)} className={`w-full text-left px-3 py-2.5 rounded-xl text-[13px] font-bold transition-all ${activeCategory === cat ? 'bg-[#F3EBFF] text-[#7A41F7]' : 'text-slate-500 hover:bg-slate-50'}`}>{cat}</button>)}</div>
+                <div className="space-y-1">{desktopCategories.map(cat => <button key={cat} onClick={() => setActiveCategoryDesktop(cat)} className={`w-full text-left px-3 py-2.5 rounded-xl text-[13px] font-bold transition-all ${activeCategoryDesktop === cat ? 'bg-[#F3EBFF] text-[#7A41F7]' : 'text-slate-500 hover:bg-slate-50'}`}>{cat}</button>)}</div>
               </div>
             )}
           </aside>
@@ -880,10 +870,69 @@ export default function StudentLibrary() {
           <div className="flex-1 flex flex-col min-w-0 gap-6">
             <div className="flex items-center gap-4">
               <button onClick={() => navigate('/student')} className="p-2.5 bg-white rounded-xl border border-slate-100 text-slate-500 hover:text-[#7A41F7] hover:border-purple-200 transition-all flex-shrink-0"><ArrowLeftIcon className="w-5 h-5" /></button>
-              <div className="relative flex-1">
+              <div className="relative flex-1" ref={searchRef}>
                 <MagnifyingGlassIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 w-4 h-4" />
-                <input type="text" placeholder="Search resources…" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full bg-white border border-slate-100 rounded-2xl py-3 pl-11 pr-4 text-sm font-medium text-slate-700 placeholder:text-slate-300 focus:border-[#7A41F7] focus:ring-2 focus:ring-purple-100 transition-all outline-none" />
+                <input 
+                  type="text" 
+                  placeholder="Search resources…" 
+                  value={searchQuery} 
+                  onChange={e => setSearchQuery(e.target.value)} 
+                  onFocus={() => setSearchFocused(true)}
+                  className="w-full bg-white border border-slate-100 rounded-2xl py-3 pl-11 pr-4 text-sm font-medium text-slate-700 placeholder:text-slate-300 focus:border-[#7A41F7] focus:ring-2 focus:ring-purple-100 transition-all outline-none" 
+                />
                 {searchQuery && <button onClick={() => setSearchQuery('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"><XMarkIcon className="w-4 h-4" /></button>}
+                
+                {/* Search Dropdown */}
+                {searchFocused && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-[100] max-h-96 flex flex-col">
+                    {!searchQuery ? (
+                      <div className="p-8 text-center flex flex-col items-center justify-center">
+                        <div className="w-12 h-12 bg-[#F3EBFF] rounded-full flex items-center justify-center mb-3">
+                          <Search size={20} className="text-[#7A41F7]" />
+                        </div>
+                        <p className="text-slate-800 font-bold mb-1">Search for resources</p>
+                        <p className="text-slate-400 text-sm">Find notes, PYQs, and formulas instantly.</p>
+                      </div>
+                    ) : filteredResources.length > 0 ? (
+                      <div className="overflow-y-auto p-2">
+                        {filteredResources.map(item => {
+                          const subColor = SUBJECT_COLORS[item.subject] || { bg: 'bg-slate-50', text: 'text-slate-600' };
+                          const locked = !isApproved && !item.isFree;
+                          return (
+                            <div 
+                              key={item._id} 
+                              onClick={() => {
+                                if (!locked) {
+                                  window.open(resolveFileUrl(item.fileUrl), '_blank');
+                                  setSearchFocused(false);
+                                }
+                              }}
+                              className={`flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl transition-colors ${locked ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
+                            >
+                              <div className={`w-10 h-10 ${subColor.bg} rounded-xl flex items-center justify-center shrink-0`}>
+                                <img src={categoryIcons[item.category] || categoryIcons.Default} alt={item.category} className="w-5 h-5 object-contain" onError={e => { e.target.src = categoryIcons.Default; }} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="text-[13px] font-bold text-slate-800 truncate">{item.title}</h4>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  <span className={`text-[9px] font-black ${subColor.text} uppercase`}>{item.subject}</span>
+                                  <span className="w-1 h-1 bg-slate-200 rounded-full" />
+                                  <span className="text-[9px] font-semibold text-slate-400 uppercase">{item.category}</span>
+                                </div>
+                              </div>
+                              {locked ? <Lock size={14} className="text-slate-400" /> : <ChevronRightIcon className="w-4 h-4 text-slate-300" />}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="p-8 text-center flex flex-col items-center justify-center">
+                        <InboxIcon className="w-10 h-10 text-slate-200 mb-3" />
+                        <p className="text-slate-500 font-bold text-sm">No matches found for "{searchQuery}"</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
             {activeTab === 'resources' && (
@@ -897,11 +946,14 @@ export default function StudentLibrary() {
                   <div className="grid grid-cols-2 gap-4">
                     {filteredResources.map(item => {
                       const subColor = SUBJECT_COLORS[item.subject] || { bg: 'bg-slate-50', text: 'text-slate-600', dot: 'bg-slate-300' };
+                      const locked = !isApproved && !item.isFree;
                       return (
-                        <div key={item._id} className="desk-res-card" onClick={() => navigate(`/student/pdf/library/${item._id}`, { state: { pdfUrl: item.fileUrl, title: item.title } })}>
+                        <div key={item._id} className="desk-res-card" onClick={() => !locked && window.open(resolveFileUrl(item.fileUrl), '_blank')} style={{ opacity: locked ? 0.6 : 1, cursor: locked ? 'not-allowed' : 'pointer' }}>
                           <div className={`w-12 h-12 ${subColor.bg} rounded-xl flex items-center justify-center shrink-0`}><img src={categoryIcons[item.category] || categoryIcons.Default} alt={item.category} className="w-7 h-7 object-contain" onError={e => { e.target.src = categoryIcons.Default; }} /></div>
                           <div className="flex-1 min-w-0"><h4 className="text-[14px] font-bold text-slate-800 truncate">{item.title}</h4><div className="flex items-center gap-2 mt-1"><span className={`text-[10px] font-black ${subColor.text} uppercase`}>{item.subject}</span><span className="w-1 h-1 bg-slate-200 rounded-full" /><span className="text-[10px] font-semibold text-slate-400 uppercase">{item.category}</span></div></div>
-                          <div className="w-8 h-8 rounded-xl bg-[#F3EBFF] text-[#7A41F7] flex items-center justify-center"><ChevronRightIcon className="w-4 h-4 stroke-[2.5]" /></div>
+                          <div className="w-8 h-8 rounded-xl bg-[#F3EBFF] text-[#7A41F7] flex items-center justify-center">
+                            {locked ? <Lock size={16} className="text-[#7A41F7] opacity-60" /> : <ChevronRightIcon className="w-4 h-4 stroke-[2.5]" />}
+                          </div>
                         </div>
                       );
                     })}
@@ -946,13 +998,13 @@ export default function StudentLibrary() {
           <div className="px-4 pt-2">
             {/* Top Header Row */}
             <div className="flex items-center justify-between px-1 py-2 mb-2">
-              <div>
+              <div onClick={() => { if (!user?.approved) navigate('/student/goal-selection'); }}>
                 <p className="text-[10px] font-medium leading-tight mb-0.5 text-slate-500">Current goal</p>
-                <div className="flex items-center gap-1 cursor-pointer">
+                <div className={`flex items-center gap-1 ${!user?.approved ? 'cursor-pointer' : ''}`}>
                   <span className={`font-bold text-[17px] font-display tracking-tight ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>
                     {localStorage.getItem("selectedGoal") || "Select Goal"}
                   </span>
-                  <ChevronDown size={18} className={theme === 'light' ? 'text-slate-900' : 'text-white'} strokeWidth={2.5} />
+                  {!user?.approved && <ChevronDown size={18} className={theme === 'light' ? 'text-slate-900' : 'text-white'} strokeWidth={2.5} />}
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -1078,15 +1130,14 @@ export default function StudentLibrary() {
             <div className={`sticky top-[28.5px] z-30 px-4 pt-2 pb-3.5 flex flex-col gap-3 transition-colors duration-300 ${theme === 'light' ? 'bg-[#F4F7FC]' : 'bg-[#0B101A]'
               }`}>
               {/* Section title */}
-              <h2 className={`text-[18px] font-black ${theme === 'light' ? 'text-slate-800' : 'text-white'
+              <h2 className={`text-[18px] font-black ${theme === 'light' ? 'text-slate-800' : 'white'
                 }`}>
                 Target Coachings Study Material
               </h2>
 
               {/* Filter tabs */}
-              <div className={`flex gap-1 overflow-x-auto no-scrollbar border-b pb-2 ${theme === 'light' ? 'border-slate-200' : 'border-[#1e293b]'
-                }`}>
-                {FILTER_TABS.map((tab) => (
+              <div className={`flex px-4 gap-2 py-4 border-b overflow-x-auto no-scrollbar ${theme === 'light' ? 'border-slate-200' : 'border-[#1e293b]'}`}>
+                {filterTabs.map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveSubj(tab)}

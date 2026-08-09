@@ -121,7 +121,44 @@ export default function AttemptAnalytics() {
   };
 
   const handleDownload = async () => {
-    console.log("Download clicked - action disabled");
+    if (!data) return;
+    try {
+      setDownloading(true);
+      const totalCorrect = (data?.groupedAnalysis || []).reduce((acc, curr) => acc + curr.correct, 0) || 0;
+      const totalWrong = (data?.groupedAnalysis || []).reduce((acc, curr) => acc + curr.wrong, 0) || 0;
+      const totalUnattempted = (data?.groupedAnalysis || []).reduce((acc, curr) => acc + curr.unattempted, 0) || 0;
+      const accuracy = (totalCorrect + totalWrong) > 0
+        ? ((totalCorrect / (totalCorrect + totalWrong)) * 100).toFixed(1) : 0;
+        
+      const response = await api.post("/pdf/download-analysis", {
+        title: data.testTitle || "Test Analysis",
+        stats: {
+          score: data.overallScore,
+          maxScore: data.totalMaxScore,
+          correct: totalCorrect,
+          wrong: totalWrong,
+          unattempted: totalUnattempted,
+          accuracy: accuracy
+        },
+        groupedAnalysis: data.groupedAnalysis
+      }, {
+        responseType: "blob"
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      const safe = (data.testTitle || "Analysis").replace(/[^a-zA-Z0-9]/g, "_");
+      link.setAttribute('download', `Nexus_${safe}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      console.error("Error downloading PDF", err);
+      alert("Failed to download PDF. Please try again.");
+    } finally {
+      setDownloading(false);
+    }
   };
 
   if (loading) return <div><LoaderAnalysis /></div>;

@@ -10,8 +10,6 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import katex from "katex";
-import "katex/dist/katex.min.css";
 import { useParams } from "react-router-dom";
 import AdminLayout, { PageHeader } from "./AdminLayout";
 import {
@@ -32,35 +30,56 @@ const T = { border: "#ede9f6", muted: "#94a3b8", text: "#0f172a", hover: "#faf8f
 const LETTERS = ["A", "B", "C", "D", "E"];
 const YEAR_OPTIONS = Array.from({ length: 25 }, (_, i) => 2024 - i);
 
+const loadKaTeX = (() => {
+  let loaded = false, loading = null;
+  return () => {
+    if (loaded) return Promise.resolve();
+    if (loading) return loading;
+    loading = new Promise(resolve => {
+      if (!document.querySelector('link[href*="katex"]')) {
+        const l = document.createElement('link');
+        l.rel = 'stylesheet';
+        l.href = 'https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css';
+        document.head.appendChild(l);
+      }
+      if (!document.querySelector('script[src*="katex.min.js"]')) {
+        const s1 = document.createElement('script');
+        s1.src = 'https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js';
+        s1.onload = () => {
+          const s2 = document.createElement('script');
+          s2.src = 'https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js';
+          s2.onload = () => { loaded = true; resolve(); };
+          document.head.appendChild(s2);
+        };
+        document.head.appendChild(s1);
+      } else { loaded = true; resolve(); }
+    });
+    return loading;
+  };
+})();
+
+const KATEX_OPTS = {
+  delimiters: [
+    { left: '$$', right: '$$', display: true  },
+    { left: '$',  right: '$',  display: false },
+    { left: '\\(', right: '\\)', display: false },
+    { left: '\\[', right: '\\]', display: true  },
+  ],
+  throwOnError: false,
+};
+
 /* ── MathText ── */
 function MathText({ text, style }) {
   const ref = useRef(null);
   useEffect(() => {
-    if (!ref.current || !text) return;
-    const el = ref.current;
-    el.innerHTML = "";
-    const tokens = String(text).split(/(\$\$[\s\S]*?\$\$|\$[^$\n]+?\$)/g);
-    tokens.forEach(token => {
-      if (token.startsWith("$$") && token.endsWith("$$")) {
-        const span = document.createElement("span");
-        span.style.display = "block";
-        try { katex.render(token.slice(2, -2), span, { displayMode: true, throwOnError: false }); }
-        catch { span.textContent = token; }
-        el.appendChild(span);
-      } else if (token.startsWith("$") && token.endsWith("$") && token.length > 2) {
-        const span = document.createElement("span");
-        try { katex.render(token.slice(1, -1), span, { displayMode: false, throwOnError: false }); }
-        catch { span.textContent = token; }
-        el.appendChild(span);
-      } else {
-        token.split("\n").forEach((part, i, arr) => {
-          el.appendChild(document.createTextNode(part));
-          if (i < arr.length - 1) el.appendChild(document.createElement("br"));
-        });
-      }
+    if (!ref.current || typeof text === 'undefined') return;
+    ref.current.innerHTML = String(text) || '';
+    loadKaTeX().then(() => {
+      if (!ref.current || !window.renderMathInElement) return;
+      window.renderMathInElement(ref.current, KATEX_OPTS);
     });
   }, [text]);
-  return <span ref={ref} style={style} />;
+  return <span ref={ref} style={{ ...style, display: 'inline-block', width: '100%', wordBreak: 'break-word' }} />;
 }
 
 function getCorrectIdx(q) {

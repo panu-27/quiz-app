@@ -121,7 +121,11 @@ const LatexText = ({ text, style: styleProp, className = '' }) => {
 // ─── NaturalImage ─────────────────────────────────────────────────────────────
 const NaturalImage = ({ src, alt, maxWidth = '100%', maxHeight = 340, radius = 6 }) => {
   const [status, setStatus] = useState('loading');
-  useEffect(() => { if (src) setStatus('loading'); }, [src]);
+  const [prevSrc, setPrevSrc] = useState(src);
+  if (src !== prevSrc) {
+    setPrevSrc(src);
+    setStatus('loading');
+  }
 
   if (!src || typeof src !== 'string' || !src.trim()) return null;
 

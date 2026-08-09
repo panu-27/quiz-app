@@ -12,6 +12,7 @@ import bankQuestionRoutes from "./modules/questionBank/bankQuestions.routes.js";
 import leaderboardRoutes from "./modules/leaderboard/leaderboard.route.js";
 import pyqRoutes from "./modules/pyq/pyq.routes.js";
 import quizRoutes from "./modules/quiz/quiz.routes.js";
+import noticeRoutes from "./modules/notice/notice.routes.js";
 
 const app = express();
 
@@ -39,7 +40,7 @@ app.use(cors({
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  allowedHeaders: ["Content-Type", "Authorization", "authorization", "x-requested-with", "Accept"],
 }));
 
 // ✅ FIX HERE
@@ -60,6 +61,7 @@ app.use("/api/leaderboard",  leaderboardRoutes);
 app.use("/api/pdf",          pdfRoutes);
 app.use("/api/bankQuestion", bankQuestionRoutes);
 app.use("/api/quiz",         quizRoutes);
+app.use("/api/notices",      noticeRoutes);
 
 
 

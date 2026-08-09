@@ -4,6 +4,7 @@ import User from "../user/user.model.js";
 import Leaderboard from "../test/leaderboard.model.js";
 import Resource from "../teacher/Resource.js";   // ← moved to top (was mid-file, breaking ESM)
 import mongoose from "mongoose";
+import Batch from "../batch/batch.model.js";
 
 
 /* ---------------- GET MY TESTS ---------------- */
@@ -16,15 +17,47 @@ export const getMyTests = async (jwtUser) => {
         return [];
     }
 
+    let targetBatchIds = [student.batchId];
+    const studentBatch = await Batch.findById(student.batchId).lean();
+    
+    if (studentBatch && /FREE/i.test(studentBatch.name)) {
+        const siblingBatches = await Batch.find({
+            instituteId: studentBatch.instituteId,
+            className: studentBatch.className
+        }).select('_id').lean();
+        targetBatchIds = siblingBatches.map(b => b._id);
+    }
+
     const now = new Date();
 
-    return Test.find({
-        batches: student.batchId,
+    const rawTests = await Test.find({
+        batches: { $in: targetBatchIds },
         startTime: { $lte: now },
-        endTime:   { $gte: now }
+        $or: [{ endTime: { $gte: now } }, { endTime: null }]
     })
-        .select("_id title startTime endTime mode duration")
-        .sort({ endTime: 1 });
+        .select("_id title startTime endTime mode duration examType blocks teacherId")
+        .populate("teacherId", "name")
+        .sort({ endTime: 1 })
+        .lean();
+
+    // Calculate totalQuestions from blocks -> sections -> questions
+    return rawTests.map(t => {
+        let totalQuestions = 0;
+        if (Array.isArray(t.blocks)) {
+            for (const block of t.blocks) {
+                if (Array.isArray(block.sections)) {
+                    for (const section of block.sections) {
+                        totalQuestions += Array.isArray(section.questions)
+                            ? section.questions.length
+                            : (section.numQuestions || 0);
+                    }
+                }
+            }
+        }
+        const { blocks, teacherId, ...rest } = t;
+        const teacherName = teacherId?.name || null;
+        return { ...rest, totalQuestions, teacherName };
+    });
 };
 
 
@@ -40,6 +73,45 @@ export const updateProfilePic = async (userId, imageUrl) => {
     return user;
 };
 
+/* ---------------- GET ACTIVE CLASSES ---------------- */
+export const getActiveClasses = async (jwtUser) => {
+    // If jwtUser doesn't have instituteId directly, get it from the user document
+    let instituteId = jwtUser.instituteId;
+    if (!instituteId) {
+        const user = await User.findById(jwtUser.id || jwtUser._id).select("instituteId").lean();
+        instituteId = user?.instituteId;
+    }
+    if (!instituteId) return [];
+    
+    const batches = await Batch.find({ instituteId }).select('className').lean();
+    const classNames = [...new Set(batches.map(b => b.className).filter(Boolean))];
+    return classNames;
+};
+
+/* ---------------- CHANGE CLASS ---------------- */
+export const changeClass = async (userId, newClassName) => {
+    const student = await User.findById(userId);
+    if (!student) throw new Error("Student not found");
+    
+    if (student.approved) {
+        throw new Error("Approved students cannot change class directly. Please contact administrator.");
+    }
+    
+    const freeBatch = await Batch.findOne({
+        instituteId: student.instituteId,
+        className: newClassName,
+        name: { $regex: /FREE/i }
+    });
+    
+    if (!freeBatch) {
+        throw new Error(`FREE batch not found for class ${newClassName}`);
+    }
+    
+    student.batchId = freeBatch._id;
+    await student.save();
+    
+    return student;
+};
 
 /* ---------------- START ATTEMPT ---------------- */
 export const startAttempt = async (student, testId) => {
@@ -48,9 +120,23 @@ export const startAttempt = async (student, testId) => {
 
     const studentId    = new mongoose.Types.ObjectId(student.id || student._id);
     const testObjId    = new mongoose.Types.ObjectId(testId);
-    const studentBatchId = student.batchId?.toString();
+    
+    const dbStudent = await User.findById(studentId).lean();
+    if (!dbStudent || !dbStudent.batchId) throw new Error("Student has no batch assigned");
 
-    if (!test.batches.some(b => b.toString() === studentBatchId))
+    const actualBatchId = dbStudent.batchId.toString();
+    let allowedBatchIds = [actualBatchId];
+    
+    const studentBatch = await Batch.findById(actualBatchId).lean();
+    if (studentBatch && /FREE/i.test(studentBatch.name)) {
+        const siblingBatches = await Batch.find({
+            instituteId: studentBatch.instituteId,
+            className: studentBatch.className
+        }).select('_id').lean();
+        allowedBatchIds = siblingBatches.map(b => b._id.toString());
+    }
+
+    if (!test.batches.some(b => allowedBatchIds.includes(b.toString())))
         throw new Error("Not allowed to attempt this test");
 
     const now = new Date();
@@ -285,7 +371,18 @@ export const getAllTestsWithAttempts = async (jwtUser) => {
         return [];
     }
 
-    const tests = await Test.find({ batches: student.batchId })
+    let targetBatchIds = [student.batchId];
+    const studentBatch = await Batch.findById(student.batchId).lean();
+    
+    if (studentBatch && /FREE/i.test(studentBatch.name)) {
+        const siblingBatches = await Batch.find({
+            instituteId: studentBatch.instituteId,
+            className: studentBatch.className
+        }).select('_id').lean();
+        targetBatchIds = siblingBatches.map(b => b._id);
+    }
+
+    const tests = await Test.find({ batches: { $in: targetBatchIds } })
         .populate("teacherId", "name")
         .lean();
 

@@ -9,7 +9,7 @@ import { uploadPDF } from "../../middlewares/upload.middleware.js";
 /* ── Batches ── */
 router.get("/my-batches",          auth, role(["TEACHER"]), controller.getMyBatches);
 router.get("/my-batches2",          auth, role(["TEACHER"]), controller.getMyBatches2);
-
+router.get("/syllabus/:className",  auth, role(["TEACHER"]), controller.getSyllabusByClass);
 
 /* ── Tests ── */
 router.post("/create-test",        auth, role(["TEACHER"]), controller.createTest);
@@ -28,6 +28,7 @@ router.get("/performance-overview", auth, role(["TEACHER"]), controller.getPerfo
 router.post("/upload-material",    auth, role(["TEACHER"]), uploadPDF.single("file"), controller.deployMaterialCtrl);
 router.get("/study-materials",     auth, role(["TEACHER"]), controller.getStudyMaterials);
 router.get("/study-material/:id",  auth, role(["TEACHER"]), controller.getStudyMaterialById);
+router.put("/study-material/:id/toggle-free", auth, role(["TEACHER"]), controller.toggleResourceFreeStatusCtrl);
 router.delete("/study-material/:id", auth, role(["TEACHER"]), controller.deleteStudyMaterial);
 
 export default router;

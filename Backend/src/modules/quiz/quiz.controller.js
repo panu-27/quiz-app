@@ -9,9 +9,8 @@ import Chapter from '../questionBank/Chapter.js';
 import Topic from '../questionBank/Topic.js';
 import PYQ from '../questionBank/PYQ.js';
 import TestAttempt from '../test/quizAttempt.model.js';
-import { PracticeAttempt } from './practiceAttempt.model.js';
 import QuestionReport from './report.model.js';
-import Bookmark from './bookmark.model.js';
+import { PYQProgress } from './pyqProgress.model.js';
 import mongoose from 'mongoose';
 import asyncHandler from 'express-async-handler';
 
@@ -299,8 +298,8 @@ export const fetchPYQQuestions = asyncHandler(async (req, res) => {
  */
 
 export const submitQuizAttempt = asyncHandler(async (req, res) => {
-  const studentId = req.user._id;
-  const { blocks = [], timeTakenSeconds = 0, type = 'test', testId = null } = req.body;
+  const studentId = req.user.id;
+  const { blocks = [], timeTakenSeconds = 0, type = 'test', testId = null, parentAttemptId = null } = req.body;
 
   if (!blocks || blocks.length === 0) {
     return res.status(400).json({ success: false, message: 'No blocks provided' });
@@ -350,7 +349,7 @@ export const submitQuizAttempt = asyncHandler(async (req, res) => {
 
       return {
         subjectName: section.subjectName,
-        subject: section.subjectId,
+        subject: section.subject || section.subjectId,
         numQuestions: questions.length,
         questions: questions.map((q) => ({
           questionId: q.questionId,
@@ -386,10 +385,18 @@ export const submitQuizAttempt = asyncHandler(async (req, res) => {
   const totalWrong = allSections.reduce((sum, s) => sum + s.wrong, 0);
   const totalUnattempted = allSections.reduce((sum, s) => sum + s.unattempted, 0);
 
+  let attemptNumber = 1;
+  if (parentAttemptId) {
+    const existingCount = await TestAttempt.countDocuments({ parentAttemptId });
+    attemptNumber = existingCount + 2; // 1 for parent, existingCount for children, 1 for this new one
+  }
+
   const attempt = new TestAttempt({
     studentId,
     testId: testId || undefined, // undefined if it's a practice attempt
     attemptType: type, // 'practice' or 'test'
+    parentAttemptId: parentAttemptId || undefined,
+    attemptNumber,
     blocks: processedBlocks,
     status: 'completed',
     totalScore: totalMarksEarned, // Storing raw marks
@@ -419,12 +426,12 @@ export const submitQuizAttempt = asyncHandler(async (req, res) => {
 });
 
 export const listStudentAttempts = asyncHandler(async (req, res) => {
-  const studentId = req.user._id;
+  const studentId = req.user.id;
   const { limit = 10, page = 1, sortBy = 'createdAt' } = req.query;
   const skip = (page - 1) * limit;
 
   const attempts = await TestAttempt.find({ studentId })
-    .select('_id status totalScore totalCorrect totalWrong totalUnattempted timeTaken createdAt blocks')
+    .select('_id status totalScore totalCorrect totalWrong totalUnattempted timeTaken createdAt blocks attemptType testId customTitle isPinned parentAttemptId attemptNumber')
     .sort({ [sortBy]: -1 })
     .skip(skip)
     .limit(parseInt(limit));
@@ -437,11 +444,35 @@ export const listStudentAttempts = asyncHandler(async (req, res) => {
   });
 });
 
+export const renameQuizAttempt = asyncHandler(async (req, res) => {
+  const { attemptId } = req.params;
+  const { customTitle } = req.body;
+  const attempt = await TestAttempt.findOneAndUpdate(
+    { _id: attemptId, studentId: req.user.id },
+    { customTitle },
+    { new: true }
+  );
+  if (!attempt) return res.status(404).json({ success: false, message: 'Attempt not found' });
+  res.json({ success: true, data: attempt });
+});
+
+export const pinQuizAttempt = asyncHandler(async (req, res) => {
+  const { attemptId } = req.params;
+  const { isPinned } = req.body;
+  const attempt = await TestAttempt.findOneAndUpdate(
+    { _id: attemptId, studentId: req.user.id },
+    { isPinned },
+    { new: true }
+  );
+  if (!attempt) return res.status(404).json({ success: false, message: 'Attempt not found' });
+  res.json({ success: true, data: attempt });
+});
+
 export const getAttemptDetails = asyncHandler(async (req, res) => {
   const { attemptId } = req.params;
-  const studentId = req.user._id;
+  const studentId = req.user.id;
   const attempt = await TestAttempt.findOne({ _id: attemptId, studentId }).populate(
-    'blocks.sections.subjectId',
+    'blocks.sections.subject',
     'name'
   );
   if (!attempt) return res.status(404).json({ success: false, message: 'Attempt not found' });
@@ -454,7 +485,7 @@ export const reportQuestion = asyncHandler(async (req, res) => {
     const report = await QuestionReport.create({
         questionId,
         reason,
-        studentId: req.user?._id
+        studentId: req.user?.id
     });
 
     console.log("done");
@@ -510,10 +541,10 @@ export const getChapterPYQs = async (req, res) => {
  * Returns array of bookmarked question IDs for the user
  */
 export const getBookmarks = asyncHandler(async (req, res) => {
-  const studentId = req.user._id;
+  const studentId = req.user.id;
   const { populated } = req.query;
 
-  let query = Bookmark.find({ studentId });
+  let query = PYQProgress.find({ studentId, isBookmarked: true });
   
   if (populated === 'true') {
     query = query.populate({
@@ -526,7 +557,6 @@ export const getBookmarks = asyncHandler(async (req, res) => {
     });
     
     const bookmarks = await query;
-    // Format them to look like the normal PYQ objects for the frontend
     const results = bookmarks.filter(b => b.questionId).map(b => {
       const q = b.questionId.toObject();
       q.subjectName = q.subjectId?.name;
@@ -547,75 +577,82 @@ export const getBookmarks = asyncHandler(async (req, res) => {
  * Toggles a bookmark for a specific question ID
  */
 export const toggleBookmark = asyncHandler(async (req, res) => {
-  const studentId = req.user._id;
-  const { questionId } = req.body;
+  const studentId = req.user.id;
+  const { questionId, subjectId, chapterId, topicId } = req.body;
 
   if (!questionId) {
     return res.status(400).json({ success: false, message: 'questionId is required' });
   }
 
-  const existing = await Bookmark.findOne({ studentId, questionId });
-  if (existing) {
-    await Bookmark.deleteOne({ _id: existing._id });
-    res.status(200).json({ success: true, message: 'Bookmark removed', action: 'removed' });
+  const progress = await PYQProgress.findOne({ studentId, questionId });
+  
+  if (progress && progress.isBookmarked) {
+    progress.isBookmarked = false;
+    await progress.save();
+    res.status(200).json({ success: true, action: 'removed' });
   } else {
-    await Bookmark.create({ studentId, questionId });
-    res.status(200).json({ success: true, message: 'Bookmark added', action: 'added' });
+    await PYQProgress.findOneAndUpdate(
+      { studentId, questionId },
+      { $set: { subjectId, chapterId, topicId, isBookmarked: true } },
+      { upsert: true }
+    );
+    res.status(200).json({ success: true, action: 'added' });
   }
 });
 
 export const submitPracticeQuestion = asyncHandler(async (req, res) => {
-  const studentId = req.user._id;
-  const { subjectId, subjectName, questionId, isCorrect, timeTaken } = req.body;
+  const studentId = req.user.id;
+  const { subjectId, chapterId, topicId, questionId, isCorrect, timeTaken } = req.body;
   
   if (!questionId) {
     return res.status(400).json({ success: false, message: 'Missing questionId' });
   }
 
-  await PracticeAttempt.create({ 
-    studentId, 
-    subjectId, 
-    questionId, 
-    isCorrect, 
-    timeTaken: timeTaken || 0 
-  });
+  const status = isCorrect ? 'correct' : 'incorrect';
+
+  await PYQProgress.findOneAndUpdate(
+    { studentId, questionId },
+    {
+      $set: { subjectId, chapterId, topicId, status },
+      $inc: { attemptsCount: 1, totalTimeSpent: timeTaken || 0 }
+    },
+    { upsert: true, new: true }
+  );
 
   res.json({ success: true });
 });
 
 export const getPYQProgress = asyncHandler(async (req, res) => {
-  const studentId = req.user._id;
+  const studentId = req.user.id;
 
-  const practiceAttempts = await PracticeAttempt.find({ studentId }).populate('subjectId', 'name');
+  const progressDocs = await PYQProgress.find({ studentId }).populate('subjectId', 'name');
 
-  const correctQs = new Set();
-  const wrongQs = new Set();
+  const correctQs = [];
+  const wrongQs = [];
   let totalTime = 0;
   let totalAnswered = 0;
 
-  practiceAttempts.forEach(attempt => {
-    totalTime += attempt.timeTaken || 0;
-    totalAnswered++;
+  progressDocs.forEach(doc => {
+    totalTime += doc.totalTimeSpent || 0;
     
-    if (attempt.isCorrect) {
-      correctQs.add(attempt.questionId.toString());
-      wrongQs.delete(attempt.questionId.toString());
-    } else {
-      if (!correctQs.has(attempt.questionId.toString())) {
-        wrongQs.add(attempt.questionId.toString());
-      }
+    if (doc.status === 'correct') {
+      correctQs.push(doc.questionId.toString());
+      totalAnswered++;
+    } else if (doc.status === 'incorrect') {
+      wrongQs.push(doc.questionId.toString());
+      totalAnswered++;
     }
   });
 
   res.json({
     success: true,
     data: {
-      correctQs: Array.from(correctQs),
-      wrongQs: Array.from(wrongQs),
+      correctQs,
+      wrongQs,
       totalTime,
       totalAnswered,
-      totalCorrect: correctQs.size,
-      attempts: practiceAttempts // raw flat array
+      totalCorrect: correctQs.length,
+      attempts: progressDocs
     }
   });
 });

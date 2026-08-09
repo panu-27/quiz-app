@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { X, ChevronRight, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
+import { motion } from 'framer-motion';
 import api from '../api/axios.js';
 
 const injectGlobalStyles = (() => {
@@ -182,28 +183,34 @@ export default function PracticeModeOverlay({
     subject,
     chapterName,
     onClose, 
-    isDark
+    isDark,
+    bookmarks = [],
+    onToggleBookmark = () => {}
 }) {
     useEffect(() => { injectGlobalStyles(); }, []);
 
+    const [batchStart, setBatchStart] = useState(0);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [answers, setAnswers] = useState({});
     const [timer, setTimer] = useState(0);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [submitted, setSubmitted] = useState(false);
-    const [resultData, setResultData] = useState(null);
+    const [showConfirmQuit, setShowConfirmQuit] = useState(false);
+
+    const batchEnd = Math.min(batchStart + 5, questions.length);
+    const batchLength = batchEnd - batchStart;
+    const batchIndex = currentIndex - batchStart;
 
     const currentQ = questions[currentIndex];
     const isCurrentAnswered = !!answers[currentQ?._id];
 
     // Timer effect
     useEffect(() => {
-        if (submitted || isSubmitting || isCurrentAnswered) return;
+        if (isSubmitting || isCurrentAnswered) return;
         const interval = setInterval(() => {
             setTimer(t => t + 1);
         }, 1000);
         return () => clearInterval(interval);
-    }, [currentIndex, submitted, isSubmitting, isCurrentAnswered]);
+    }, [currentIndex, isSubmitting, isCurrentAnswered]);
 
     const handleOptionSelect = async (optIndex) => {
         if (answers[currentQ._id]) return; // already answered
@@ -216,8 +223,9 @@ export default function PracticeModeOverlay({
         }));
 
         const payload = {
-            subjectId: subject?._id,
-            subjectName: subject?.name || 'Practice',
+            subjectId: subject?._id || currentQ.subjectId,
+            chapterId: currentQ.chapterId,
+            topicId: currentQ.topicId,
             questionId: currentQ._id,
             isCorrect: optIndex === currentQ.correctOption,
             timeTaken: timer
@@ -239,12 +247,32 @@ export default function PracticeModeOverlay({
                 [currentQ._id]: { option: -1, timeTaken: timer }
             }));
         }
-        if (currentIndex < questions.length - 1) {
+        
+        if (currentIndex < batchEnd - 1) {
             setCurrentIndex(i => i + 1);
             setTimer(0);
         } else {
-            setResultData(true);
-            setSubmitted(true);
+            // At the end of the batch
+            if (batchEnd < questions.length) {
+                // Load next 5 questions
+                setBatchStart(batchEnd);
+                setCurrentIndex(batchEnd);
+                setTimer(0);
+            } else {
+                onClose(); // Exit without permission when reaching the end
+            }
+        }
+    };
+
+    const handlePrev = () => {
+        if (currentIndex > batchStart) {
+            setCurrentIndex(i => i - 1);
+            setTimer(0);
+        } else if (batchStart > 0) {
+            const newBatchStart = Math.max(0, batchStart - 5);
+            setBatchStart(newBatchStart);
+            setCurrentIndex(batchStart - 1);
+            setTimer(0);
         }
     };
 
@@ -254,81 +282,95 @@ export default function PracticeModeOverlay({
         return `${m}:${s < 10 ? '0' : ''}${s}`;
     };
 
-    if (submitted && resultData) {
-        return (
-            <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center p-6" style={{ background: isDark ? '#0B101A' : '#F8FAFC' }}>
-                <div className={`w-full max-w-sm rounded-2xl p-6 shadow-lg text-center ${isDark ? 'bg-[#161C26]' : 'bg-white'}`}>
-                    <CheckCircle2 size={48} className="mx-auto text-green-500 mb-4" />
-                    <h2 className={`text-2xl font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-800'}`}>Practice Finished!</h2>
-                    <p className={`text-sm mb-6 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>No questions left. Keep practicing to clear your mistakes!</p>
-                    <button onClick={onClose} className="w-full py-3 bg-[#2563EB] text-white rounded-xl font-bold active:scale-95 transition-all">
-                        Back to Chapter
-                    </button>
-                </div>
-            </div>
-        );
-    }
+
 
     if (!currentQ) return null;
     const hasQImage = isNonEmpty(currentQ.questionImage);
     const anyOptHasImage = currentQ.options?.some(o => isNonEmpty(o.image));
 
+    let nextButtonText = 'Next';
+    if (currentIndex === batchEnd - 1) {
+        if (batchEnd < questions.length) {
+            nextButtonText = 'Next 5';
+        } else {
+            nextButtonText = 'Finish';
+        }
+    }
+
     return (
-        <div className="fixed inset-0 z-[9999] flex flex-col qd-root" style={{ background: '#fff' }}>
+        <div className="fixed inset-0 z-[9999] flex flex-col qd-root" style={{ background: isDark ? '#0E131F' : '#fff' }}>
             {/* Header */}
-            <div className={`flex items-center justify-between px-4 py-4 border-b bg-white border-slate-200`}>
+            <div className={`flex items-center justify-between px-4 py-4 ${isDark ? 'bg-[#0E131F]' : 'bg-white'} border-b-0`}>
                 <div className="flex items-center gap-3">
-                    <button onClick={onClose} className={`w-9 h-9 flex items-center justify-center rounded-full transition-all bg-slate-100 text-slate-600`}>
+                    <button onClick={() => setShowConfirmQuit(true)} className={`w-9 h-9 flex items-center justify-center rounded-full transition-all ${isDark ? 'bg-[#1E293B] text-[#94A3B8]' : 'bg-slate-100 text-slate-600'}`}>
                         <X size={20} />
                     </button>
                     <div>
-                        <h2 className={`text-sm font-bold text-slate-800`}>Practice Mode</h2>
-                        <p className="text-xs text-slate-400">{currentIndex + 1} of {questions.length} • {formatTime(timer)}</p>
+                        <h2 className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>Practice Mode</h2>
+                        <p className={`text-xs ${isDark ? 'text-[#8492A6]' : 'text-slate-500'}`}>{currentIndex + 1} of {questions.length}</p>
                     </div>
                 </div>
-                <button onClick={handleNext} disabled={isSubmitting} className="flex items-center gap-1 px-4 py-2 rounded-full font-bold text-sm bg-[#2563EB] text-white active:scale-95 transition-all">
-                    {currentIndex === questions.length - 1 ? 'Finish' : 'Next'} <ChevronRight size={16} />
-                </button>
+                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${isDark ? 'bg-[#1E293B] text-[#94A3B8]' : 'bg-slate-100 text-slate-600'}`}>
+                    <Clock size={14} />
+                    <span className="text-sm font-bold font-mono tracking-wider">{formatTime(timer)}</span>
+                </div>
+            </div>
+
+            {/* Segmented Horizontal Step Progress Bar */}
+            <div className={`px-4 pb-3 flex gap-1.5 z-40 ${isDark ? 'bg-[#0E131F]' : 'bg-white'} border-b ${isDark ? 'border-[#1E293B]' : 'border-slate-200'}`}>
+                {Array.from({ length: batchLength }).map((_, idx) => {
+                    const isCompleted = idx < batchIndex;
+                    const isActive = idx === batchIndex;
+                    return (
+                        <div
+                            key={idx}
+                            className={`flex-1 h-1.5 rounded-full overflow-hidden relative bg-slate-200`}
+                        >
+                            <motion.div
+                                initial={false}
+                                animate={{
+                                    width: isActive || isCompleted ? '100%' : '0%'
+                                }}
+                                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                className="h-full rounded-full bg-[#3B82F6]"
+                            />
+                        </div>
+                    );
+                })}
             </div>
 
             {/* Question Area - Borrowed from QuestionDisplay */}
-            <div className="qd-scroll" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: 'clamp(14px, 3vw, 26px)' }}>
+            <div className="qd-scroll" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: 'clamp(14px, 3vw, 26px)', paddingBottom: '90px', background: 'transparent' }}>
                 {/* ── Question ── */}
                 <div className="qd-entry" style={{ marginBottom: 24 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-                        <span style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 5,
-                            background: '#f0f9ff', border: '1px solid #bae6fd',
-                            borderRadius: 20, padding: '3px 10px 3px 4px',
-                        }}>
-                            <span style={{
-                                width: 20, height: 20, borderRadius: '50%',
-                                background: BLUE, color: '#fff',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: 9, fontWeight: 800,
-                            }}>Q</span>
-                            <span style={{ fontSize: 12, fontWeight: 600, color: '#0369a1' }}>
-                                {currentIndex + 1} of {questions.length}
-                            </span>
-                        </span>
-
-                        {subject && (
-                            <span style={{
-                                fontSize: 11, fontWeight: 500, color: '#6b7280',
-                                background: '#f9fafb', border: '1px solid #e5e7eb',
-                                borderRadius: 20, padding: '3px 10px',
-                            }}>
-                                {subject.name}
-                            </span>
-                        )}
-                    </div>
-
                     <div style={{
-                        fontSize: 'clamp(16px, 2.5vw, 18px)', fontWeight: 500,
-                        lineHeight: 1.8, color: '#111827',
-                        overflowX: 'auto', overflowY: 'visible',
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12,
+                        marginBottom: 24,
                     }}>
-                        <LatexText text={currentQ.questionText || currentQ.question} />
+                        <div style={{
+                            fontSize: 'clamp(16px, 2.5vw, 17px)', fontWeight: 600,
+                            lineHeight: 1.6, color: isDark ? '#E2E8F0' : '#1E293B',
+                            overflowX: 'auto', overflowY: 'visible', flex: 1
+                        }}>
+                            Q{currentIndex + 1}. <LatexText text={currentQ.questionText || currentQ.question} />
+                        </div>
+                        <button 
+                            onClick={() => onToggleBookmark(currentQ)}
+                            style={{
+                                flexShrink: 0,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                padding: '8px', borderRadius: '50%',
+                                background: bookmarks.includes(currentQ._id)
+                                    ? (isDark ? '#312E81' : '#EEF2FF')
+                                    : (isDark ? '#1E293B' : '#F1F5F9'),
+                                color: bookmarks.includes(currentQ._id) ? '#4F46E5' : (isDark ? '#94A3B8' : '#64748B'),
+                                border: 'none', cursor: 'pointer', transition: 'all 0.2s'
+                            }}
+                        >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill={bookmarks.includes(currentQ._id) ? '#4F46E5' : 'none'} stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                            </svg>
+                        </button>
                     </div>
 
                     {hasQImage && (
@@ -346,158 +388,169 @@ export default function PracticeModeOverlay({
 
                 {/* ── Options ── */}
                 <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                        <div style={{ flex: 1, height: 1, background: '#f3f4f6' }} />
-                        <span style={{ fontSize: 10, fontWeight: 700, color: '#9ca3af', letterSpacing: 1.1, textTransform: 'uppercase' }}>
-                            Choose one answer
-                        </span>
-                        <div style={{ flex: 1, height: 1, background: '#f3f4f6' }} />
-                    </div>
-
-                    <div className={anyOptHasImage ? 'qd-opts-grid' : 'qd-opts-list'}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                         {currentQ.options?.map((opt, i) => {
                             const isAnswered = !!answers[currentQ._id];
                             const ans = answers[currentQ._id];
                             
-                            // Color logic based on practice correctness
                             let isCorrectOpt = i === currentQ.correctOption;
                             let isChosenOpt = isAnswered && ans.option === i;
                             
-                            let boxBorder = '#e5e7eb';
-                            let boxBg = '#fff';
-                            let boxRing = '0 1px 2px rgba(0,0,0,0.04)';
-                            let iconStroke = '#d1d5db';
-                            let iconBg = '#f9fafb';
-                            let iconText = '#6b7280';
-                            let mainTextColor = '#374151';
+                            const hasImage = isNonEmpty(opt.image);
+                            const hasText = isNonEmpty(opt.text);
+                            
+                            let border = isDark ? '#334155' : '#F1F5F9';
+                            let bg = isDark ? '#1E293B' : '#fff';
+                            let textCol = isDark ? '#E2E8F0' : '#334155';
+                            let letterBg = isDark ? '#334155' : '#F1F5F9';
+                            let letterCol = isDark ? '#94A3B8' : '#94A3B8';
 
                             if (isAnswered) {
                                 if (isCorrectOpt) {
-                                    boxBorder = GREEN; boxBg = GRN_BG; 
-                                    boxRing = `0 0 0 3px ${GRN_RING}, 0 1px 3px rgba(0,0,0,0.05)`;
-                                    iconStroke = GREEN; iconBg = GREEN; iconText = '#fff';
-                                    mainTextColor = '#065f46';
-                                } else if (isChosenOpt && !isCorrectOpt) {
-                                    boxBorder = RED; boxBg = RED_BG; 
-                                    boxRing = `0 0 0 3px ${RED_RING}, 0 1px 3px rgba(0,0,0,0.05)`;
-                                    iconStroke = RED; iconBg = RED; iconText = '#fff';
-                                    mainTextColor = '#991b1b';
+                                    border = '#16A34A'; bg = '#F0FDF4'; textCol = '#16A34A'; letterBg = '#16A34A'; letterCol = '#fff';
+                                } else if (isChosenOpt) {
+                                    border = '#DC2626'; bg = '#FEF2F2'; textCol = '#DC2626'; letterBg = '#DC2626'; letterCol = '#fff';
                                 }
                             }
 
-                            const hasImg  = isNonEmpty(opt.image);
-                            const hasText = isNonEmpty(opt.text);
-                            const imgCard = hasImg && !hasText;
-
                             return (
-                                <div
+                                <button
                                     key={i}
                                     className={`qd-option qd-entry`}
                                     onClick={() => handleOptionSelect(i)}
+                                    disabled={isAnswered}
                                     style={{
                                         animationDelay: `${i * 0.04}s`,
                                         position: 'relative',
                                         display: 'flex',
-                                        flexDirection: imgCard ? 'column' : 'row',
-                                        alignItems: 'flex-start',
-                                        gap: imgCard ? 6 : 11,
-                                        padding: hasImg ? '11px 12px' : '9px 13px',
-                                        border: `1.5px solid ${boxBorder}`,
-                                        borderRadius: 10,
-                                        background: boxBg,
-                                        boxShadow: boxRing,
+                                        flexDirection: hasImage && !hasText ? 'column' : 'row',
+                                        alignItems: hasImage && !hasText ? 'center' : 'flex-start',
+                                        gap: hasImage && !hasText ? 6 : 12,
+                                        padding: hasImage ? 12 : 16,
+                                        border: `1px solid ${border}`,
+                                        borderRadius: 12,
+                                        background: bg,
+                                        textAlign: 'left',
                                         cursor: isAnswered ? 'default' : 'pointer',
                                     }}
                                 >
-                                    {/* Letter circle */}
                                     <div style={{ flexShrink: 0 }}>
                                         <div style={{
-                                            width: imgCard ? 22 : 27,
-                                            height: imgCard ? 22 : 27,
+                                            width: 26,
+                                            height: 26,
                                             borderRadius: '50%',
-                                            border: `1.5px solid ${iconStroke}`,
-                                            background: iconBg,
-                                            color: iconText,
+                                            background: letterBg,
+                                            color: letterCol,
                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            fontSize: imgCard ? 10 : 12,
-                                            fontWeight: 700,
+                                            fontSize: 12,
+                                            fontWeight: 800,
                                             transition: 'background 0.14s, border-color 0.14s',
                                         }}>
                                             {LETTERS[i]}
                                         </div>
                                     </div>
 
-                                    {/* Content */}
                                     <div style={{ flex: 1, minWidth: 0 }}>
-                                        {hasImg && (
+                                        {hasImage && (
                                             <div style={{ marginBottom: hasText ? 8 : 0 }}>
                                                 <NaturalImage
                                                     src={opt.image}
                                                     alt={`Option ${LETTERS[i]}`}
                                                     maxWidth="100%"
-                                                    maxHeight={160}
+                                                    maxHeight={180}
                                                     radius={5}
                                                 />
                                             </div>
                                         )}
 
                                         {hasText && (
-                                            <div style={{
-                                                fontSize: 'clamp(15px, 2.2vw, 17px)',
-                                                fontWeight: isAnswered && (isCorrectOpt || isChosenOpt) ? 600 : 500,
-                                                color: mainTextColor,
+                                            <span style={{
+                                                flex: 1,
+                                                fontSize: 'clamp(14px, 2.2vw, 15px)',
+                                                fontWeight: (isChosenOpt || isCorrectOpt) ? 700 : 500,
+                                                color: textCol,
                                                 lineHeight: 1.7,
                                                 overflowX: 'auto', overflowY: 'visible',
                                             }}>
                                                 <LatexText text={opt.text} />
-                                            </div>
+                                            </span>
                                         )}
 
-                                        {!hasImg && !hasText && (
+                                        {!hasImage && !hasText && (
                                             <span style={{ fontSize: 12, color: '#9ca3af', fontStyle: 'italic' }}>
                                                 Option {LETTERS[i]}
                                             </span>
                                         )}
                                     </div>
 
-                                    {/* Icons */}
                                     {isAnswered && (isCorrectOpt || isChosenOpt) && (
-                                        <div style={{
-                                            flexShrink: 0,
-                                            ...(imgCard
-                                                ? { position: 'absolute', top: 8, right: 8 }
-                                                : { alignSelf: 'center' }),
-                                        }}>
-                                            {isCorrectOpt ? (
-                                                <svg width="17" height="17" viewBox="0 0 24 24">
-                                                    <circle cx="12" cy="12" r="12" fill={GREEN}/>
-                                                    <path d="M7 12.5l3.5 3.5 6.5-7" stroke="#fff" strokeWidth="2.3"
-                                                        strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-                                                </svg>
-                                            ) : (
-                                                <svg width="17" height="17" viewBox="0 0 24 24">
-                                                    <circle cx="12" cy="12" r="12" fill={RED}/>
-                                                    <path d="M7 7l10 10m0-10L7 17" stroke="#fff" strokeWidth="2.3"
-                                                        strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-                                                </svg>
-                                            )}
+                                        <div style={{ flexShrink: 0 }}>
+                                            {isCorrectOpt ? <CheckCircle2 size={18} color="#16A34A" /> : <X size={18} color="#DC2626" />}
                                         </div>
                                     )}
-                                </div>
+                                </button>
                             );
                         })}
                     </div>
 
                     {isCurrentAnswered && currentQ.explanation && (
-                        <div className={`mt-6 p-4 rounded-xl text-sm border-l-4 border-blue-500 bg-blue-50 text-slate-700`}>
-                            <p className="font-bold mb-2 flex items-center gap-1">
-                                <CheckCircle2 size={16} className="text-blue-500" /> Explanation
-                            </p>
-                            <LatexText text={currentQ.explanation} />
+                        <div style={{ marginTop: 24, background: isDark ? '#1E293B' : '#F8FAFC', borderRadius: 16, padding: 20, border: `1px solid ${isDark ? '#334155' : '#E2E8F0'}` }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, color: '#4F46E5' }}>
+                                <CheckCircle2 size={16} />
+                                <span style={{ fontWeight: 800, fontSize: 12, textTransform: 'uppercase' }}>Explanation</span>
+                            </div>
+                            <div style={{ fontSize: 14, lineHeight: 1.6, color: isDark ? '#CBD5E1' : '#475569' }}>
+                                <LatexText text={currentQ.explanation} />
+                            </div>
                         </div>
                     )}
                 </div>
             </div>
+
+            {/* Flat Bottom Navigation Bar */}
+            <div className={`fixed bottom-0 left-0 right-0 p-5 z-50 flex gap-4 bg-transparent pointer-events-none`}>
+                <button
+                    onClick={handlePrev}
+                    disabled={currentIndex === 0}
+                    className={`flex-1 py-3 border rounded-[12px] font-semibold text-[16px] transition-all active:scale-[0.98] pointer-events-auto ${
+                        currentIndex === 0 ? 'opacity-50 cursor-not-allowed ' : ''
+                    }${
+                        isDark
+                            ? 'border-[#2A3441] text-white hover:bg-white/10 bg-[#0E131F]/90 backdrop-blur-md'
+                            : 'border-slate-200 bg-white/90 backdrop-blur-md text-[#475569] hover:bg-slate-50'
+                    }`}
+                >
+                    Prev
+                </button>
+                <button
+                    onClick={handleNext}
+                    disabled={isSubmitting || !isCurrentAnswered}
+                    className={`flex-1 py-3 rounded-[12px] font-semibold text-[16px] transition-all pointer-events-auto flex items-center justify-center gap-2 ${
+                        !isCurrentAnswered || isSubmitting
+                            ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none'
+                            : 'bg-[#4F46E5] text-white active:scale-[0.98] hover:bg-[#4338CA] shadow-[0_4px_10px_rgba(79,70,229,0.2)]'
+                    }`}
+                >
+                    {nextButtonText}
+                </button>
+            </div>
+
+            {/* ── CONFIRM QUIT MODAL ── */}
+            {showConfirmQuit && (
+                <div style={{ position: 'fixed', inset: 0, zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(4px)', padding: 20 }}>
+                    <div style={{ background: isDark ? '#1E293B' : '#fff', borderRadius: 20, padding: 24, maxWidth: 320, width: '100%', textAlign: 'center', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+                        <div style={{ width: 50, height: 50, background: isDark ? '#451a1a' : '#FEF2F2', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                            <AlertTriangle color="#EF4444" size={24} />
+                        </div>
+                        <h3 style={{ fontSize: 18, fontWeight: 800, color: isDark ? '#F8FAFC' : '#111827', margin: '0 0 8px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Quit Practice?</h3>
+                        <p style={{ fontSize: 14, color: isDark ? '#94A3B8' : '#64748B', marginBottom: 24, lineHeight: 1.5, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Your current practice progress for this session will be lost.</p>
+                        <div style={{ display: 'flex', gap: 10 }}>
+                            <button onClick={() => setShowConfirmQuit(false)} style={{ flex: 1, padding: 12, borderRadius: 12, background: isDark ? '#334155' : '#F1F5F9', border: 'none', color: isDark ? '#CBD5E1' : '#64748B', fontWeight: 700, cursor: 'pointer', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Keep Going</button>
+                            <button onClick={onClose} style={{ flex: 1, padding: 12, borderRadius: 12, background: '#EF4444', border: 'none', color: '#fff', fontWeight: 700, cursor: 'pointer', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Quit</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

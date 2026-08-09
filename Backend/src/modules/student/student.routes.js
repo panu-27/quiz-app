@@ -19,6 +19,9 @@ router.post(
 
 
 router.get("/profile", auth, controller.getProfile);
+router.get("/active-classes", auth, role(["STUDENT"]), controller.getActiveClasses);
+
+router.post("/change-class", auth, role(["STUDENT"]), controller.changeClass);
 
 router.post(
   "/submit/:testId",
@@ -57,5 +60,6 @@ router.post(
 );
 
 router.get("/my-library", auth, role(["STUDENT"]), controller.getMyLibrary);
+router.get("/my-syllabus", auth, role(["STUDENT"]), controller.getMySyllabus);
 
 export default router;

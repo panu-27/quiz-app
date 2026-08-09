@@ -9,6 +9,12 @@ const batchSchema = new Schema(
       required: true,
     },
 
+    className: {
+      type: String,
+      required: true,
+      default: "General Class",
+    },
+
     instituteId: {
       type: Schema.Types.ObjectId,
       ref: "Institute",
@@ -26,6 +32,12 @@ const batchSchema = new Schema(
       {
         type: Schema.Types.ObjectId,
         ref: "User",
+      },
+    ],
+
+    allocatedSubjects: [
+      {
+        type: String,
       },
     ],
   },

@@ -93,6 +93,18 @@ export default function StudentPersonalAnalytics() {
   const [showStickyCard, setShowStickyCard] = useState(false);
 
   const userRowRef = useRef(null);
+  const graphScrollRef = useRef(null);
+
+  // Auto-scroll graph to end when data loads
+  useEffect(() => {
+    if (!loading && graphScrollRef.current) {
+      setTimeout(() => {
+        if (graphScrollRef.current) {
+          graphScrollRef.current.scrollLeft = graphScrollRef.current.scrollWidth;
+        }
+      }, 50);
+    }
+  }, [loading, allRanks]);
 
   // Load user data
   useEffect(() => {
@@ -160,13 +172,42 @@ export default function StudentPersonalAnalytics() {
   };
 
   // Curve visual logic
+  const rankTrend = currentUser?.rankTrend || [];
+  let trendPath = "";
+  let trendPoints = [];
+  
+  const paddingX = 50;
+  const pointDistance = 85; 
+  const svgWidth = Math.max(340, (rankTrend.length - 1) * pointDistance + paddingX * 2);
+  const svgHeight = 160;
+
+  if (rankTrend.length > 0) {
+    const minRank = 1;
+    const maxRank = Math.max(10, ...rankTrend.map(r => r.rank));
+
+    rankTrend.forEach((rt, i) => {
+      const x = rankTrend.length === 1 ? svgWidth / 2 : paddingX + i * pointDistance;
+      const y = 40 + ((rt.rank - minRank) / Math.max(1, maxRank - minRank)) * 80;
+      
+      const dateStr = rt.date ? new Date(rt.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : "N/A";
+      
+      trendPoints.push({ x, y, rank: rt.rank, title: rt.testName, dateStr });
+
+      if (i === 0) trendPath += `M ${x} ${y} `;
+      else trendPath += `L ${x} ${y} `;
+    });
+  } else {
+    // Fallback curve spanning the width
+    trendPath = `M 0 120 C ${svgWidth * 0.25} 120, ${svgWidth * 0.35} 40, ${svgWidth * 0.5} 40 C ${svgWidth * 0.65} 40, ${svgWidth * 0.75} 120, ${svgWidth} 120`;
+  }
+  
   const getCurvePoint = (p) => {
-    const x = 5 + (p / 100) * 90;
+    const x = paddingX + (p / 100) * (svgWidth - paddingX * 2);
     const exponent = -Math.pow((p - 50) / 25, 2);
-    const y = 35 - 30 * Math.exp(exponent);
+    const y = 120 - 80 * Math.exp(exponent);
     return { x, y };
   };
-  const currentMarker = getCurvePoint(currentUser.percentile);
+  const currentMarker = rankTrend.length > 0 ? null : getCurvePoint(currentUser.percentile);
 
   return (
     <div
@@ -187,7 +228,7 @@ export default function StudentPersonalAnalytics() {
           paddingTop: STATUS_BAR_H,
         }}
       >
-        <div className="max-w-md mx-auto px-5 pt-3 pb-1">
+        <div className="max-w-2xl mx-auto px-5 pt-3 pb-1">
           {/* Header Row */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
@@ -230,9 +271,9 @@ export default function StudentPersonalAnalytics() {
 
       {/* ── SCROLLABLE BODY CONTENT ── */}
       <div className="flex-1 overflow-y-auto no-scrollbar">
-        <div className="max-w-md mx-auto px-5 pt-5 pb-32 space-y-6">
+        <div className="max-w-2xl mx-auto px-5 pt-5 pb-32 space-y-6">
 
-          {/* ── Minimal Bell Curve Card ── */}
+          {/* ── Trend Graph Card ── */}
           <div
             className="pt-4 pb-2 transition-colors"
             style={{
@@ -240,46 +281,92 @@ export default function StudentPersonalAnalytics() {
               border: 'none',
             }}
           >
-            {/* Distribution Curve SVG */}
-            <div className="relative pt-2 pb-1 overflow-hidden">
-              <svg className="w-full h-24 overflow-visible" viewBox="0 0 100 40">
-                {/* Subtle horizontal grid lines */}
-                {[8, 16, 24, 32].map(y => (
-                  <line
-                    key={y}
-                    x1="0"
-                    y1={y}
-                    x2="100"
-                    y2={y}
-                    stroke={isDark ? "#262626" : "#E5E5E5"}
-                    strokeDasharray="2 2"
-                    strokeWidth="0.5"
-                  />
-                ))}
+            {loading ? (
+              <div className="w-full h-[180px] mt-4 bg-slate-200 dark:bg-white/5 rounded-2xl animate-pulse flex flex-col justify-between p-4">
+                  {/* Faux graph lines */}
+                  <div className="w-full h-px bg-slate-300 dark:bg-white/10 mt-6" />
+                  <div className="w-full h-px bg-slate-300 dark:bg-white/10" />
+                  <div className="w-full h-px bg-slate-300 dark:bg-white/10 mb-6" />
+              </div>
+            ) : (
+              <>
+                {/* Distribution Curve / Trend SVG Container with horizontal scroll */}
+                <div 
+                  ref={graphScrollRef}
+                  className="relative pt-4 pb-2 overflow-x-auto overflow-y-visible no-scrollbar w-full scroll-smooth"
+                >
+                  <svg 
+                    style={{ width: svgWidth, height: svgHeight, minWidth: svgWidth }} 
+                    className="overflow-visible" 
+                    viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+                  >
+                    {/* Subtle horizontal grid lines */}
+                    {[40, 80, 120].map(y => (
+                      <line
+                        key={y}
+                        x1="0"
+                        y1={y}
+                        x2={svgWidth}
+                        y2={y}
+                        stroke={isDark ? "#262626" : "#E5E5E5"}
+                        strokeDasharray="4 4"
+                        strokeWidth="1"
+                      />
+                    ))}
 
-                {/* Continuous Curve */}
-                <path
-                  d="M 5 38 C 25 38, 35 5, 50 5 C 65 5, 75 38, 95 38"
-                  fill="none"
-                  stroke="#22D3EE"
-                  strokeWidth="1.5"
-                />
+                    {/* Continuous Curve or Line */}
+                    <path
+                      d={trendPath}
+                      fill="none"
+                      stroke="#22D3EE"
+                      strokeWidth="1.5"
+                      strokeLinejoin="round"
+                      strokeLinecap="round"
+                    />
 
-                {/* Cyan indicator dot for current user percentile */}
-                <circle
-                  cx={currentMarker.x}
-                  cy={currentMarker.y}
-                  r="2.5"
-                  fill="#22D3EE"
-                  stroke={isDark ? "#111111" : "#F5F5F5"}
-                  strokeWidth="1"
-                />
-              </svg>
-            </div>
+                    {/* Cyan indicator dots & Text */}
+                    {rankTrend.length > 0 ? (
+                      trendPoints.map((pt, i) => (
+                        <g key={i}>
+                          {/* Trend point circle */}
+                          <circle
+                            cx={pt.x}
+                            cy={pt.y}
+                            r="4"
+                            fill="#22D3EE"
+                            stroke={isDark ? "#111111" : "#F5F5F5"}
+                            strokeWidth="2"
+                          />
+                          {/* Rank Label */}
+                          <text x={pt.x} y={pt.y - 12} fill={isDark ? "#E5E5E5" : "#525252"} fontSize="12" fontWeight="bold" textAnchor="middle">
+                            Rank #{pt.rank}
+                          </text>
+                          {/* Date Label */}
+                          <text x={pt.x} y={pt.y + 20} fill={isDark ? "#A3A3A3" : "#737373"} fontSize="10" textAnchor="middle">
+                            {pt.dateStr}
+                          </text>
+                        </g>
+                      ))
+                    ) : (
+                      currentMarker && (
+                        <circle
+                          cx={currentMarker.x}
+                          cy={currentMarker.y}
+                          r="4"
+                          fill="#22D3EE"
+                          stroke={isDark ? "#111111" : "#F5F5F5"}
+                          strokeWidth="2"
+                        />
+                      )
+                    )}
+                  </svg>
+                </div>
 
-            <p className="text-[12px] text-slate-450 dark:text-slate-400 text-center mt-3 font-medium leading-relaxed">
-              To earn XPs, please upgrade your subscription.
-            </p>
+                <p className="text-[12px] text-slate-450 dark:text-slate-400 text-center mt-4 font-medium leading-relaxed">
+                  {rankTrend.length > 0 ? "Your past test rank trends" : "No recent test data to plot rank trends."}
+                </p>
+              </>
+            )}
           </div>
 
           {/* ── Top Learners Section Title ── */}
@@ -370,7 +457,7 @@ export default function StudentPersonalAnalytics() {
             paddingBottom: 'env(safe-area-inset-bottom, 0px)',
           }}
         >
-          <div className="max-w-md mx-auto pl-5 pr-10 pt-4 pb-6 flex items-center justify-between">
+          <div className="max-w-2xl mx-auto pl-5 pr-10 pt-4 pb-6 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="relative shrink-0">
                 <Avatar

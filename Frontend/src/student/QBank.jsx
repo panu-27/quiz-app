@@ -481,14 +481,14 @@ export default function QBank() {
         <div className="px-4 pt-4">
           {/* Goal + counsellor row */}
           <div className="flex items-center justify-between mb-4">
-            <div>
+            <div onClick={() => { if (!user?.approved) navigate('/student/goal-selection'); }}>
               <p className="text-[10px] font-medium leading-tight mb-0.5 text-slate-500">Current goal</p>
-              <button className="flex items-center gap-1 cursor-pointer">
+              <div className={`flex items-center gap-1 ${!user?.approved ? 'cursor-pointer' : ''}`}>
                 <span className="font-bold text-[17px] font-display tracking-tight text-white">
                   {localStorage.getItem("selectedGoal") || "Select Goal"}
                 </span>
-                <ChevronDown size={18} className="text-white" strokeWidth={2.5} />
-              </button>
+                {!user?.approved && <ChevronDown size={18} className="text-white" strokeWidth={2.5} />}
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <button

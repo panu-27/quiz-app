@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Search, ChevronDown, ChevronUp, Check, ArrowLeft, Timer, ChevronRight, Minus } from 'lucide-react';
 import { fetchSubjects, fetchChapters } from './quizApi';
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../context/ThemeContext';
+import useBackButton from '../../hooks/useBackButton';
 
 const STATUS_BAR_H = 28.5;
 
@@ -95,23 +97,28 @@ export default function CreatePractice({ onStartPractice, onBackToApp }) {
     loadData();
   }, []);
 
+  useBackButton(() => {
+    if (step === 2) {
+      if (subStep > 0) {
+        setSubStep(subStep - 1);
+      } else {
+        setStep(1);
+      }
+      return true;
+    }
+    if (step === 1) {
+      onBackToApp();
+      return true;
+    }
+    return false;
+  }, true);
+
   const filteredSubjects = subjects.filter(s =>
     s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (chaptersMap[s._id] || []).some(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const isSubjectFullySelected = (subjId) => {
-    const chaps = chaptersMap[subjId] || [];
-    if (chaps.length === 0) return false;
-    return chaps.every(c => selectedChapters.includes(c._id));
-  };
 
-  const isSubjectPartiallySelected = (subjId) => {
-    const chaps = chaptersMap[subjId] || [];
-    if (chaps.length === 0) return false;
-    const count = chaps.filter(c => selectedChapters.includes(c._id)).length;
-    return count > 0 && count < chaps.length;
-  };
 
   const toggleSubject = (subjId) => {
     const chaps = chaptersMap[subjId] || [];

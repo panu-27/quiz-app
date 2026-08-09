@@ -12,6 +12,7 @@ import StudentHeader from './StudentHeader';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import PracticeModeOverlay from './PracticeModeOverlay';
+import useBackButton from '../hooks/useBackButton';
 
 // ─── KaTeX singleton ────────────────────────────────────────────────
 const loadKaTeX = (() => {
@@ -191,7 +192,7 @@ const TopicSkeleton = () => {
 // ════════════════════════════════════════════════════════════════════
 // QUESTION ITEM
 // ════════════════════════════════════════════════════════════════════
-export const QuestionItem = ({ q, idx, onReport, isOpen, onToggle, isBookmarked, onToggleBookmark, isDone }) => {
+export const QuestionItem = ({ q, idx, onReport, isOpen, onToggle, isBookmarked, onToggleBookmark, isDone, attemptStatus }) => {
     const { theme } = useTheme();
     const [showSolution, setShowSolution] = useState(false);
     const diff = DIFF_STYLE[q.difficulty] || DIFF_STYLE.Medium;
@@ -244,6 +245,16 @@ export const QuestionItem = ({ q, idx, onReport, isOpen, onToggle, isBookmarked,
                         />
                     )}
                     <div style={{ display: 'flex', gap: 6, marginTop: 7, flexWrap: 'wrap' }}>
+                        {attemptStatus && (
+                            <span style={{
+                                fontSize: 9, fontWeight: 800,
+                                color: attemptStatus === 'correct' ? '#16A34A' : '#DC2626',
+                                background: attemptStatus === 'correct' ? (theme === 'light' ? '#DCFCE7' : '#064E3B') : (theme === 'light' ? '#FEE2E2' : '#7F1D1D'),
+                                padding: '2px 7px', borderRadius: 4, letterSpacing: '0.04em', textTransform: 'uppercase'
+                            }}>
+                                {attemptStatus === 'correct' ? 'Correct' : 'Wrong'}
+                            </span>
+                        )}
                         {q.year && (
                             <span style={{
                                 fontSize: 9, fontWeight: 800,
@@ -381,7 +392,7 @@ export const QuestionItem = ({ q, idx, onReport, isOpen, onToggle, isBookmarked,
 // ════════════════════════════════════════════════════════════════════
 // TOPIC SECTION
 // ════════════════════════════════════════════════════════════════════
-const TopicSection = ({ topic, topicIdx, accent, filterYear, allQuestions, isExpanded, onToggle, openQuestionId, setOpenQuestionId, onReport, bookmarks, onToggleBookmark, doneQuestions }) => {
+const TopicSection = ({ topic, topicIdx, accent, filterYear, allQuestions, isExpanded, onToggle, openQuestionId, setOpenQuestionId, onReport, bookmarks, onToggleBookmark, doneQuestions, pyqAttempts }) => {
     const { theme } = useTheme();
     const dotColor = DOT_COLORS[topicIdx % DOT_COLORS.length];
 
@@ -452,6 +463,7 @@ const TopicSection = ({ topic, topicIdx, accent, filterYear, allQuestions, isExp
                             isBookmarked={bookmarks.includes(q._id)}
                             onToggleBookmark={onToggleBookmark}
                             isDone={doneQuestions.includes(q._id)}
+                            attemptStatus={pyqAttempts?.find(a => String(a.questionId) === String(q._id))?.status}
                         />
                     ))}
                 </div>
@@ -482,6 +494,11 @@ export default function PYQExplorer() {
 
     const [doneQuestions, setDoneQuestions] = useState([]);
     const [wrongQuestions, setWrongQuestions] = useState([]);
+    const [pyqAttempts, setPyqAttempts] = useState([]);
+    const [qFilter, setQFilter] = useState('All'); // 'All', 'Correct', 'Wrong', 'Unattempted'
+    const [isScrollingDown, setIsScrollingDown] = useState(false);
+    const lastScrollY = useRef(0);
+
 
     const [activeChapter, setActiveChapter] = useState(null);
     const [viewMode, setViewMode] = useState('all');
@@ -515,6 +532,35 @@ export default function PYQExplorer() {
     const [practiceMode, setPracticeMode] = useState(false);
     const [showPracticeConfirm, setShowPracticeConfirm] = useState(false);
     const [practiceData, setPracticeData] = useState([]);
+
+    useBackButton(() => {
+        if (showCounsellorPopup) {
+            setShowCounsellorPopup(false);
+            return true;
+        }
+        if (showPracticeConfirm) {
+            setShowPracticeConfirm(false);
+            return true;
+        }
+        if (yearPickerOpen) {
+            setYearPickerOpen(false);
+            return true;
+        }
+        if (reportTarget) {
+            setReportTarget(null);
+            setSelectedReason(null);
+            return true;
+        }
+        // If practiceMode is true, we want back button to pop practice mode?
+        // PracticeModeOverlay might handle it, or we can handle it here:
+        if (practiceMode) {
+            // Actually PracticeModeOverlay has its own close, but let's just let it handle or we handle here:
+            // Since PracticeMode is an overlay/fullscreen:
+            setPracticeMode(false);
+            return true;
+        }
+        return false;
+    }, showCounsellorPopup || showPracticeConfirm || yearPickerOpen || !!reportTarget || practiceMode);
 
     const handleStartPractice = (mistakesOnly = false) => {
         let chapterQs = allQuestions.filter(q => {
@@ -562,6 +608,7 @@ export default function PYQExplorer() {
                 if (res.data?.success) {
                     setDoneQuestions(res.data.data.correctQs || []);
                     setWrongQuestions(res.data.data.wrongQs || []);
+                    setPyqAttempts(res.data.data.attempts || []);
                 }
             } catch (err) {
                 console.error("Failed to fetch PYQ progress:", err);
@@ -571,10 +618,26 @@ export default function PYQExplorer() {
         fetchPYQProgress();
     }, [user, practiceMode]); // Refetch progress when practiceMode ends
 
+    const handleScroll = useCallback((e) => {
+        const currentScrollY = e.target.scrollTop;
+        if (currentScrollY > lastScrollY.current + 10) {
+            setIsScrollingDown(true);
+        } else if (currentScrollY < lastScrollY.current - 10) {
+            setIsScrollingDown(false);
+        }
+        lastScrollY.current = currentScrollY;
+    }, []);
+
 
     const handleToggleBookmark = useCallback(async (question) => {
         try {
-            const res = await api.post('/quiz/bookmarks/toggle', { questionId: question._id });
+            const payload = {
+                questionId: question._id,
+                subjectId: question.subjectId,
+                chapterId: question.chapterId,
+                topicId: question.topicId
+            };
+            const res = await api.post('/quiz/bookmarks/toggle', payload);
             if (res.data?.success) {
                 setBookmarks(prev => {
                     if (res.data.action === 'added') {
@@ -684,10 +747,10 @@ export default function PYQExplorer() {
 
     const getChapterStats = useCallback((chap) => {
         const totalQs = chap?.questionCount || 0;
-        const solvedQs = doneQuestions.filter(item => item.chapterId === chap._id).length;
+        const solvedQs = pyqAttempts.filter(item => String(item.chapterId) === String(chap._id)).length;
         
         return { totalQs, solvedQs };
-    }, [doneQuestions]);
+    }, [pyqAttempts]);
 
     // filteredQuestions: filter by search query and year when inside a chapter
     const filteredQuestions = useMemo(() => {
@@ -701,8 +764,17 @@ export default function PYQExplorer() {
                 (q.question || q.questionText || '').toLowerCase().includes(sq)
             );
         }
+        if (qFilter !== 'All') {
+            qs = qs.filter(q => {
+                const attempt = pyqAttempts.find(a => String(a.questionId) === String(q._id));
+                if (qFilter === 'Correct') return attempt && attempt.status === 'correct';
+                if (qFilter === 'Wrong') return attempt && attempt.status === 'incorrect';
+                if (qFilter === 'Unattempted') return !attempt;
+                return true;
+            });
+        }
         return qs;
-    }, [allQuestions, filterYear, searchQ]);
+    }, [allQuestions, filterYear, searchQ, qFilter, pyqAttempts]);
 
     const handleReport = useCallback(async (reason) => {
         if (!reportTarget) return;
@@ -856,30 +928,32 @@ export default function PYQExplorer() {
                         </div>
 
                         {/* Tab filter */}
-                        <div className="flex gap-2 overflow-x-auto no-scrollbar -mt-1">
-                            {['all', 'completed', 'unattempted'].map(tab => {
-                                const label = tab === 'all' ? 'All' : tab === 'completed' ? 'Completed' : 'Unattempted';
-                                const isActive = chapterTab === tab;
-                                return (
-                                    <button
-                                        key={tab}
-                                        onClick={() => setChapterTab(tab)}
-                                        className={`px-4 py-1.5 rounded-full text-[12px] font-bold border transition-all whitespace-nowrap flex-shrink-0 ${isActive
-                                            ? 'bg-[#2563EB] border-[#2563EB] text-white'
-                                            : isDark
-                                                ? 'border-[#2A3441] text-[#8492A6]'
-                                                : 'border-transparent bg-slate-100 text-slate-500'
-                                            }`}
-                                    >
-                                        {label}
-                                    </button>
-                                );
-                            })}
+                        <div className={`transition-all duration-300 overflow-hidden ${isScrollingDown ? 'max-h-0 opacity-0' : 'max-h-16 opacity-100'}`}>
+                            <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
+                                {['all', 'completed', 'unattempted'].map(tab => {
+                                    const label = tab === 'all' ? 'All' : tab === 'completed' ? 'Completed' : 'Unattempted';
+                                    const isActive = chapterTab === tab;
+                                    return (
+                                        <button
+                                            key={tab}
+                                            onClick={() => setChapterTab(tab)}
+                                            className={`px-4 py-1.5 rounded-full text-[12px] font-bold border transition-all whitespace-nowrap flex-shrink-0 ${isActive
+                                                ? 'bg-[#2563EB] border-[#2563EB] text-white'
+                                                : isDark
+                                                    ? 'border-[#2A3441] text-[#8492A6]'
+                                                    : 'border-transparent bg-slate-100 text-slate-500'
+                                                }`}
+                                        >
+                                            {label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
                     </div>
 
                     {/* Chapters List */}
-                    <div className="flex-1 overflow-y-auto px-5 pb-10 space-y-3 no-scrollbar">
+                    <div className="flex-1 overflow-y-auto px-5 pb-10 space-y-3 no-scrollbar" onScroll={handleScroll}>
                         {chaptersLoading ? (
                             <div className="flex flex-col gap-3">
                                 {[1, 2, 3, 4, 5].map(i => (
@@ -1004,7 +1078,7 @@ export default function PYQExplorer() {
                 </div>
 
                 {/* Scrollable content */}
-                <div className="flex-1 overflow-y-auto px-5 pb-32 space-y-3 no-scrollbar">
+                <div className="flex-1 overflow-y-auto px-5 pb-32 space-y-3 no-scrollbar" onScroll={handleScroll}>
                     {/* Subject cards — plain buttons like CreatePractice Step 1 */}
                     {filteredSubjects.length === 0 ? (
                         <p className={`text-center mt-10 ${isDark ? 'text-[#64748B]' : 'text-slate-400'}`}>No subjects found.</p>
@@ -1014,11 +1088,10 @@ export default function PYQExplorer() {
 
                             // Calculate solved/total stats for the subject
                             let totalQs = 0;
-                            let solvedQs = 0;
+                            let solvedQs = pyqAttempts.filter(a => String(a.subjectId?._id || a.subjectId) === String(sub._id)).length;
                             allChaps.forEach((chap, idx) => {
                                 const stats = getChapterStats(chap, idx);
                                 totalQs += stats.totalQs;
-                                solvedQs += stats.solvedQs;
                             });
 
                             const { bg, icon } = getSubjectIcon(sub.name);
@@ -1135,8 +1208,8 @@ export default function PYQExplorer() {
                 </div>
 
                 {/* 100% width toggle filter */}
-                <div className="px-4">
-                    <div className={`flex p-1 rounded-xl ${isDark ? 'bg-[#161C26]' : 'bg-slate-100'}`}>
+                <div className={`transition-all duration-300 overflow-hidden px-4 ${isScrollingDown ? 'max-h-0 opacity-0' : 'max-h-32 opacity-100'}`}>
+                    <div className={`flex p-1 rounded-xl mb-3 ${isDark ? 'bg-[#161C26]' : 'bg-slate-100'}`}>
                         {['all', 'topic'].map(mode => {
                             const label = mode === 'all' ? 'All Questions' : 'Topic Wise';
                             const isActive = viewMode === mode;
@@ -1150,6 +1223,26 @@ export default function PYQExplorer() {
                                         }`}
                                 >
                                     {label}
+                                </button>
+                            );
+                        })}
+                    </div>
+                    {/* QFilter Tabs */}
+                    <div className="flex gap-2 overflow-x-auto no-scrollbar py-1 pb-2">
+                        {['All', 'Correct', 'Wrong', 'Unattempted'].map(tab => {
+                            const isSelected = qFilter === tab;
+                            return (
+                                <button
+                                    key={tab}
+                                    onClick={() => setQFilter(tab)}
+                                    className={`px-4 py-1.5 rounded-full text-[12px] font-bold border transition-all whitespace-nowrap flex-shrink-0 ${isSelected
+                                        ? 'bg-[#2563EB] border-[#2563EB] text-white'
+                                        : isDark
+                                            ? 'border-[#2A3441] text-[#8492A6]'
+                                            : 'border-transparent bg-slate-100 text-slate-500'
+                                        }`}
+                                >
+                                    {tab}
                                 </button>
                             );
                         })}
@@ -1181,7 +1274,7 @@ export default function PYQExplorer() {
             </div>
 
             {/* ── Scrollable content ── */}
-            <div style={{ flex: 1, overflowY: 'auto' }} className="no-scrollbar">
+            <div style={{ flex: 1, overflowY: 'auto' }} className="no-scrollbar" onScroll={handleScroll}>
 
 
 
@@ -1211,6 +1304,7 @@ export default function PYQExplorer() {
                                         isBookmarked={bookmarks.includes(q._id)}
                                         onToggleBookmark={handleToggleBookmark}
                                         isDone={doneQuestions.includes(q._id)}
+                                        attemptStatus={pyqAttempts.find(a => String(a.questionId) === String(q._id))?.status}
                                     />
                                 ))
                         }
@@ -1238,7 +1332,7 @@ export default function PYQExplorer() {
                                         topicIdx={tidx}
                                         accent={accent}
                                         filterYear={filterYear}
-                                        allQuestions={allQuestions}
+                                        allQuestions={filteredQuestions}
                                         isExpanded={expandedTopicId === topic._id}
                                         onToggle={() => {
                                             setExpandedTopicId(expandedTopicId === topic._id ? null : topic._id);
@@ -1251,6 +1345,7 @@ export default function PYQExplorer() {
                                         onToggleBookmark={handleToggleBookmark}
                                         doneQuestions={doneQuestions}
                                         onToggleDone={handleToggleDone}
+                                        pyqAttempts={pyqAttempts}
                                     />
                                 ))
                         }
@@ -1481,6 +1576,8 @@ export default function PYQExplorer() {
                     isDark={isDark}
                     theme={theme}
                     onClose={() => setPracticeMode(false)}
+                    bookmarks={bookmarks}
+                    onToggleBookmark={handleToggleBookmark}
                 />
             )}
         </div>

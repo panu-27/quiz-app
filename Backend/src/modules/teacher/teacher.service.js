@@ -6,6 +6,7 @@ import Resource from "./Resource.js";
 import BankQuestion from "../questionBank/BankQuestion.js";
 import mongoose from "mongoose";
 import User from "../user/user.model.js";
+import Syllabus from "../institute/syllabus.model.js";
 import { log } from "console";
 
 /* ---------------- GET TEACHER BATCHES ---------------- */
@@ -392,7 +393,7 @@ export const getMyBatches = async (teacher) => {
   const batches = await Batch.find({
     teachers: teacherId,
   })
-    .select("_id name") // Only return necessary fields for the frontend chips
+    .select("_id name className allocatedSubjects") // Only return necessary fields for the frontend chips
     .lean(); // Faster execution by returning plain JSON objects
 
   return batches;
@@ -410,7 +411,7 @@ export const getMyBatches2 = async (teacher) => {
   const batches = await Batch.find({
     teachers: teacherId,
   })
-    .select("_id name students") // Only return necessary fields for the frontend chips
+    .select("_id name className students allocatedSubjects") // Only return necessary fields for the frontend chips
     .lean(); // Faster execution by returning plain JSON objects
 
   return batches;
@@ -435,7 +436,7 @@ const SUBJECT_MAP = {
 
 export const deployMaterial = async (teacher, metadata, file) => {
   const teacherId = teacher._id || teacher.id;
-  const { subjectId, chapterId, category, batchIds } = metadata;
+  const { subjectId, chapterId, category, batchIds, isFree } = metadata;
  
   // Validate required fields
   if (!subjectId) throw new Error("subjectId is required");
@@ -462,12 +463,27 @@ export const deployMaterial = async (teacher, metadata, file) => {
     fileSize:   (file.size / 1024 / 1024).toFixed(2) + " MB",
     batchIds,
     uploadedBy: teacherId,
+    isFree:     isFree || false,
   });
  
   return { success: true, resource: newResource };
 };
 
 
+
+export const toggleFreeStatus = async (teacher, resourceId) => {
+  const teacherId = teacher._id || teacher.id;
+  const resource = await Resource.findOne({ _id: resourceId, uploadedBy: teacherId });
+  
+  if (!resource) {
+    throw new Error("Resource not found or unauthorized");
+  }
+
+  resource.isFree = !resource.isFree;
+  await resource.save();
+  
+  return { success: true, resource };
+};
 
 // Add these two functions to teacher.service.js
 
@@ -538,4 +554,11 @@ export const scheduleTest = async (teacher, { testId, batchIds, startTime, endTi
   await test.save();
 
   return test;
+};
+
+/* ---------------- SYLLABUS ---------------- */
+export const getSyllabusByClass = async (teacher, className) => {
+  if (!className) throw new Error("className is required");
+  const syllabus = await Syllabus.findOne({ instituteId: teacher.instituteId, className });
+  return syllabus;
 };

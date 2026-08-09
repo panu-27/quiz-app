@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ChevronDown, Search, ShoppingBag, Phone, ChevronRight } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import useBackButton from '../hooks/useBackButton';
 import StudentHeader from './StudentHeader';
 import CounsellorModal from '../components/CounsellorModal';
 
@@ -99,7 +100,6 @@ const SYLLABUS_OPTIONS = ['All', 'Full Syllabus', 'Partial Syllabus', 'Crash Cou
 const STATUS_BAR_H = 28.5;
 
 export default function StudentStore() {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -114,6 +114,22 @@ export default function StudentStore() {
   // Counsellor Modal
   const [showCounsellorModal, setShowCounsellorModal] = useState(false);
 
+  useBackButton(() => {
+    if (showCounsellorModal) {
+      setShowCounsellorModal(false);
+      return true;
+    }
+    if (sortOpen) {
+      setSortOpen(false);
+      return true;
+    }
+    if (syllabusOpen) {
+      setSyllabusOpen(false);
+      return true;
+    }
+    return false;
+  }, showCounsellorModal || sortOpen || syllabusOpen);
+
   useEffect(() => {
     if (showCounsellorModal) {
       document.body.setAttribute('data-hide-nav', 'true');
@@ -124,13 +140,6 @@ export default function StudentStore() {
       document.body.removeAttribute('data-hide-nav');
     };
   }, [showCounsellorModal]);
-
-  const resolveMediaUrl = url => {
-    if (!url) return null;
-    if (url.startsWith('http') || url.startsWith('data:') || url.startsWith('blob:')) return url;
-    const base = window.__API_URL__ ? window.__API_URL__.replace(/\/api$/, '') : (import.meta.env.VITE_API_BASE_URL || '').replace(/\/api$/, '');
-    return `${base}${url}`;
-  };
 
   const goal = localStorage.getItem('selectedGoal') || 'JEE';
 

@@ -1,9 +1,17 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
+@theme {
+  /* Push tablet breakpoints up to 1024px so tablets show the mobile UI */
+  --breakpoint-sm: 1024px;
+  --breakpoint-md: 1024px;
+  
+  --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+}
+
 @layer base {
   html {
-    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: "Poppins", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   }
 }
 @keyframes scaleIn {

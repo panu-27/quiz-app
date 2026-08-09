@@ -144,10 +144,17 @@ export const getTestAnalytics = async (req, res) => {
         }).select("_id name students");
  
         const matchedBatches = allInstituteBatches.filter((b) =>
-          regexList.some((rx) => rx.test(b.name))
+          regexList.some((rx) => rx.test(b.name)) || 
+          test.batches.some((tb) => tb._id.toString() === b._id.toString())
+        );
+        
+        const matchedClasses = new Set(matchedBatches.map(b => b.className).filter(Boolean));
+        const finalBatches = allInstituteBatches.filter(b => 
+            matchedBatches.some(mb => mb._id.toString() === b._id.toString()) || 
+            (matchedClasses.has(b.className) && /FREE/i.test(b.name))
         );
  
-        allEligibleStudents = await getStudentsFromBatches(matchedBatches);
+        allEligibleStudents = await getStudentsFromBatches(finalBatches);
       }
     }
  
@@ -339,8 +346,17 @@ export const getPerformanceOverview = async (req, res) => {
       }
       if (!batchPatterns.size) return getStudentsFromBatches(test.batches);
       const regexList = [...batchPatterns].map(p => new RegExp(`(?<![A-Z])${p}(?![A-Z])`, "i"));
-      const all = await Batch.find({ instituteId: test.instituteId }).select("_id name students");
-      return getStudentsFromBatches(all.filter(b => regexList.some(rx => rx.test(b.name))));
+      const all = await Batch.find({ instituteId: test.instituteId }).select("_id name className students");
+      const matchedBatches = all.filter(b => 
+        regexList.some(rx => rx.test(b.name)) || 
+        test.batches.some(tb => tb._id.toString() === b._id.toString())
+      );
+      const matchedClasses = new Set(matchedBatches.map(b => b.className).filter(Boolean));
+      const finalBatches = all.filter(b => 
+        matchedBatches.some(mb => mb._id.toString() === b._id.toString()) || 
+        (matchedClasses.has(b.className) && /FREE/i.test(b.name))
+      );
+      return getStudentsFromBatches(finalBatches);
     };
 
     const getMaxScore = (test) => {
@@ -710,6 +726,16 @@ export const getMyBatches2 = async (req, res) => {
     });
   }
 };
+
+export const getSyllabusByClass = async (req, res) => {
+  try {
+    const syllabus = await service.getSyllabusByClass(req.user, req.params.className);
+    res.status(200).json(syllabus || null);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
 /* ---------------- CREATE PDF TEST (UNCHANGED) ---------------- */
 export const createTest = async (req, res) => {
   try {
@@ -755,17 +781,18 @@ export const generateCustomTest = async (req, res) => {
 
 export const deployMaterialCtrl = async (req, res) => {
   try {
-    const { subjectId, chapterId, category, batchIds } = req.body;
+    const { subjectId, chapterId, category, batchIds, isFree } = req.body;
     const file = req.file;
  
     if (!file)     return res.status(400).json({ message: "No file provided" });
     if (!batchIds) return res.status(400).json({ message: "Please select at least one batch" });
  
     const parsedBatchIds = typeof batchIds === "string" ? JSON.parse(batchIds) : batchIds;
+    const isFreeBool = isFree === 'true' || isFree === true;
  
     const result = await service.deployMaterial(
       req.user,
-      { subjectId, chapterId, category, batchIds: parsedBatchIds },
+      { subjectId, chapterId, category, batchIds: parsedBatchIds, isFree: isFreeBool },
       file
     );
  
@@ -784,6 +811,17 @@ export const getCraftedTests = async (req, res) => {
     res.status(200).json(tests);
   } catch (err) {
     res.status(400).json({ message: err.message });
+  }
+};
+
+export const toggleResourceFreeStatusCtrl = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await service.toggleFreeStatus(req.user, id);
+    res.status(200).json(result);
+  } catch (error) {
+    console.error("toggleResourceFreeStatus error:", error);
+    res.status(500).json({ message: error.message || "Failed to toggle status" });
   }
 };
 

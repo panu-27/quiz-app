@@ -22,5 +22,9 @@ export const deleteTeacher = (req, res) => execute(req, res, service.deleteTeach
 export const approveAndAssign = (req, res) => execute(req, res, service.approveAndAssign, req.body);
 export const rejectAndDelete = (req, res) => execute(req, res, service.rejectAndDelete, req.body);
 export const assignTeacherToBatch = (req, res) => execute(req, res, service.assignTeacherToBatch, req.body);
+export const allocateSubjects = (req, res) => execute(req, res, service.allocateSubjectsToBatch, req.body);
 export const removeStudentFromBatch = (req, res) => execute(req, res, service.removeStudentFromBatch, req.body);
 export const removeTeacherFromBatch = (req, res) => execute(req, res, service.removeTeacherFromBatch, req.body);
+
+export const getSyllabuses = (req, res) => execute(req, res, service.getSyllabuses);
+export const upsertSyllabus = (req, res) => execute(req, res, service.upsertSyllabus, req.body);

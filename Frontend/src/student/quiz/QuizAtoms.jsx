@@ -36,6 +36,7 @@ export const Checkbox = ({ checked, onChange }) => (
 );
 
 /* ── Sidebar navigation hook (used by each step to expose nav state globally) ── */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useQuizNav(step, canAdvance, onAdvance) {
     useEffect(() => {
         window.__quizNav = { step, canAdvance, onAdvance };

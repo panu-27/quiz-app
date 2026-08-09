@@ -48,6 +48,23 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // 🚫 3. Skip Vite dev assets and JS/CSS modules to prevent stale React copies
+  if (
+    url.pathname.endsWith(".js") ||
+    url.pathname.endsWith(".jsx") ||
+    url.pathname.endsWith(".ts") ||
+    url.pathname.endsWith(".tsx") ||
+    url.pathname.endsWith(".css") ||
+    url.pathname.includes("node_modules") ||
+    url.pathname.includes("@vite") ||
+    url.pathname.includes("__vite") ||
+    url.pathname.startsWith("/src/") ||
+    url.pathname.startsWith("/@") ||
+    url.search.includes("t=")
+  ) {
+    return;
+  }
+
   // ✅ 3. Cache-first strategy for static assets
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {

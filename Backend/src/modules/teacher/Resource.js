@@ -14,12 +14,10 @@ const resourceSchema = new mongoose.Schema(
     subjectId: {
       type: String,
       required: true,
-      enum: ["phy", "che", "mat", "bio"],   // SUBJECTS[].id
     },
     chapterId: {
       type: String,
       required: true,
-      // e.g. "phy-01", "che-09" — validated loosely; add enum if you want strict
     },
     category: {
       type: String,
@@ -32,9 +30,11 @@ const resourceSchema = new mongoose.Schema(
         "lectures",   // Video Lectures (link/embed)
         "mindmaps",   // Mind Maps
         "revision",   // Revision sheets
+        "synopsis",   // Synopsis
         "practice",   // Practice Sheets
       ],
     },
+    isFree: { type: Boolean, default: false },
 
     // ── Keep legacy fields for desktop (they still use subject name + old category) ──
     // Remove these once desktop is also migrated to the new drill-down system.

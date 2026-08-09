@@ -21,6 +21,8 @@ import {
   submitQuizAttempt,
   getAttemptDetails,
   listStudentAttempts,
+  renameQuizAttempt,
+  pinQuizAttempt,
   reportQuestion,
   getChapterPYQs,
   getBookmarks,
@@ -301,6 +303,9 @@ router.get('/attempts', auth, listStudentAttempts);
  * }
  */
 router.get('/attempts/:attemptId', auth, getAttemptDetails);
+
+router.put('/attempts/:attemptId/rename', auth, renameQuizAttempt);
+router.put('/attempts/:attemptId/pin', auth, pinQuizAttempt);
 
 
 router.post('/question-report', reportQuestion);

@@ -312,30 +312,25 @@ export default function PYQProgress() {
         const bucketSizeDays = perfTimeline === 'Weekly' ? 7 : 30; // 7 days or 30 days
         
         rawAttempts.forEach(att => {
-            const date = new Date(att.createdAt || att.startedAt);
+            const date = new Date(att.updatedAt || att.createdAt);
             const daysAgo = Math.floor((now - date) / MS_PER_DAY);
             
             let bucketIndex = 3 - Math.floor(daysAgo / bucketSizeDays);
             if (bucketIndex < 0) return; 
             if (bucketIndex > 3) bucketIndex = 3; 
 
-            att.blocks.forEach(block => {
-                block.sections.forEach(sec => {
-                    const subjName = (sec.subjectName || '').toLowerCase();
-                    const filterSubj = perfSubject.toLowerCase();
-                    if (filterSubj !== 'all' && !subjName.includes(filterSubj)) return;
-                    
-                    sec.questions.forEach(q => {
-                        if (q.chosenOption !== -1) {
-                            bucketSolved[bucketIndex]++;
-                            bucketTime[bucketIndex] += (q.timeTakenSeconds || 0);
-                            if (q.chosenOption === q.correctAnswer) {
-                                bucketCorrect[bucketIndex]++;
-                            }
-                        }
-                    });
-                });
-            });
+            // Filter by subject
+            const subjName = (att.subjectId?.name || '').toLowerCase();
+            const filterSubj = perfSubject.toLowerCase();
+            if (filterSubj !== 'all' && !subjName.includes(filterSubj)) return;
+            
+            if (att.status === 'correct' || att.status === 'incorrect') {
+                bucketSolved[bucketIndex]++;
+                bucketTime[bucketIndex] += (att.totalTimeSpent || 0);
+                if (att.status === 'correct') {
+                    bucketCorrect[bucketIndex]++;
+                }
+            }
         });
 
         const solved = bucketSolved.reduce((a,b)=>a+b, 0);
@@ -390,6 +385,63 @@ export default function PYQProgress() {
 
     const maxSolved = Math.max(...stats.solvedData, 10);
     const maxTime = Math.max(...stats.timeData, 60);
+
+    const hasData = rawAttempts.length > 0;
+
+    const renderCard = (title, mainStat, subStat, chartData, maxVal, formatTooltip) => (
+        <div style={{ position: 'relative' }}>
+            <div style={{
+                background: theme === 'light' ? '#FFFFFF' : '#161C26',
+                border: theme === 'light' ? '1px solid rgba(226, 232, 240, 0.4)' : '1px solid rgba(255, 255, 255, 0.05)',
+                borderRadius: 16,
+                padding: 20,
+                boxShadow: theme === 'light' ? '0 4px 16px rgba(0,0,0,0.02)' : 'none',
+                filter: !hasData ? 'blur(5px)' : 'none',
+                opacity: !hasData ? 0.6 : 1,
+                pointerEvents: !hasData ? 'none' : 'auto',
+                transition: 'all 0.3s ease'
+            }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <span style={{ fontSize: 14, fontStyle: 'normal', fontWeight: 800, color: theme === 'light' ? '#1E293B' : '#FFFFFF' }}>
+                        {title}
+                    </span>
+                    <div style={{ textAlign: 'right' }}>
+                        <span style={{ fontSize: 16, fontStyle: 'normal', fontWeight: 900, color: theme === 'light' ? '#1E293B' : '#FFFFFF' }}>
+                            {mainStat}
+                        </span>
+                        <span style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#94A3B8', marginTop: 2 }}>
+                            {subStat}
+                        </span>
+                    </div>
+                </div>
+                <PerformanceChart
+                    data={chartData}
+                    maxValue={maxVal}
+                    formatTooltip={formatTooltip}
+                    theme={theme}
+                />
+            </div>
+            
+            {!hasData && (
+                <div style={{
+                    position: 'absolute', inset: 0, zIndex: 10,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexDirection: 'column', padding: 20, textAlign: 'center'
+                }}>
+                    <div style={{
+                        background: theme === 'light' ? 'rgba(255,255,255,0.9)' : 'rgba(22, 28, 38, 0.9)',
+                        padding: '12px 24px', borderRadius: 100,
+                        border: theme === 'light' ? '1px solid #E2E8F0' : '1px solid #2A3441',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                    }}>
+                        <span style={{ fontSize: 13, fontWeight: 800, color: theme === 'light' ? '#1E293B' : '#FFFFFF' }}>
+                            Start practice to unlock this feature
+                        </span>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
 
     return (
         <div
@@ -525,93 +577,33 @@ export default function PYQProgress() {
                     paddingBottom: isApproved ? 32 : (PRIME_BANNER_H + 48),
                 }}
             >
-                <div className="max-w-md mx-auto space-y-4">
-                    {/* Solved Card */}
-                    <div style={{
-                        background: theme === 'light' ? '#FFFFFF' : '#161C26',
-                        border: theme === 'light' ? '1px solid rgba(226, 232, 240, 0.4)' : '1px solid rgba(255, 255, 255, 0.05)',
-                        borderRadius: 16,
-                        padding: 20,
-                        boxShadow: theme === 'light' ? '0 4px 16px rgba(0,0,0,0.02)' : 'none',
-                    }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                            <span style={{ fontSize: 14, fontStyle: 'normal', fontWeight: 800, color: theme === 'light' ? '#1E293B' : '#FFFFFF' }}>
-                                Qs Attempted
-                            </span>
-                            <div style={{ textAlign: 'right' }}>
-                                <span style={{ fontSize: 16, fontStyle: 'normal', fontWeight: 900, color: theme === 'light' ? '#1E293B' : '#FFFFFF' }}>
-                                    {stats.solved} Qs
-                                </span>
-                                <span style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#94A3B8', marginTop: 2 }}>
-                                    Total Solved
-                                </span>
-                            </div>
-                        </div>
-                        <PerformanceChart
-                            data={solvedChartData}
-                            maxValue={maxSolved}
-                            formatTooltip={(val) => val + ' Qs'}
-                            theme={theme}
-                        />
-                    </div>
-
-                    {/* Time Card */}
-                    <div style={{
-                        background: theme === 'light' ? '#FFFFFF' : '#161C26',
-                        border: theme === 'light' ? '1px solid rgba(226, 232, 240, 0.4)' : '1px solid rgba(255, 255, 255, 0.05)',
-                        borderRadius: 16,
-                        padding: 20,
-                        boxShadow: theme === 'light' ? '0 4px 16px rgba(0,0,0,0.02)' : 'none',
-                    }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                            <span style={{ fontSize: 14, fontStyle: 'normal', fontWeight: 800, color: theme === 'light' ? '#1E293B' : '#FFFFFF' }}>
-                                Time Per Qs
-                            </span>
-                            <div style={{ textAlign: 'right' }}>
-                                <span style={{ fontSize: 16, fontStyle: 'normal', fontWeight: 900, color: theme === 'light' ? '#1E293B' : '#FFFFFF' }}>
-                                    {stats.time}
-                                </span>
-                                <span style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#94A3B8', marginTop: 2 }}>
-                                    Total Average
-                                </span>
-                            </div>
-                        </div>
-                        <PerformanceChart
-                            data={timeChartData}
-                            maxValue={maxTime}
-                            formatTooltip={(val) => Math.floor(val / 60) + 'm ' + (val % 60) + 's'}
-                            theme={theme}
-                        />
-                    </div>
-
-                    {/* Accuracy Card */}
-                    <div style={{
-                        background: theme === 'light' ? '#FFFFFF' : '#161C26',
-                        border: theme === 'light' ? '1px solid rgba(226, 232, 240, 0.4)' : '1px solid rgba(255, 255, 255, 0.05)',
-                        borderRadius: 16,
-                        padding: 20,
-                        boxShadow: theme === 'light' ? '0 4px 16px rgba(0,0,0,0.02)' : 'none',
-                    }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                            <span style={{ fontSize: 14, fontStyle: 'normal', fontWeight: 800, color: theme === 'light' ? '#1E293B' : '#FFFFFF' }}>
-                                Accuracy
-                            </span>
-                            <div style={{ textAlign: 'right' }}>
-                                <span style={{ fontSize: 16, fontStyle: 'normal', fontWeight: 900, color: theme === 'light' ? '#1E293B' : '#FFFFFF' }}>
-                                    {stats.accuracy} %
-                                </span>
-                                <span style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#94A3B8', marginTop: 2 }}>
-                                    Total Accuracy
-                                </span>
-                            </div>
-                        </div>
-                        <PerformanceChart
-                            data={accuracyChartData}
-                            maxValue={100}
-                            formatTooltip={(val) => val + '%'}
-                            theme={theme}
-                        />
-                    </div>
+                <div className="max-w-md mx-auto space-y-6">
+                    {renderCard(
+                        "Qs Attempted", 
+                        `${stats.solved} Qs`, 
+                        "Total Solved", 
+                        solvedChartData, 
+                        maxSolved, 
+                        (val) => val + ' Qs'
+                    )}
+                    
+                    {renderCard(
+                        "Time Per Qs", 
+                        stats.time, 
+                        "Total Average", 
+                        timeChartData, 
+                        maxTime, 
+                        (val) => Math.floor(val / 60) + 'm ' + (val % 60) + 's'
+                    )}
+                    
+                    {renderCard(
+                        "Accuracy", 
+                        `${stats.accuracy} %`, 
+                        "Total Accuracy", 
+                        accuracyChartData, 
+                        100, 
+                        (val) => val + '%'
+                    )}
                 </div>
             </div>
 

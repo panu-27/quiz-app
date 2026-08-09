@@ -410,26 +410,40 @@ export default function ScheduleTests() {
                   {batches.length === 0 ? (
                     <p style={{ fontSize: 12, color: "#94a3b8", margin: 0 }}>No batches found.</p>
                   ) : (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-                      {batches.map(b => {
-                        const sel = form.batchIds.includes(b._id);
-                        return (
-                          <button key={b._id} onClick={() => toggleBatch(b._id)} style={{
-                            padding: "6px 14px", borderRadius: 9, cursor: "pointer",
-                            fontSize: 11, fontWeight: 700,
-                            border: `1.5px solid ${sel ? "transparent" : "#e5e7eb"}`,
-                            background: sel ? "linear-gradient(135deg,#7c3aed,#6366f1)" : "transparent",
-                            color: sel ? "#fff" : "#6b7280",
-                            boxShadow: sel ? "0 2px 10px rgba(109,40,217,0.25)" : "none",
-                            transition: "all 0.13s",
-                          }}
-                            onMouseEnter={e => { if (!sel) e.currentTarget.style.background = "#f5f3ff"; }}
-                            onMouseLeave={e => { if (!sel) e.currentTarget.style.background = "transparent"; }}
-                          >
-                            {b.name}
-                          </button>
-                        );
-                      })}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                      {Object.entries(
+                        batches.reduce((acc, b) => {
+                          const c = b.className || "General Class";
+                          if (!acc[c]) acc[c] = [];
+                          acc[c].push(b);
+                          return acc;
+                        }, {})
+                      ).map(([cName, classBatches]) => (
+                        <div key={cName}>
+                          <div style={{ fontSize: 10, fontWeight: 800, color: "#94a3b8", textTransform: "uppercase", marginBottom: 6 }}>{cName}</div>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                            {classBatches.map(b => {
+                              const sel = form.batchIds.includes(b._id);
+                              return (
+                                <button key={b._id} onClick={() => toggleBatch(b._id)} style={{
+                                  padding: "6px 14px", borderRadius: 9, cursor: "pointer",
+                                  fontSize: 11, fontWeight: 700,
+                                  border: `1.5px solid ${sel ? "transparent" : "#e5e7eb"}`,
+                                  background: sel ? "linear-gradient(135deg,#7c3aed,#6366f1)" : "transparent",
+                                  color: sel ? "#fff" : "#6b7280",
+                                  boxShadow: sel ? "0 2px 10px rgba(109,40,217,0.25)" : "none",
+                                  transition: "all 0.13s",
+                                }}
+                                  onMouseEnter={e => { if (!sel) e.currentTarget.style.background = "#f5f3ff"; }}
+                                  onMouseLeave={e => { if (!sel) e.currentTarget.style.background = "transparent"; }}
+                                >
+                                  {b.name}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>

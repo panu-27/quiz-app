@@ -116,13 +116,13 @@ export default function MyLearning() {
       >
         {/* Top Header Row */}
         <div className="flex items-center justify-between px-5 py-2 mt-2 mb-4">
-          <div>
+          <div onClick={() => { if (!user?.approved) navigate('/student/goal-selection'); }}>
             <p className="text-[10px] font-medium leading-tight mb-0.5 text-slate-300">Current goal</p>
-            <div className="flex items-center gap-1 cursor-pointer">
+            <div className={`flex items-center gap-1 ${!user?.approved ? 'cursor-pointer' : ''}`}>
               <span className="font-bold text-[17px] font-display tracking-tight text-white">
                 {localStorage.getItem("selectedGoal") || "Select Goal"}
               </span>
-              <ChevronDown size={18} className="text-white" strokeWidth={2.5} />
+              {!user?.approved && <ChevronDown size={18} className="text-white" strokeWidth={2.5} />}
             </div>
           </div>
 

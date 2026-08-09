@@ -21,4 +21,28 @@ const storage = new CloudinaryStorage({
   },
 });
 
-export { cloudinary, storage };
+// 3. Set up storage engine for notice attachments
+const attachmentStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: async (req, file) => {
+    const ext = file.originalname.split('.').pop().toLowerCase();
+    
+    // For documents (especially PDFs), use 'raw' so Cloudinary doesn't process them as images.
+    // This allows Google Docs Viewer to correctly fetch and render them.
+    if (['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt'].includes(ext)) {
+      return {
+        folder: 'notice_attachments',
+        resource_type: 'raw'
+      };
+    }
+
+    // For images and other media
+    return {
+      folder: 'notice_attachments',
+      resource_type: 'auto',
+      format: ext,
+    };
+  },
+});
+
+export { cloudinary, storage, attachmentStorage };

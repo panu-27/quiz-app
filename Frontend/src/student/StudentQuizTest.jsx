@@ -7,19 +7,20 @@ export default function StudentQuizTest() {
     const navigate = useNavigate();
 
     // The 'questions' here is actually the full exam object returned by fetchQuizQuestions
-    const { subjectIds, questions: examData } = location.state || {};
+    const { questions: examData, parentAttemptId } = location.state || {};
 
     useEffect(() => {
-        if (!subjectIds || subjectIds.length === 0 || !examData) {
+        if (!examData) {
             navigate('/student/quiz', { replace: true });
         }
-    }, [subjectIds, examData, navigate]);
+    }, [examData, navigate]);
 
     if (!examData) return null;
 
     return (
         <TestAttempt
             examData={examData}
+            parentAttemptId={parentAttemptId}
             onFinish={() => navigate('/student', { replace: true })}
         />
     );

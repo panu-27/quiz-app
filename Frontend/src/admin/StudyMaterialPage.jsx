@@ -5,8 +5,9 @@ import {
   Trash2, FileText, Loader2, Search, RefreshCw,
   Calendar, Users, Layers, AlertTriangle, X,
   FolderOpen, LayoutGrid, List, ArrowLeft, Download,
-  ExternalLink, ZoomIn, ChevronRight,
+  ExternalLink, ZoomIn, ChevronRight, UploadCloud, Plus, Check
 } from "lucide-react";
+import { SUBJECTS as LIB_SUBJECTS, CHAPTERS as LIB_CHAPTERS, CATEGORIES as LIB_CATEGORIES } from "../student/libraryConfig";
 
 const SUBJECTS = [
   { id: "all",       name: "All Subjects", icon: <Layers size={13}/>,  color: "#6d28d9", bg: "#f5f3ff", accent: "#7c3aed" },
@@ -18,16 +19,25 @@ const SUBJECTS = [
 const SUBJECT_MAP = Object.fromEntries(SUBJECTS.slice(1).map(s => [s.id, s]));
 
 const CATEGORIES = [
-  { id: "all",      label: "All Types", icon: <Layers size={12}/> },
-  { id: "Notes",    label: "Notes",     icon: <BookOpen size={12}/> },
-  { id: "PYQs",     label: "PYQs",      icon: <HelpCircle size={12}/> },
-  { id: "Formulas", label: "Formulas",  icon: <Sigma size={12}/> },
+  { id: "all",       label: "All Types", icon: <Layers size={12}/> },
+  { id: "notes",     label: "Notes",     icon: <BookOpen size={12}/> },
+  { id: "pyqs",      label: "PYQs",      icon: <HelpCircle size={12}/> },
+  { id: "formulas",  label: "Formulas",  icon: <Sigma size={12}/> },
+  { id: "mindmaps",  label: "Mind Maps", icon: <Layers size={12}/> },
+  { id: "revision",  label: "Revision",  icon: <Layers size={12}/> },
+  { id: "synopsis",  label: "Synopsis",  icon: <Layers size={12}/> },
 ];
 
 const CAT_META = {
-  Notes:    { color: "#2563eb", bg: "#eff6ff", border: "#bfdbfe" },
-  PYQs:     { color: "#7c3aed", bg: "#f5f3ff", border: "#ddd6fe" },
-  Formulas: { color: "#059669", bg: "#ecfdf5", border: "#a7f3d0" },
+  notes:    { color: "#2563eb", bg: "#eff6ff", border: "#bfdbfe" },
+  pyqs:     { color: "#7c3aed", bg: "#f5f3ff", border: "#ddd6fe" },
+  formulas: { color: "#059669", bg: "#ecfdf5", border: "#a7f3d0" },
+  mindmaps: { color: "#8B5CF6", bg: "#f5f3ff", border: "#ddd6fe" },
+  revision: { color: "#EC4899", bg: "#fdf2f8", border: "#fbcfe8" },
+  synopsis: { color: "#F43F5E", bg: "#fff1f2", border: "#fecdd3" },
+  Notes:    { color: "#2563eb", bg: "#eff6ff", border: "#bfdbfe" }, // legacy fallback
+  PYQs:     { color: "#7c3aed", bg: "#f5f3ff", border: "#ddd6fe" }, // legacy fallback
+  Formulas: { color: "#059669", bg: "#ecfdf5", border: "#a7f3d0" }, // legacy fallback
 };
 
 function DeleteModal({ item, onConfirm, onCancel, deleting }) {
@@ -139,6 +149,266 @@ function PreviewModal({ item, onClose }) {
   );
 }
 
+function UploadModal({ batches, onClose, onUploadSuccess, baseURL }) {
+  // 1. Group batches by class
+  const classBatchesMap = batches.reduce((acc, b) => {
+    const c = b.className || "General Class";
+    if (!acc[c]) acc[c] = [];
+    acc[c].push(b);
+    return acc;
+  }, {});
+  const uniqueClasses = Object.keys(classBatchesMap);
+
+  const [targetClass, setTargetClass] = useState(uniqueClasses[0] || "");
+  const [syllabus, setSyllabus] = useState(null);
+  const [loadingSyllabus, setLoadingSyllabus] = useState(false);
+
+  const [file, setFile] = useState(null);
+  const [subjectId, setSubjectId] = useState("");
+  const [chapterId, setChapterId] = useState("");
+  const [category, setCategory] = useState("notes");
+  const [isFree, setIsFree] = useState(false);
+  const [selectedBatches, setSelectedBatches] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
+
+  // Fetch syllabus when targetClass changes
+  useEffect(() => {
+    if (!targetClass) return;
+    const fetchSyllabus = async () => {
+      setLoadingSyllabus(true);
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${baseURL}/teacher/syllabus/${targetClass}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        setSyllabus(data);
+        if (data && data.subjects && data.subjects.length > 0) {
+          setSubjectId(data.subjects[0].name);
+          setChapterId(data.subjects[0].chapters[0]?.name || "");
+        } else {
+          setSubjectId("");
+          setChapterId("");
+        }
+      } catch (err) {
+        console.error("Failed to fetch syllabus:", err);
+      } finally {
+        setLoadingSyllabus(false);
+      }
+    };
+    fetchSyllabus();
+  }, [targetClass, baseURL]);
+
+  // Handle subject change
+  useEffect(() => {
+    if (syllabus && syllabus.subjects) {
+      const sub = syllabus.subjects.find(s => s.name === subjectId);
+      if (sub && sub.chapters && sub.chapters.length > 0) {
+        setChapterId(sub.chapters[0].name);
+      } else {
+        setChapterId("");
+      }
+    }
+  }, [subjectId, syllabus]);
+
+
+  const handleFile = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
+      setError("");
+    }
+  };
+
+  const toggleBatch = (id) => {
+    if (selectedBatches.includes(id)) {
+      setSelectedBatches(selectedBatches.filter(b => b !== id));
+    } else {
+      setSelectedBatches([...selectedBatches, id]);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!file) return setError("Please select a PDF file.");
+    if (!chapterId) return setError("Please select a chapter.");
+    if (selectedBatches.length === 0) return setError("Please select at least one batch.");
+
+    setUploading(true);
+    setError("");
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("subjectId", subjectId);
+    formData.append("chapterId", chapterId);
+    formData.append("category", category);
+    formData.append("isFree", isFree);
+    formData.append("batchIds", JSON.stringify(selectedBatches));
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${baseURL}/teacher/upload-material`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Upload failed");
+      onUploadSuccess();
+      onClose();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const currentSubjects = syllabus?.subjects || [];
+  const currentChapters = currentSubjects.find(s => s.name === subjectId)?.chapters || [];
+
+  return (
+    <div style={{ position:"fixed", inset:0, zIndex:300, background:"rgba(15,23,42,0.6)", backdropFilter:"blur(8px)", display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
+      <div style={{ background:"#fff", borderRadius:24, padding:"30px", width:"100%", maxWidth:480, boxShadow:"0 40px 80px rgba(0,0,0,0.2)", border:"1.5px solid #f0f0f0", animation:"modalIn 0.2s ease", fontFamily:"'DM Sans',sans-serif", display:"flex", flexDirection:"column", maxHeight:"90vh" }}>
+        
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:24, flexShrink:0 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+            <div style={{ width:42, height:42, borderRadius:12, background:"#f5f3ff", display:"flex", alignItems:"center", justifyContent:"center", color:"#7c3aed" }}>
+              <UploadCloud size={20} />
+            </div>
+            <div>
+              <div style={{ fontSize:16, fontWeight:800, color:"#0f172a" }}>Upload Material</div>
+              <div style={{ fontSize:12, color:"#64748b", fontWeight:500 }}>Share PDFs with your batches</div>
+            </div>
+          </div>
+          <button onClick={onClose} disabled={uploading} style={{ all:"unset", cursor:uploading?"not-allowed":"pointer", padding:6, borderRadius:8, background:"#f8fafc", color:"#64748b", border:"1px solid #e5e7eb" }}><X size={16}/></button>
+        </div>
+
+        {error && (
+          <div style={{ padding:"10px 14px", borderRadius:10, background:"#fef2f2", color:"#ef4444", fontSize:12, fontWeight:700, marginBottom:16, display:"flex", alignItems:"center", gap:8, border:"1px solid #fecdd3", flexShrink:0 }}>
+            <AlertTriangle size={14}/> {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} style={{ display:"flex", flexDirection:"column", gap:18, flex:1, overflowY:"auto", paddingRight:6 }} className="nexus-no-scroll">
+          
+          {/* File Picker */}
+          <div>
+            <div style={{ fontSize:11, fontWeight:800, color:"#475569", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:8 }}>File</div>
+            <label style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", border:"1.5px dashed #c4b5fd", borderRadius:16, padding:"24px", cursor:"pointer", background: file ? "#f5f3ff" : "#faf8ff", transition:"all 0.2s" }}
+              onMouseEnter={e => e.currentTarget.style.background="#f5f3ff"}
+              onMouseLeave={e => e.currentTarget.style.background=file ? "#f5f3ff" : "#faf8ff"}
+            >
+              <input type="file" accept=".pdf" onChange={handleFile} style={{ display:"none" }} disabled={uploading} />
+              {file ? (
+                <>
+                  <div style={{ width:40, height:40, borderRadius:12, background:"#7c3aed", color:"#fff", display:"flex", alignItems:"center", justifyContent:"center", marginBottom:10 }}>
+                    <FileText size={20}/>
+                  </div>
+                  <div style={{ fontSize:13, fontWeight:700, color:"#7c3aed", textAlign:"center", wordBreak:"break-all" }}>{file.name}</div>
+                  <div style={{ fontSize:11, color:"#94a3b8", fontWeight:500, marginTop:4 }}>{(file.size/1024/1024).toFixed(2)} MB</div>
+                </>
+              ) : (
+                <>
+                  <div style={{ width:40, height:40, borderRadius:12, background:"#e9d5ff", color:"#7c3aed", display:"flex", alignItems:"center", justifyContent:"center", marginBottom:10 }}>
+                    <UploadCloud size={20}/>
+                  </div>
+                  <div style={{ fontSize:13, fontWeight:700, color:"#7c3aed", textAlign:"center" }}>Click to select a PDF</div>
+                  <div style={{ fontSize:11, color:"#94a3b8", fontWeight:500, marginTop:4 }}>Max size: 50MB</div>
+                </>
+              )}
+            </label>
+          </div>
+
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
+            {/* Target Class */}
+            <div>
+              <div style={{ fontSize:11, fontWeight:800, color:"#475569", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:8 }}>Target Class</div>
+              <select value={targetClass} onChange={e => { setTargetClass(e.target.value); setSelectedBatches([]); }} disabled={uploading} style={{ width:"100%", padding:"10px 14px", borderRadius:10, border:"1.5px solid #e5e7eb", background:"#f8fafc", fontSize:13, fontWeight:600, color:"#0f172a", outline:"none", appearance:"none" }}>
+                {uniqueClasses.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+
+            {/* Category */}
+            <div>
+              <div style={{ fontSize:11, fontWeight:800, color:"#475569", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:8 }}>Category</div>
+              <select value={category} onChange={e => setCategory(e.target.value)} disabled={uploading} style={{ width:"100%", padding:"10px 14px", borderRadius:10, border:"1.5px solid #e5e7eb", background:"#f8fafc", fontSize:13, fontWeight:600, color:"#0f172a", outline:"none", appearance:"none" }}>
+                {LIB_CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
+            {/* Subject */}
+            <div>
+              <div style={{ fontSize:11, fontWeight:800, color:"#475569", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:8 }}>Subject</div>
+              <select value={subjectId} onChange={e => setSubjectId(e.target.value)} disabled={uploading || loadingSyllabus || currentSubjects.length === 0} style={{ width:"100%", padding:"10px 14px", borderRadius:10, border:"1.5px solid #e5e7eb", background:"#f8fafc", fontSize:13, fontWeight:600, color:"#0f172a", outline:"none", appearance:"none" }}>
+                {loadingSyllabus ? <option>Loading...</option> : currentSubjects.length === 0 ? <option>No Subjects</option> : currentSubjects.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
+              </select>
+            </div>
+
+            {/* Chapter */}
+            <div>
+              <div style={{ fontSize:11, fontWeight:800, color:"#475569", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:8 }}>Chapter</div>
+              <select value={chapterId} onChange={e => setChapterId(e.target.value)} disabled={uploading || loadingSyllabus || currentChapters.length === 0} style={{ width:"100%", padding:"10px 14px", borderRadius:10, border:"1.5px solid #e5e7eb", background:"#f8fafc", fontSize:13, fontWeight:600, color:"#0f172a", outline:"none", appearance:"none" }}>
+                {loadingSyllabus ? <option>Loading...</option> : currentChapters.length === 0 ? <option>No Chapters</option> : currentChapters.map(ch => <option key={ch.name} value={ch.name}>{ch.name}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Batches */}
+          <div>
+            <div style={{ fontSize:11, fontWeight:800, color:"#475569", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:8 }}>Target Batches for {targetClass}</div>
+            <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+                {(() => {
+                  const availableBatches = (classBatchesMap[targetClass] || []).filter(b => 
+                    !subjectId || (b.allocatedSubjects && b.allocatedSubjects.includes(subjectId))
+                  );
+                  
+                  if (availableBatches.length === 0) {
+                    return <div style={{ fontSize:12, color:"#94a3b8", padding:"8px 0", gridColumn:"1 / -1" }}>No batches found in this class with the selected subject allocated.</div>;
+                  }
+
+                  return availableBatches.map(b => {
+                    const isSelected = selectedBatches.includes(b._id);
+                    return (
+                      <label key={b._id} style={{ display:"flex", alignItems:"center", gap:8, padding:"10px", borderRadius:10, border:`1.5px solid ${isSelected ? "#7c3aed" : "#e5e7eb"}`, background:isSelected?"#faf5ff":"#f8fafc", cursor:uploading?"not-allowed":"pointer", transition:"all 0.15s" }}
+                        onMouseEnter={e => { if(!isSelected && !uploading) e.currentTarget.style.borderColor="#c4b5fd"; }}
+                        onMouseLeave={e => { if(!isSelected && !uploading) e.currentTarget.style.borderColor="#e5e7eb"; }}
+                      >
+                        <div style={{ width:18, height:18, borderRadius:5, border:`1.5px solid ${isSelected?"#7c3aed":"#cbd5e1"}`, background:isSelected?"#7c3aed":"#fff", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                          {isSelected && <Check size={12} color="#fff" />}
+                        </div>
+                        <span style={{ fontSize:12, fontWeight:600, color:isSelected?"#7c3aed":"#374151" }}>{b.name}</span>
+                        <input type="checkbox" checked={isSelected} onChange={() => toggleBatch(b._id)} style={{ display:"none" }} disabled={uploading}/>
+                      </label>
+                    )
+                  });
+                })()}
+              </div>
+            </div>
+          </div>
+
+          {/* Free Material Toggle */}
+          <div>
+            <label style={{ display:"flex", alignItems:"center", gap:8, cursor:uploading?"not-allowed":"pointer" }}>
+              <input type="checkbox" checked={isFree} onChange={e => setIsFree(e.target.checked)} disabled={uploading} style={{ width: 16, height: 16, cursor:"inherit" }} />
+              <span style={{ fontSize:13, fontWeight:600, color:"#374151" }}>Free for all students (even unapproved)</span>
+            </label>
+          </div>
+
+          <div style={{ paddingTop:8, flexShrink:0 }}>
+            <button type="submit" disabled={uploading} style={{ width:"100%", padding:"12px", borderRadius:12, border:"none", background:uploading?"#c4b5fd":"linear-gradient(135deg,#7c3aed,#6366f1)", color:"#fff", fontSize:14, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center", gap:8, cursor:uploading?"not-allowed":"pointer", transition:"opacity 0.15s", boxShadow:"0 4px 12px rgba(124,58,237,0.25)" }}>
+              {uploading ? <Loader2 size={16} style={{ animation:"nexusSpin 1s linear infinite" }}/> : <UploadCloud size={16}/>}
+              {uploading ? "Uploading..." : "Upload Material"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 /* ════════════════════════════════════════════
    MAIN PAGE
 ════════════════════════════════════════════ */
@@ -156,6 +426,7 @@ export default function StudyMaterialPage() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting,     setDeleting]     = useState(false);
   const [previewItem,  setPreviewItem]  = useState(null);
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
 
   const fetchMaterials = useCallback(async () => {
     setLoading(true);
@@ -190,6 +461,19 @@ export default function StudyMaterialPage() {
       else { const d = await r.json(); throw new Error(d.message || "Delete failed"); }
     } catch (e) { console.error(e); }
     finally { setDeleting(false); setDeleteTarget(null); }
+  };
+
+  const toggleFreeStatus = async (id, currentStatus) => {
+    try {
+      const token = localStorage.getItem("token");
+      const r = await fetch(`${baseURL}/teacher/study-material/${id}/toggle-free`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (r.ok) {
+        setMaterials(p => p.map(m => (m._id === id ? { ...m, isFree: !currentStatus } : m)));
+      }
+    } catch (e) { console.error(e); }
   };
 
   const displayed = materials.filter(m => {
@@ -229,9 +513,14 @@ export default function StudyMaterialPage() {
         title="Study Material"
         subtitle="Browse and manage uploaded resources"
         right={
-          <button onClick={fetchMaterials} disabled={loading} style={{ all:"unset", cursor:loading?"not-allowed":"pointer", width:34, height:34, borderRadius:9, border:"1.5px solid #e5e7eb", background:"#fff", display:"flex", alignItems:"center", justifyContent:"center", color:loading?"#d1d5db":"#64748b", transition:"all 0.15s" }}>
-            <RefreshCw size={14} style={loading ? { animation:"nexusSpin 1s linear infinite" } : {}} />
-          </button>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={fetchMaterials} disabled={loading} style={{ all:"unset", cursor:loading?"not-allowed":"pointer", width:34, height:34, borderRadius:9, border:"1.5px solid #e5e7eb", background:"#fff", display:"flex", alignItems:"center", justifyContent:"center", color:loading?"#d1d5db":"#64748b", transition:"all 0.15s" }}>
+              <RefreshCw size={14} style={loading ? { animation:"nexusSpin 1s linear infinite" } : {}} />
+            </button>
+            <button onClick={() => setIsUploadOpen(true)} style={{ all:"unset", cursor:"pointer", padding:"0 16px", height:34, borderRadius:9, background:"linear-gradient(135deg,#7c3aed,#6366f1)", border:"none", display:"flex", alignItems:"center", gap:6, color:"#fff", fontSize:12, fontWeight:700, boxShadow:"0 2px 10px rgba(109,40,217,0.2)" }}>
+              <Plus size={14}/> Upload Material
+            </button>
+          </div>
         }
       />
 
@@ -309,21 +598,33 @@ export default function StudyMaterialPage() {
                   );
                 })()}
 
-                {batches.map(b => {
-                  const active = activeBatch === b._id;
-                  const hv     = navHover(active);
-                  return (
-                    <button key={b._id} onClick={() => setActiveBatch(b._id)} style={navBtn(active)} onMouseEnter={hv.enter} onMouseLeave={hv.leave}>
-                      <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                        <div style={{ width:18, height:18, borderRadius:5, flexShrink:0, background: active ? "rgba(255,255,255,0.18)" : "#f5f3ff", display:"flex", alignItems:"center", justifyContent:"center", fontSize:8, fontWeight:800, color: active ? "#e9d5ff" : "#7c3aed" }}>
-                          {b.name?.[0]?.toUpperCase() || "B"}
-                        </div>
-                        <span style={{ fontSize:12, fontWeight:600, color: active ? "#fff" : "#374151", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:120 }}>{b.name}</span>
-                      </div>
-                      <ChevronRight size={10} style={{ color: active ? "#c4b5fd" : "#d1d5db" }} />
-                    </button>
-                  );
-                })}
+                {Object.entries(
+                  batches.reduce((acc, b) => {
+                    const c = b.className || "General Class";
+                    if (!acc[c]) acc[c] = [];
+                    acc[c].push(b);
+                    return acc;
+                  }, {})
+                ).map(([cName, classBatches]) => (
+                  <div key={cName} style={{ marginTop: 8 }}>
+                    <div style={{ fontSize:9, fontWeight:800, color:"#a78bfa", textTransform:"uppercase", padding:"2px 6px 4px" }}>{cName}</div>
+                    {classBatches.map(b => {
+                      const active = activeBatch === b._id;
+                      const hv     = navHover(active);
+                      return (
+                        <button key={b._id} onClick={() => setActiveBatch(b._id)} style={navBtn(active)} onMouseEnter={hv.enter} onMouseLeave={hv.leave}>
+                          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                            <div style={{ width:18, height:18, borderRadius:5, flexShrink:0, background: active ? "rgba(255,255,255,0.18)" : "#f5f3ff", display:"flex", alignItems:"center", justifyContent:"center", fontSize:8, fontWeight:800, color: active ? "#e9d5ff" : "#7c3aed" }}>
+                              {b.name?.[0]?.toUpperCase() || "B"}
+                            </div>
+                            <span style={{ fontSize:12, fontWeight:600, color: active ? "#fff" : "#374151", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:120 }}>{b.name}</span>
+                          </div>
+                          <ChevronRight size={10} style={{ color: active ? "#c4b5fd" : "#d1d5db" }} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                ))}
               </>
             )}
 
@@ -400,10 +701,15 @@ export default function StudyMaterialPage() {
                               </div>
                             </div>
                           </div>
-                          <button onClick={() => setDeleteTarget(m)} style={{ all:"unset", cursor:"pointer", width:28, height:28, borderRadius:8, background:"#fff1f2", border:"1.5px solid #fecdd3", display:"flex", alignItems:"center", justifyContent:"center", color:"#ef4444", flexShrink:0, transition:"background 0.13s" }}
-                            onMouseEnter={e => e.currentTarget.style.background="#fee2e2"}
-                            onMouseLeave={e => e.currentTarget.style.background="#fff1f2"}
-                          ><Trash2 size={12}/></button>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                            <button onClick={() => toggleFreeStatus(m._id, m.isFree)} style={{ all:"unset", cursor:"pointer", padding:"4px 8px", borderRadius:8, fontSize:10, fontWeight:700, background: m.isFree ? "#ecfdf5" : "#f1f5f9", color: m.isFree ? "#059669" : "#64748b", border: `1.5px solid ${m.isFree ? "#a7f3d0" : "#e2e8f0"}`, transition:"all 0.13s" }}>
+                              {m.isFree ? "Free" : "Locked"}
+                            </button>
+                            <button onClick={() => setDeleteTarget(m)} style={{ all:"unset", cursor:"pointer", width:28, height:28, borderRadius:8, background:"#fff1f2", border:"1.5px solid #fecdd3", display:"flex", alignItems:"center", justifyContent:"center", color:"#ef4444", flexShrink:0, transition:"background 0.13s" }}
+                              onMouseEnter={e => e.currentTarget.style.background="#fee2e2"}
+                              onMouseLeave={e => e.currentTarget.style.background="#fff1f2"}
+                            ><Trash2 size={12}/></button>
+                          </div>
                         </div>
                         <div style={{ display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" }}>
                           <span style={{ display:"flex", alignItems:"center", gap:3, fontSize:10, color:"#94a3b8", fontWeight:500 }}>
@@ -466,7 +772,10 @@ export default function StudyMaterialPage() {
                         {batchList.length > 2 && <span style={{ fontSize:9, color:"#94a3b8" }}>+{batchList.length-2}</span>}
                         {batchList.length === 0 && <span style={{ fontSize:10, color:"#cbd5e1" }}>—</span>}
                       </div>
-                      <div style={{ width:88, display:"flex", gap:6, flexShrink:0 }}>
+                      <div style={{ width:120, display:"flex", gap:6, flexShrink:0 }}>
+                        <button onClick={() => toggleFreeStatus(m._id, m.isFree)} style={{ all:"unset", cursor:"pointer", padding:"5px 10px", borderRadius:8, fontSize:10, fontWeight:700, background: m.isFree ? "#ecfdf5" : "#f1f5f9", color: m.isFree ? "#059669" : "#64748b", border: `1.5px solid ${m.isFree ? "#a7f3d0" : "#e2e8f0"}`, transition:"all 0.12s" }}>
+                          {m.isFree ? "Free" : "Locked"}
+                        </button>
                         {m.fileUrl && (
                           <button onClick={() => setPreviewItem(m)} style={{ all:"unset", cursor:"pointer", padding:"5px 10px", borderRadius:8, border:"1.5px solid #ddd6fe", background:"#faf5ff", color:"#7c3aed", fontWeight:700, fontSize:10, display:"flex", alignItems:"center", gap:4, transition:"background 0.12s" }}
                             onMouseEnter={e => e.currentTarget.style.background="#ede9fe"}
@@ -490,6 +799,7 @@ export default function StudyMaterialPage() {
 
       {deleteTarget && <DeleteModal item={deleteTarget} onConfirm={handleDelete} onCancel={() => setDeleteTarget(null)} deleting={deleting}/>}
       {previewItem  && <PreviewModal item={previewItem} onClose={() => setPreviewItem(null)}/>}
+      {isUploadOpen && <UploadModal batches={batches} onClose={() => setIsUploadOpen(false)} onUploadSuccess={fetchMaterials} baseURL={baseURL}/>}
 
       <style>{`
         @keyframes nexusSpin { to { transform:rotate(360deg); } }

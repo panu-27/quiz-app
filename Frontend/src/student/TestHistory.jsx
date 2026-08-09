@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import api from "../api/axios";
 import {
   ChevronRight, ArrowLeft, Search, Trophy, ChevronDown,
-  Phone, Languages, Zap, Loader2, Target, Calendar, AlignLeft
+  Phone, Languages, Zap, Loader2, Target, Calendar, AlignLeft,
+  Pin, Edit2, Check, X, History, User, Play, Clock, ArrowRight
 } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
 import CounsellorModal from "../components/CounsellorModal";
+import useBackButton from "../hooks/useBackButton";
 
 const STATUS_BAR_H = 28.5;
 
@@ -15,15 +17,42 @@ export default function TestHistory() {
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const { user } = useAuth();
+  const location = useLocation();
   const navigate = useNavigate();
-
   const [activeMainTab, setActiveMainTab] = useState("Tests");
-  const [activeSubTab, setActiveSubTab] = useState("Upcoming");
+  const [activeSubTab, setActiveSubTab] = useState(location.state?.activeSubTab || "Completed");
   const [searchQuery, setSearchQuery] = useState("");
   const [testsData, setTestsData] = useState([]);
+  const [quizzesData, setQuizzesData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCounsellorModal, setShowCounsellorModal] = useState(false);
-  const [expandedTestId, setExpandedTestId] = useState(null);
+  const [editingQuizId, setEditingQuizId] = useState(null);
+  const [editingQuizTitle, setEditingQuizTitle] = useState("");
+
+  const handlePinToggle = async (test) => {
+    if (!test.isGeneratedQuiz) return;
+    try {
+      const newStatus = !test.isPinned;
+      await api.put(`/quiz/attempts/${test._id}/pin`, { isPinned: newStatus });
+      setQuizzesData(prev => {
+        const updated = prev.map(q => q._id === test._id ? { ...q, isPinned: newStatus } : q);
+        return updated.sort((a, b) => (b.isPinned === a.isPinned ? 0 : b.isPinned ? 1 : -1));
+      });
+    } catch (err) {
+      console.error("Failed to pin:", err);
+    }
+  };
+
+  const handleRenameSubmit = async (testId) => {
+    if (!editingQuizTitle.trim()) return;
+    try {
+      await api.put(`/quiz/attempts/${testId}/rename`, { customTitle: editingQuizTitle });
+      setQuizzesData(prev => prev.map(q => q._id === testId ? { ...q, title: editingQuizTitle } : q));
+      setEditingQuizId(null);
+    } catch (err) {
+      console.error("Failed to rename:", err);
+    }
+  };
 
   useEffect(() => {
     if (showCounsellorModal) {
@@ -35,6 +64,11 @@ export default function TestHistory() {
       document.body.removeAttribute('data-hide-nav');
     };
   }, [showCounsellorModal]);
+
+  useBackButton(() => {
+    setShowCounsellorModal(false);
+    return true;
+  }, showCounsellorModal);
 
   const resolveMediaUrl = (url) => {
     if (!url) return null;
@@ -51,8 +85,72 @@ export default function TestHistory() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const { data } = await api.get("/student/all-tests-with-attempts");
-        setTestsData(Array.isArray(data) ? data : []);
+        const [testsRes, quizzesRes] = await Promise.all([
+            api.get("/student/all-tests-with-attempts").catch(e => { console.error("Test fetch err:", e); return { data: [] }; }),
+            api.get("/quiz/attempts?limit=100").catch(e => { console.error("Quiz fetch err:", e); return { data: { success: false } }; })
+        ]);
+        setTestsData(Array.isArray(testsRes.data) ? testsRes.data : []);
+        console.log("FETCHED TESTS:", testsRes.data);
+        console.log("FETCHED QUIZZES RESPONSE:", quizzesRes.data);
+
+        if (quizzesRes.data?.success && quizzesRes.data?.data) {
+            // ONLY keep actual practice/custom quizzes. The backend now returns attemptType and testId.
+            const practiceAttempts = quizzesRes.data.data.filter(attempt => attempt.attemptType === 'practice' || !attempt.testId);
+            
+            const groupedQuizzes = {};
+            practiceAttempts.forEach(attempt => {
+                const groupId = attempt.parentAttemptId || attempt._id;
+                if (!groupedQuizzes[groupId]) {
+                    groupedQuizzes[groupId] = { parent: null, attempts: [] };
+                }
+                groupedQuizzes[groupId].attempts.push(attempt);
+                if (!attempt.parentAttemptId || attempt._id === attempt.parentAttemptId) {
+                    groupedQuizzes[groupId].parent = attempt;
+                }
+            });
+
+            const mappedQuizzes = Object.keys(groupedQuizzes).map(groupId => {
+                const group = groupedQuizzes[groupId];
+                group.attempts.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+                const representative = group.parent || group.attempts[0];
+                const totalQs = (representative.totalCorrect || 0) + (representative.totalWrong || 0) + (representative.totalUnattempted || 0);
+                
+                const subjects = new Set();
+                let chosenDuration = 0;
+                
+                if (representative.blocks && Array.isArray(representative.blocks)) {
+                    representative.blocks.forEach(block => {
+                        chosenDuration += (block.duration || 0);
+                        if (block.sections && Array.isArray(block.sections)) {
+                            block.sections.forEach(section => {
+                                if (section.subjectName) subjects.add(section.subjectName);
+                            });
+                        }
+                    });
+                }
+                const subjectDetails = subjects.size > 0 ? Array.from(subjects).join(", ") : "Mixed Subjects";
+                
+                return {
+                    _id: groupId,
+                    title: representative.customTitle || "Practice Quiz",
+                    examType: "Quiz",
+                    teacherName: subjectDetails,
+                    totalQuestions: totalQs,
+                    duration: chosenDuration > 0 ? chosenDuration : (Math.round((representative.timeTaken || 0) / 60) || 0),
+                    status: representative.status,
+                    isGeneratedQuiz: true,
+                    isPinned: representative.isPinned || false,
+                    attempts: group.attempts,
+                    startTime: representative.createdAt,
+                    endTime: representative.createdAt,
+                    representative
+                };
+            });
+            mappedQuizzes.sort((a, b) => (b.isPinned === a.isPinned ? 0 : b.isPinned ? 1 : -1));
+            setQuizzesData(mappedQuizzes);
+        } else {
+            console.warn("Quiz fetch failed or no data:", quizzesRes.data);
+        }
       } catch (err) {
         console.error("Fetch tests error", err);
       } finally {
@@ -66,10 +164,10 @@ export default function TestHistory() {
   const avatar = resolveMediaUrl(user?.profilePic) || `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}&backgroundColor=b6e3f4`;
 
   // Filter based on active tab and search query
-  const displayedTests = testsData.filter(test => {
+  const combinedData = [...testsData, ...quizzesData];
+  const displayedTests = combinedData.filter(test => {
     const matchesSearch = test.title?.toLowerCase().includes(searchQuery.toLowerCase());
-    const isQuiz = test.examType?.toLowerCase().includes("quiz");
-    const matchesTab = activeMainTab === "Quizzes" ? isQuiz : !isQuiz;
+    const matchesTab = activeMainTab === "Quizzes" ? test.isGeneratedQuiz : !test.isGeneratedQuiz;
 
     if (!matchesSearch || !matchesTab) return false;
 
@@ -98,13 +196,8 @@ export default function TestHistory() {
     return true;
   });
 
-  const toggleExpand = (id) => {
-    setExpandedTestId(expandedTestId === id ? null : id);
-  };
-
   const renderCard = (test) => {
     const isCompleted = test.attempts && test.attempts.length > 0;
-    const isExpanded = expandedTestId === test._id;
 
     return (
       <div key={test._id} className={`rounded-xl p-4  border transition-all ${isDark ? 'bg-[#151E2E] border-slate-800' : 'bg-white border-slate-200'}`}>
@@ -112,12 +205,43 @@ export default function TestHistory() {
           <span className={`text-[10px] font-bold tracking-wider uppercase ${isDark ? 'text-[#25D3A4]' : 'text-[#1EBA9B]'}`}>
             {test.examType || "FULL SYLLABUS"}
           </span>
-          <ChevronRight size={16} className={isDark ? 'text-slate-500' : 'text-slate-400'} />
+          <div className="flex items-center gap-2">
+            {test.isGeneratedQuiz && (
+                <button onClick={(e) => { e.stopPropagation(); handlePinToggle(test); }} className={`p-1.5 rounded-full transition-colors ${test.isPinned ? 'bg-amber-100 text-amber-600' : isDark ? 'bg-white/5 text-slate-500 hover:text-slate-300' : 'bg-slate-100 text-slate-400 hover:text-slate-600'}`}>
+                    <Pin size={14} fill={test.isPinned ? "currentColor" : "none"} />
+                </button>
+            )}
+            <ChevronRight size={16} className={isDark ? 'text-slate-500' : 'text-slate-400'} />
+          </div>
         </div>
 
-        <h3 className={`text-[15px] font-bold tracking-wide leading-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-          {test.title}
-        </h3>
+        {editingQuizId === test._id ? (
+          <div className="flex items-center gap-2 mb-1">
+            <input 
+              autoFocus
+              value={editingQuizTitle} 
+              onChange={(e) => setEditingQuizTitle(e.target.value)}
+              className={`flex-1 px-3 py-1.5 rounded-lg text-[15px] font-bold border ${isDark ? 'bg-[#0B121C] border-slate-700 text-white' : 'bg-white border-slate-300 text-slate-900'} outline-none`}
+            />
+            <button onClick={() => handleRenameSubmit(test._id)} className="p-1.5 bg-green-500 text-white rounded-lg">
+                <Check size={16} />
+            </button>
+            <button onClick={() => setEditingQuizId(null)} className="p-1.5 bg-red-500 text-white rounded-lg">
+                <X size={16} />
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <h3 className={`text-[15px] font-bold tracking-wide leading-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+              {test.title}
+            </h3>
+            {test.isGeneratedQuiz && (
+                <button onClick={() => { setEditingQuizId(test._id); setEditingQuizTitle(test.title); }} className={isDark ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}>
+                    <Edit2 size={14} />
+                </button>
+            )}
+          </div>
+        )}
 
         <p className={`text-sm mt-1 mb-4 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
           By {test.teacherName || "Educator"}
@@ -135,7 +259,13 @@ export default function TestHistory() {
 
           {isCompleted ? (
             <button
-              onClick={() => navigate(`/student/listedattempts/${test._id}`, { state: { test } })}
+              onClick={() => {
+                if (test.isGeneratedQuiz) {
+                  navigate(`/student/listedattempts/quiz/${test._id}`, { state: { test } });
+                } else {
+                  navigate(`/student/listedattempts/${test._id}`, { state: { test } });
+                }
+              }}
               className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg border font-bold text-xs bg-blue-500 text-white border-blue-500 hover:bg-blue-600 shadow-sm transition-colors`}
             >
               Show Attempts
@@ -165,7 +295,7 @@ export default function TestHistory() {
 
       {/* ══ FIXED HEADER AREA ══ */}
       <div
-        className="fixed top-0 left-0 right-0 z-50"
+        className="fixed top-0 left-0 lg:left-[280px] right-0 z-50"
         style={{
           paddingTop: STATUS_BAR_H,
           background: 'radial-gradient(ellipse 60% 100% at 70% 20%, rgba(255,255,255,0.12) 0%, #2D5588 40%, #2D5588 100%)',
@@ -174,13 +304,13 @@ export default function TestHistory() {
       >
         {/* Top Header Row */}
         <div className="flex items-center justify-between px-5 py-2 mt-2 mb-4">
-          <div>
+          <div onClick={() => { if (!user?.approved) navigate('/student/goal-selection'); }}>
             <p className="text-[10px] font-medium leading-tight mb-0.5 text-slate-300">Current goal</p>
-            <div className="flex items-center gap-1 cursor-pointer">
+            <div className={`flex items-center gap-1 ${!user?.approved ? 'cursor-pointer' : ''}`}>
               <span className="font-bold text-[17px] font-display tracking-tight text-white">
                 {localStorage.getItem("selectedGoal") || "Select Goal"}
               </span>
-              <ChevronDown size={18} className="text-white" strokeWidth={2.5} />
+              {!user?.approved && <ChevronDown size={18} className="text-white" strokeWidth={2.5} />}
             </div>
           </div>
 
@@ -204,7 +334,14 @@ export default function TestHistory() {
 
             {/* Tests Tab */}
             <div
-              onClick={() => setActiveMainTab("Tests")}
+              onClick={() => {
+                setActiveMainTab("Tests");
+                if (!["Upcoming", "Ongoing", "Completed", "Missed"].includes(activeSubTab)) {
+                  setActiveSubTab("Upcoming");
+                } else if (activeSubTab === "Completed") {
+                  setActiveSubTab("Upcoming");
+                }
+              }}
               className="relative flex-1 h-12 flex items-center justify-center cursor-pointer group"
               style={{ zIndex: activeMainTab === "Tests" ? 10 : 1 }}
             >
@@ -225,7 +362,10 @@ export default function TestHistory() {
 
             {/* Quizzes Tab */}
             <div
-              onClick={() => setActiveMainTab("Quizzes")}
+              onClick={() => {
+                setActiveMainTab("Quizzes");
+                setActiveSubTab("Completed");
+              }}
               className="relative flex-1 h-12 flex items-center justify-center cursor-pointer group -ml-3"
               style={{ zIndex: activeMainTab === "Quizzes" ? 10 : 1 }}
             >
@@ -249,7 +389,7 @@ export default function TestHistory() {
       </div>
       {/* ══ FIXED SEARCH & SUB-TABS AREA ══ */}
       <div
-        className={`fixed -mt-5 left-0 right-0 z-40 ${isDark ? 'bg-[#0B121C]' : 'bg-[#F4F7FC]'}`}
+        className={`fixed -mt-5 left-0 lg:left-[280px] right-0 z-40 ${isDark ? 'bg-[#0B121C]' : 'bg-[#F4F7FC]'}`}
         style={{ top: STATUS_BAR_H + 144 }}
       >
         {/* Search & Translation */}
@@ -272,7 +412,7 @@ export default function TestHistory() {
         {/* Secondary Scrollable Tabs */}
         <div className={`w-full overflow-x-auto no-scrollbar border-b ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
           <div className="flex px-2 -mt-2 w-max min-w-full">
-            {["Upcoming", "Ongoing", "Completed", "Missed"].map(tab => (
+            {(activeMainTab === "Tests" ? ["Upcoming", "Ongoing", "Completed", "Missed"] : ["Completed", "Ongoing"]).map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveSubTab(tab)}
@@ -311,7 +451,9 @@ export default function TestHistory() {
           ) : displayedTests.length === 0 ? (
             <div className="text-center py-10 text-slate-500 font-medium">No records found.</div>
           ) : (
-            displayedTests.map(renderCard)
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {displayedTests.map(renderCard)}
+            </div>
           )}
         </div>
       </div>
@@ -322,7 +464,6 @@ export default function TestHistory() {
         onClose={() => setShowCounsellorModal(false)}
         title="Need help with your subscription?"
       />
-
     </div>
   );
 }

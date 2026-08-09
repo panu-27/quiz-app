@@ -21,7 +21,14 @@ const login = ({ token, user }) => {
   if (user.role === "SUPER_ADMIN") navigate("/super");
   else if (user.role === "INSTITUTE_ADMIN") navigate("/institute-admin");
   else if (user.role === "TEACHER") navigate("/admin");
-  else if (user.role === "STUDENT") navigate("/student");
+  else if (user.role === "STUDENT") {
+    if (user.approved && user.className) {
+      localStorage.setItem("selectedGoal", user.className);
+    } else {
+      localStorage.setItem("selectedGoal", "MHT CET");
+    }
+    navigate("/student");
+  }
   else navigate("/");
 };
 

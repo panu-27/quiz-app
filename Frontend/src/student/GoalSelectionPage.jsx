@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { ChevronLeft, ChevronRight, Search, Plus, Minus, ClipboardList, BookOpen, Calculator, FlaskConical, Goal, Lock } from 'lucide-react';
 import StudentHeader from './StudentHeader';
+import { useAuth } from '../context/AuthContext';
+import api from '../api/axios';
 
 const STATUS_BAR_H = 28.5;
 
@@ -61,6 +63,7 @@ const CATEGORIES = [
 
 export default function GoalSelectionPage() {
     const { theme } = useTheme();
+    const { user } = useAuth();
     const isDark = theme === 'dark';
     const navigate = useNavigate();
 
@@ -68,18 +71,30 @@ export default function GoalSelectionPage() {
     const [expandedCategory, setExpandedCategory] = useState('boards');
     const [selectedGoal, setSelectedGoal] = useState(null);
     const [showConfirm, setShowConfirm] = useState(false);
+    const [activeClasses, setActiveClasses] = useState([]);
 
     // Ensure we start at top
     useEffect(() => {
         window.scrollTo(0, 0);
-    }, []);
+        if (user?.approved) {
+            navigate('/student', { replace: true });
+        }
+    }, [user, navigate]);
+
+    useEffect(() => {
+        if (user) {
+            api.get('/student/active-classes')
+                .then(res => setActiveClasses(res.data))
+                .catch(err => console.error("Failed to load active classes", err));
+        }
+    }, [user]);
 
     const handleGoalClick = (goal) => {
         setSelectedGoal(goal);
         setShowConfirm(true);
     };
 
-    const handleConfirm = () => {
+    const handleConfirm = async () => {
         if (selectedGoal?.locked) {
             // "Notify me" action, for now just close the modal
             setShowConfirm(false);
@@ -88,11 +103,18 @@ export default function GoalSelectionPage() {
 
         if (selectedGoal) {
             localStorage.setItem('selectedGoal', selectedGoal.id);
+            if (user) {
+                try {
+                    await api.post("/student/change-class", { className: selectedGoal.id });
+                } catch(err) {
+                    console.error("Failed to update class in backend", err);
+                }
+            }
             setShowConfirm(false);
-            // Wait for modal animation
+            // Full page navigation with cache-buster to avoid service worker
+            // serving stale JS bundles that cause duplicate React instances
             setTimeout(() => {
-                navigate(-1); // Back to previous page
-                setTimeout(() => window.location.reload(), 150);
+                window.location.href = `${window.location.origin}${window.location.pathname}?_r=${Date.now()}#/student`;
             }, 150);
         }
     };
@@ -103,7 +125,10 @@ export default function GoalSelectionPage() {
 
     const filteredCategories = CATEGORIES.map(cat => ({
         ...cat,
-        goals: cat.goals.filter(g => g.title.toLowerCase().includes(searchQuery.toLowerCase()))
+        goals: cat.goals.map(g => ({
+            ...g,
+            locked: activeClasses.includes(g.id) ? false : g.locked
+        })).filter(g => g.title.toLowerCase().includes(searchQuery.toLowerCase()))
     })).filter(cat => cat.goals.length > 0 || cat.title.toLowerCase().includes(searchQuery.toLowerCase()));
 
     // Matching screenshot colors closely

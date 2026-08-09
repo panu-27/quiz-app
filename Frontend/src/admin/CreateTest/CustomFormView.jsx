@@ -313,13 +313,27 @@ export default function CustomFormView() {
               {availableBatches.length === 0 ? (
                 <div style={{ fontSize:11, color:"#94a3b8", padding:"6px 0" }}>No batches found.</div>
               ) : (
-                <div style={{ display:"flex", flexWrap:"wrap", gap:5 }}>
-                  {availableBatches.map(batch => { const sel=formData.selectedBatchIds.includes(batch._id); return (
-                    <button key={batch._id}
-                      onClick={() => setFormData({ ...formData, selectedBatchIds:sel?formData.selectedBatchIds.filter(id=>id!==batch._id):[...formData.selectedBatchIds,batch._id] })}
-                      style={{ padding:"4px 10px", borderRadius:7, cursor:"pointer", fontSize:10.5, fontWeight:600, border:"1.5px solid", background:sel?"linear-gradient(135deg,#7c3aed,#6366f1)":"transparent", borderColor:sel?"transparent":"#e5e7eb", color:sel?"#fff":"#6b7280", boxShadow:sel?"0 2px 8px rgba(109,40,217,0.2)":"none", transition:"all 0.13s" }}>
-                      {batch.name}
-                    </button>); })}
+                <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                  {Object.entries(
+                    availableBatches.reduce((acc, b) => {
+                      const c = b.className || "General Class";
+                      if (!acc[c]) acc[c] = [];
+                      acc[c].push(b);
+                      return acc;
+                    }, {})
+                  ).map(([cName, classBatches]) => (
+                    <div key={cName}>
+                      <div style={{ fontSize:10, fontWeight:800, color:"#94a3b8", textTransform:"uppercase", marginBottom:4 }}>{cName}</div>
+                      <div style={{ display:"flex", flexWrap:"wrap", gap:5 }}>
+                        {classBatches.map(batch => { const sel=formData.selectedBatchIds.includes(batch._id); return (
+                          <button key={batch._id}
+                            onClick={() => setFormData({ ...formData, selectedBatchIds:sel?formData.selectedBatchIds.filter(id=>id!==batch._id):[...formData.selectedBatchIds,batch._id] })}
+                            style={{ padding:"4px 10px", borderRadius:7, cursor:"pointer", fontSize:10.5, fontWeight:600, border:"1.5px solid", background:sel?"linear-gradient(135deg,#7c3aed,#6366f1)":"transparent", borderColor:sel?"transparent":"#e5e7eb", color:sel?"#fff":"#6b7280", boxShadow:sel?"0 2px 8px rgba(109,40,217,0.2)":"none", transition:"all 0.13s" }}>
+                            {batch.name}
+                          </button>); })}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

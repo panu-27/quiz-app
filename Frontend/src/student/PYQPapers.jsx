@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import useBackButton from '../hooks/useBackButton';
 import {
     ArrowLeft, ChevronDown, ChevronUp, Share2,
     Sliders, ChevronRight, FileText, Search,
     Loader2, Download, ExternalLink, X, Check,
-    ZoomIn, ZoomOut, Maximize2, Award, Percent, Clock
+    ZoomIn, ZoomOut, Maximize2, Award, Percent, Clock, Lock
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { ArrowDownTrayIcon } from '@heroicons/react/24/outline';
@@ -158,6 +159,14 @@ export default function PYQPapers() {
     const [searchQuery, setSearchQuery] = useState("");
     const [sortByNewest, setSortByNewest] = useState(true);
     const [showFilters, setShowFilters] = useState(false);
+    
+    useBackButton(() => {
+        if (showFilters) {
+            setShowFilters(false);
+            return true;
+        }
+        return false;
+    }, showFilters);
     
     useEffect(() => {
         const handleClickOutside = (e) => {
@@ -450,7 +459,7 @@ export default function PYQPapers() {
                                         {group.filteredItems.map(paper => (
                                             <div
                                                 key={paper.id}
-                                                onClick={() => navigate(`/student/pdf/pyq/${paper.id}`, { state: { title: paper.title, date: paper.date, questions: paper.questions } })}
+                                                onClick={() => showToast("Coming Soon")}
                                                 style={{
                                                     display: 'flex',
                                                     flexDirection: 'column',
@@ -460,20 +469,32 @@ export default function PYQPapers() {
                                                     border: isDark ? '1px solid rgba(255,255,255,0.02)' : '1px solid #F1F5F9',
                                                     background: isDark ? '#1F2937' : '#F8FAFC',
                                                     cursor: 'pointer',
-                                                    position: 'relative'
+                                                    position: 'relative',
+                                                    opacity: 0.8
                                                 }}
                                             >
                                                 {/* Card Header Row */}
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                    <span style={{
-                                                        fontSize: 13,
-                                                        fontWeight: 750,
-                                                        color: isDark ? '#FFFFFF' : '#334155'
-                                                    }}>
-                                                        {paper.title}
-                                                    </span>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                                        <span style={{
+                                                            fontSize: 13,
+                                                            fontWeight: 750,
+                                                            color: isDark ? '#FFFFFF' : '#334155'
+                                                        }}>
+                                                            {paper.title}
+                                                        </span>
+                                                        <span style={{
+                                                            fontSize: 10,
+                                                            fontWeight: 700,
+                                                            color: '#F59E0B',
+                                                            textTransform: 'uppercase',
+                                                            letterSpacing: '0.05em'
+                                                        }}>
+                                                            Coming Soon
+                                                        </span>
+                                                    </div>
 
-                                                    <ChevronRight size={16} style={{ color: '#10B981' }} />
+                                                    <Lock size={16} style={{ color: '#94A3B8' }} />
                                                 </div>
                                             </div>
                                         ))}

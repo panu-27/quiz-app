@@ -16,8 +16,8 @@ export default function ListedAttempts() {
   const navigate = useNavigate();
   const location = useLocation();
   const { testId } = useParams();
-  
-  const isApproved = !!user?.isApproved;
+
+  const isApproved = !!user?.approved;
 
   const [test, setTest] = useState(location.state?.test || null);
   const [loading, setLoading] = useState(!test);
@@ -26,8 +26,8 @@ export default function ListedAttempts() {
   useEffect(() => {
     // Manage status bar color
     if (Capacitor.isNativePlatform()) {
-      StatusBar.setStyle({ style: isDark ? Style.Dark : Style.Light }).catch(() => {});
-      StatusBar.setBackgroundColor({ color: isDark ? '#0E131F' : '#EAEDF2' }).catch(() => {});
+      StatusBar.setStyle({ style: isDark ? Style.Dark : Style.Light }).catch(() => { });
+      StatusBar.setBackgroundColor({ color: isDark ? '#0E131F' : '#EAEDF2' }).catch(() => { });
     }
   }, [isDark]);
 
@@ -35,8 +35,37 @@ export default function ListedAttempts() {
     if (!test) {
       const fetchTest = async () => {
         try {
-          const { data } = await api.get("/student/all-tests-with-attempts");
-          const found = data.find(t => t._id === testId);
+          let found = null;
+          if (location.pathname.includes('/quiz/')) {
+            const { data } = await api.get("/quiz/attempts?limit=100");
+            const practiceAttempts = data.data?.filter(a => a.attemptType === 'practice' || !a.testId) || [];
+            const group = practiceAttempts.filter(a => (a.parentAttemptId || a._id) === testId);
+            if (group.length > 0) {
+              group.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+              const representative = group.find(a => (!a.parentAttemptId || a._id === a.parentAttemptId)) || group[0];
+              const totalQs = (representative.totalCorrect || 0) + (representative.totalWrong || 0) + (representative.totalUnattempted || 0);
+              const subjects = new Set();
+              if (representative.blocks) {
+                representative.blocks.forEach(b => {
+                  b.sections?.forEach(s => {
+                    if (s.subjectName) subjects.add(s.subjectName);
+                  });
+                });
+              }
+              found = {
+                _id: testId,
+                title: representative.customTitle || "Practice Quiz",
+                teacherName: subjects.size > 0 ? Array.from(subjects).join(", ") : "Mixed Subjects",
+                totalQuestions: totalQs,
+                isGeneratedQuiz: true,
+                attempts: group,
+                representative
+              };
+            }
+          } else {
+            const { data } = await api.get("/student/all-tests-with-attempts");
+            found = data.find(t => t._id === testId);
+          }
           if (found) setTest(found);
         } catch (error) {
           console.error("Error fetching test attempts:", error);
@@ -46,12 +75,21 @@ export default function ListedAttempts() {
       };
       fetchTest();
     }
-  }, [test, testId]);
+  }, [test, testId, location.pathname]);
 
   if (loading) {
     return (
-      <div className={`min-h-screen flex items-center justify-center ${isDark ? 'bg-[#0E131F]' : 'bg-[#EAEDF2]'}`}>
-        <Loader2 className="w-8 h-8 text-[#2563EB] animate-spin" />
+      <div className={`min-h-[100dvh] relative ${isDark ? 'bg-[#0E131F]' : 'bg-[#EAEDF2]'}`}>
+        <style>{`
+          @keyframes ytLoad {
+            0% { transform: translateX(-100%); width: 30%; }
+            50% { transform: translateX(50%); width: 60%; }
+            100% { transform: translateX(300%); width: 30%; }
+          }
+        `}</style>
+        <div className="absolute top-0 left-0 right-0 h-[3px] z-[9999] overflow-hidden">
+          <div className="h-full bg-[#2563EB]" style={{ animation: 'ytLoad 1.5s infinite ease-in-out' }}></div>
+        </div>
       </div>
     );
   }
@@ -64,6 +102,31 @@ export default function ListedAttempts() {
       </div>
     );
   }
+
+  const handleAttemptAgain = () => {
+    if (test.isGeneratedQuiz && test.representative) {
+      const parent = test.representative;
+      const cleanBlocks = (parent.blocks || []).map(b => ({
+        ...b,
+        sections: (b.sections || []).map(s => ({
+          ...s,
+          questions: (s.questions || []).map(q => ({
+            ...q,
+            chosenOption: -1,
+            timeTakenSeconds: 0
+          }))
+        }))
+      }));
+      const examData = {
+        title: parent.customTitle || "Practice Quiz",
+        blocks: cleanBlocks,
+        duration: parent.timeTaken
+      };
+      navigate('/student/quiztest', { state: { questions: examData, parentAttemptId: test._id } });
+    } else {
+      navigate(`/student/test/${test._id}`);
+    }
+  };
 
   const filteredAttempts = (test.attempts || []).filter((attempt) => {
     if (searchQuery.trim()) {
@@ -79,36 +142,31 @@ export default function ListedAttempts() {
 
   return (
     <div
-      className={`min-h-screen flex flex-col font-sans transition-colors duration-300 ${
-        isDark ? 'bg-[#0E131F] text-white' : 'bg-[#EAEDF2] text-[#1E293B]'
-      }`}
+      className={`min-h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-[#0E131F] text-white' : 'bg-[#EAEDF2] text-[#1E293B]'
+        }`}
     >
       <div
-        className={`flex-shrink-0 sticky top-0 z-40 px-5 pb-4 flex flex-col gap-4 ${
-          isDark ? 'bg-[#0E131F]' : 'bg-[#EAEDF2]'
-        }`}
+        className={`flex-shrink-0 sticky top-0 z-40 px-5 pb-4 flex flex-col gap-4 ${isDark ? 'bg-[#0E131F]' : 'bg-[#EAEDF2]'
+          }`}
         style={{ paddingTop: STATUS_BAR_H + 8 }}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <button
               onClick={() => navigate(-1)}
-              className={`w-10 h-10 -ml-2 flex items-center justify-center transition-colors ${
-                isDark ? 'text-white' : 'text-slate-800'
-              }`}
+              className={`w-10 h-10 -ml-2 flex items-center justify-center transition-colors ${isDark ? 'text-white' : 'text-slate-800'
+                }`}
             >
               <ArrowLeft size={24} />
             </button>
             <div className="min-w-0 flex-1">
-              <h1 className={`text-[17px] font-bold truncate leading-tight ${
-                isDark ? 'text-white' : 'text-slate-800'
-              }`}>
+              <h1 className={`text-[17px] font-bold truncate leading-tight ${isDark ? 'text-white' : 'text-slate-800'
+                }`}>
                 {test.title}
               </h1>
-              <p className={`text-[11px] font-medium truncate mt-0.5 ${
-                isDark ? 'text-[#8492A6]' : 'text-slate-500'
-              }`}>
-                {test.teacherName} • {test.totalQuestions || 0} Qs
+              <p className={`text-[11px] font-medium truncate mt-0.5 ${isDark ? 'text-[#8492A6]' : 'text-slate-500'
+                }`}>
+                {test.isGeneratedQuiz && test.teacherName ? `${test.teacherName} • ` : ''}{test.totalQuestions || 0} Qs
               </p>
             </div>
           </div>
@@ -126,7 +184,7 @@ export default function ListedAttempts() {
         </div>
       </div>
 
-      <div className={`flex-1 overflow-y-auto px-5 space-y-3 no-scrollbar ${!isApproved ? 'pb-28' : 'pb-10'}`}>
+      <div className={`flex-1 overflow-y-auto px-5 space-y-3 no-scrollbar ${!isApproved ? 'pb-40' : 'pb-28'}`}>
         {filteredAttempts.length === 0 ? (
           <p className={`text-center mt-10 ${isDark ? 'text-[#64748B]' : 'text-slate-400'}`}>
             No attempts found.
@@ -141,7 +199,13 @@ export default function ListedAttempts() {
             return (
               <div
                 key={attempt._id}
-                onClick={() => navigate(`/student/analytics/${test._id}/attempt/${attempt.attemptNumber}`)}
+                onClick={() => {
+                  if (test.isGeneratedQuiz) {
+                    navigate(`/student/analytics/quiz/${attempt._id}`);
+                  } else {
+                    navigate(`/student/analytics/${test._id}/attempt/${attempt.attemptNumber}`);
+                  }
+                }}
                 style={{
                   background: isDark ? '#111827' : '#FFFFFF',
                   border: isDark ? '1px solid #1F2937' : '1px solid #F1F5F9',
@@ -167,8 +231,7 @@ export default function ListedAttempts() {
                   </h4>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: isDark ? '#94A3B8' : '#64748B', fontSize: 12, fontWeight: 500 }}>
-                      <span style={{ color: accent, fontWeight: 800 }}>+{attempt.totalScore ?? attempt.score} pts</span>
-                      <span>• {accuracyPct}% Accuracy</span>
+                      <span style={{ color: accent, fontWeight: 800 }}>{accuracyPct}% Accuracy</span>
                     </div>
                   </div>
                   <div style={{ marginTop: 10, height: 4, background: isDark ? '#1F2937' : '#F1F5F9', borderRadius: 2, overflow: 'hidden' }}>
@@ -189,13 +252,22 @@ export default function ListedAttempts() {
         )}
       </div>
 
+      <div className={`fixed left-0 right-0 px-5 pt-6 pb-4 z-40 ${isDark ? 'bg-gradient-to-t from-[#0E131F] via-[#0E131F] to-transparent' : 'bg-gradient-to-t from-[#EAEDF2] via-[#EAEDF2] to-transparent'} ${!isApproved ? 'bottom-[76px]' : 'bottom-0'}`}>
+        <button
+          onClick={handleAttemptAgain}
+          className="w-full py-3.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold rounded-xl transition-colors shadow-lg"
+        >
+          Attempt Again
+        </button>
+      </div>
+
       {user?.approved === false && (
         <div className="fixed bottom-0 left-0 right-0 z-[5010] bg-gradient-to-r from-[#1EBA9B] to-[#25D3A4] text-white px-5 py-4 flex items-center justify-between shadow-[0_-4px_20px_rgba(30,186,155,0.2)]">
           <div className="flex flex-col">
             <span className="font-bold text-[15px] leading-tight">Get access to all the batches</span>
             <span className="text-[13px] text-white/90 mt-0.5">Starts at ₹902/month</span>
           </div>
-          <button 
+          <button
             onClick={() => window.open('https://en.wikipedia.org', '_blank')}
             className="bg-white text-[#1EBA9B] px-5 py-2.5 rounded-lg font-bold text-[14px] active:scale-95 transition-transform"
           >

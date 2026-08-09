@@ -10,14 +10,16 @@ router.get("/teachers", auth, role(["INSTITUTE_ADMIN"]), controller.getTeachers)
 router.get("/batches", auth, role(["INSTITUTE_ADMIN"]), controller.getBatches);
 router.get("/pending-requests", auth, role(["INSTITUTE_ADMIN"]), controller.getPendingRequests);
 router.get("/batch/:batchId/students", auth, role(["INSTITUTE_ADMIN"]), controller.getBatchStudents);
+router.get("/syllabus", auth, role(["INSTITUTE_ADMIN"]), controller.getSyllabuses);
 
 // --- POST ROUTES ---
+router.post("/syllabus", auth, role(["INSTITUTE_ADMIN"]), controller.upsertSyllabus);
 router.post("/create-teacher", auth, role(["INSTITUTE_ADMIN"]), controller.createTeacher);
 router.post("/create-batch", auth, role(["INSTITUTE_ADMIN"]), controller.createBatch);
 router.post("/approve-assign", auth, role(["INSTITUTE_ADMIN"]), controller.approveAndAssign);
 router.post("/reject-delete" , auth , role(["INSTITUTE_ADMIN"]) , controller.rejectAndDelete); 
 router.post("/assign-teacher", auth, role(["INSTITUTE_ADMIN"]), controller.assignTeacherToBatch);
-
+router.post("/allocate-subjects", auth, role(["INSTITUTE_ADMIN"]), controller.allocateSubjects);
 // --- REMOVAL & DELETE ROUTES ---
 router.post("/remove-student-batch", auth, role(["INSTITUTE_ADMIN"]), controller.removeStudentFromBatch);
 router.post("/remove-teacher-batch", auth, role(["INSTITUTE_ADMIN"]), controller.removeTeacherFromBatch);

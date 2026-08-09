@@ -30,6 +30,18 @@ export default function PdfViewerPage() {
         return `${base}${url}`;
     };
 
+    const handleDownload = () => {
+        if (!pdfUrl) return;
+        const url = resolveFileUrl(pdfUrl);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${title || 'Document'}.pdf`;
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     return (
         <div className={`min-h-screen flex flex-col transition-colors ${theme === 'light' ? 'bg-[#F4F7FC]' : 'bg-[#0B101A]'}`}>
             {/* Viewer Toolbar */}
@@ -49,7 +61,7 @@ export default function PdfViewerPage() {
                 </div>
 
                 <button
-                    onClick={() => alert("Downloading...")}
+                    onClick={handleDownload}
                     className={`flex items-center justify-center gap-1.5 px-3 py-1.5 mr-2 rounded border shadow-none flex-shrink-0 ${theme === 'light' ? 'border-slate-300 text-slate-700 active:bg-slate-50' : 'border-slate-700 text-slate-200 active:bg-white/5'}`}
                 >
                     <ArrowDownTrayIcon className="w-[15px] h-[15px]" strokeWidth={2} />

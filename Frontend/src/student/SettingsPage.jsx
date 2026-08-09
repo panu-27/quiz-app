@@ -4,6 +4,7 @@ import { useTheme } from "../context/ThemeContext";
 import { ArrowLeft, Check, Upload, User, Mail, AlertCircle, Eye, EyeOff, Lock, LogOut, Phone, MessageCircle, Star, Users, Shield, HelpCircle, FileText, Cookie, Receipt } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
+import useBackButton from "../hooks/useBackButton";
 
 const STATUS_BAR_H = 43.7;
 
@@ -70,6 +71,14 @@ export default function SettingsPage() {
   const [toast, setToast] = useState(null);
 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  useBackButton(() => {
+    if (showLogoutModal) {
+      setShowLogoutModal(false);
+      return true;
+    }
+    return false;
+  }, showLogoutModal);
 
   useEffect(() => {
     let cancelled = false;
@@ -182,7 +191,9 @@ export default function SettingsPage() {
         <ListItem
           sectionTitle="Batch"
           icon={<Users size={22} strokeWidth={1.5} />}
-          title={profile?.batchId?.name || "Project Operation Team"}
+          subtitle={!profile?.approved ? "Tap to change class" : null}
+          title={profile?.batchId?.className ? `${profile.batchId.className} (${profile.batchId.name})` : (profile?.batchId?.name || "Pending")}
+          onClick={!profile?.approved ? () => navigate('/student/goal-selection') : undefined}
           isDark={isDark}
         />
 
@@ -205,21 +216,21 @@ export default function SettingsPage() {
         <ListItem
           icon={<FileText size={22} strokeWidth={1.5} />}
           title="Privacy Policy"
-          onClick={() => { }}
+          onClick={() => navigate('/student/privacy-policy')}
           isDark={isDark}
         />
 
         <ListItem
           icon={<Cookie size={22} strokeWidth={1.5} />}
           title="Cookies Policy"
-          onClick={() => { }}
+          onClick={() => navigate('/student/cookie-policy')}
           isDark={isDark}
         />
 
         <ListItem
           icon={<Receipt size={22} strokeWidth={1.5} />}
           title="Refund Policy"
-          onClick={() => { }}
+          onClick={() => navigate('/student/refund-policy')}
           isDark={isDark}
         />
 

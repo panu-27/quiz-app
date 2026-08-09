@@ -12,8 +12,6 @@ export { default as TestAttempt } from './quiz/TestAttempt';
 
 export default function StudentQuizFlow() {
   const navigate = useNavigate();
-  const { theme } = useTheme();
-
   const [step, setStep] = useState('create-practice');
   const [questions, setQuestions] = useState(null);
   const [subjects, setSubjects] = useState([]);

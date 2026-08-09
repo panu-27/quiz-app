@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Check, X, ChevronLeft, ChevronRight, Clock, Menu, AlertTriangle, Info, ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
 import api from '../../api/axios.js'; // ← shared axios instance (auth + base URL handled there)
+import useBackButton from '../../hooks/useBackButton';
 
 // ============= KaTeX LOADER =============
 const loadKaTeX = (() => {
@@ -108,7 +109,7 @@ const REPORT_REASONS = [
     { key: 'ui_error',             label: 'UI / Display Error',             icon: '⚙️' },
 ];
 
-const TestAttempt = ({ examData, onFinish }) => {
+const TestAttempt = ({ examData, onFinish, parentAttemptId }) => {
     useEffect(() => { loadKaTeX(); }, []);
 
     const flattenedPool = useMemo(() => flattenExamData(examData), [examData]);
@@ -126,6 +127,8 @@ const TestAttempt = ({ examData, onFinish }) => {
     const [visited, setVisited] = useState({ 0: true });
     const [submitted, setSubmitted] = useState(false);
     const [reviewMode, setReviewMode] = useState(false);
+    const [hasSubmittedToServer, setHasSubmittedToServer] = useState(false);
+    const [attemptStartTime] = useState(Date.now());
     const [panelOpen, setPanelOpen] = useState(false);
     const [showConfirmSubmit, setShowConfirmSubmit] = useState(false);
 
@@ -138,6 +141,33 @@ const TestAttempt = ({ examData, onFinish }) => {
         [flattenedPool, activeBlockIdx]
     );
     const visiblePool = (reviewMode || submitted) ? flattenedPool : blockQuestions;
+
+    /* ── Hardware Back Button Interceptors ── */
+    
+    // 1. Base page guard: If exam is active, intercept back to show submit confirmation
+    useBackButton(() => {
+        if (submitted || reviewMode) return false;
+        setShowConfirmSubmit(true);
+        return true;
+    }, !submitted && !reviewMode);
+
+    // 2. Question Map Panel
+    useBackButton(() => {
+        setPanelOpen(false);
+        return true;
+    }, panelOpen);
+
+    // 3. Confirm Submit Modal (Cancel)
+    useBackButton(() => {
+        setShowConfirmSubmit(false);
+        return true;
+    }, showConfirmSubmit);
+
+    // 4. Report Modal
+    useBackButton(() => {
+        setShowReportModal(false);
+        return true;
+    }, showReportModal);
 
     const isUnlimited = useMemo(() => {
         return blocks[activeBlockIdx]?.duration >= 9999;
@@ -233,8 +263,32 @@ const TestAttempt = ({ examData, onFinish }) => {
     };
 
     // ════════════════════════════════════════════════
-    // RESULT SCREEN
+    // RESULT SCREEN & SUBMISSION
     // ════════════════════════════════════════════════
+    useEffect(() => {
+        if (submitted && !reviewMode && !hasSubmittedToServer) {
+            setHasSubmittedToServer(true);
+            const blocksWithAnswers = blocks.map(block => ({
+                ...block,
+                sections: block.sections.map(section => ({
+                    ...section,
+                    questions: section.questions.map(q => {
+                        const poolQ = flattenedPool.find(p => p.questionId === q.questionId);
+                        const chosenOption = poolQ && answers[poolQ.globalIdx] !== undefined ? answers[poolQ.globalIdx] : -1;
+                        return { ...q, chosenOption };
+                    })
+                }))
+            }));
+            const timeTakenSeconds = Math.floor((Date.now() - attemptStartTime) / 1000);
+            api.post('/quiz/submit-attempt', {
+                blocks: blocksWithAnswers,
+                timeTakenSeconds,
+                type: 'practice',
+                parentAttemptId: parentAttemptId || undefined
+            }).catch(err => console.error("Failed to submit practice quiz:", err));
+        }
+    }, [submitted, reviewMode, hasSubmittedToServer, blocks, flattenedPool, answers, attemptStartTime, parentAttemptId]);
+
     if (submitted && !reviewMode) {
 
         let totalScore = 0;

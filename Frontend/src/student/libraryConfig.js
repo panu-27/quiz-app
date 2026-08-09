@@ -11,6 +11,7 @@ export const CATEGORIES = [
   { id: "formulas",  label: "Formulas",       icon: "⚡", color: "#3B82F6" },
   { id: "mindmaps",  label: "Mind Maps",      icon: "🧠", color: "#8B5CF6" },
   { id: "revision",  label: "Revision",       icon: "🔁", color: "#EC4899" },
+  { id: "synopsis",  label: "Synopsis",       icon: "📑", color: "#F43F5E" },
 ];
 
 export const SUBJECTS = [
