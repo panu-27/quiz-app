@@ -17,11 +17,14 @@ import noticeRoutes from "./modules/notice/notice.routes.js";
 const app = express();
 
 const ALLOWED_ORIGINS = [
+  "http://localhost:",
   "http://localhost:5173",   // Vite dev server
   "http://localhost:4173",   // Vite preview
   "http://localhost:3000",   // fallback dev
   "http://localhost:5000",   // ← Electron interceptor sets Origin to this (the backend URL itself)
-  "https://nexus-brave.vercel.app",  // ← add this line
+  "https://nexus-brave.vercel.app",
+  "https://targetcoachingclasses.tech",
+  "https://www.targetcoachingclasses.tech",  // ← add this line
   "https://quiz-app-oabs.onrender.com", // Electron interceptor spoofs this origin
   "https://api.pranavzinjad.in", // added our main deployed backend URL to allowed origins
 
@@ -51,17 +54,17 @@ app.use('/api/uploads', express.static(path.join(process.cwd(), 'uploads')));
 app.get("/", (req, res) => res.send("API running 🚀"));
 app.get("/api/app/min-version", (req, res) => res.json({ minVersion: Number(process.env.MIN_APP_VERSION) || 1 }));
 
-app.use("/api/auth",         authRoutes);
-app.use("/api/super",        superRoutes);
-app.use("/api/institute",    instituteRoutes);
-app.use("/api/teacher",      teacherRoutes);
-app.use("/api/pyq",      pyqRoutes);
-app.use("/api/student",      studentRoutes);
-app.use("/api/leaderboard",  leaderboardRoutes);
-app.use("/api/pdf",          pdfRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/super", superRoutes);
+app.use("/api/institute", instituteRoutes);
+app.use("/api/teacher", teacherRoutes);
+app.use("/api/pyq", pyqRoutes);
+app.use("/api/student", studentRoutes);
+app.use("/api/leaderboard", leaderboardRoutes);
+app.use("/api/pdf", pdfRoutes);
 app.use("/api/bankQuestion", bankQuestionRoutes);
-app.use("/api/quiz",         quizRoutes);
-app.use("/api/notices",      noticeRoutes);
+app.use("/api/quiz", quizRoutes);
+app.use("/api/notices", noticeRoutes);
 
 
 
