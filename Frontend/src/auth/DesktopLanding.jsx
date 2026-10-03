@@ -1,8 +1,10 @@
 import { Search, Gift, Smartphone, BookOpen, MonitorPlay, ChevronDown, Facebook, Youtube, Twitter, Linkedin } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 export default function DesktopLanding() {
   const navigate = useNavigate();
+  const [showOffer, setShowOffer] = useState(false);
 
   return (
     <div className="hidden lg:block min-h-screen bg-white font-sans text-slate-800">
@@ -14,8 +16,16 @@ export default function DesktopLanding() {
             Targate Coaching Classes
           </div>
           <div className="flex items-center gap-4">
-            <button className="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center text-red-500 hover:bg-red-50 transition">
-              <Gift size={20} />
+            <button
+              type="button"
+              onClick={() => setShowOffer(true)}
+              className="flex cursor-pointer items-center justify-center w-10 h-10 rounded-full hover:bg-slate-100 transition"
+            >
+              <img
+                src="https://static.uacdn.net/production/_next/static/images/giftHomePage.svg"
+                alt="Gift"
+                className="w-5 h-5"
+              />
             </button>
             <button
               onClick={() => navigate("/login")}
@@ -70,39 +80,39 @@ export default function DesktopLanding() {
 
 
       {/* Feature Cards Section */}
-      {/* <section className="max-w-[1200px] mx-auto px-6 py-32">
+      <section className="max-w-[1200px] mx-auto px-6 py-32">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
           <div className="flex flex-col gap-6">
-            <img src="/daily_live_classes.png" alt="Daily live classes" className="w-full object-contain rounded-xl shadow-sm" />
+            <img src="/daily_live_classes.svg" alt="Daily live classes" className="w-full object-contain rounded-xl shadow-sm" />
             <div>
               <h3 className="text-[22px] font-semibold text-[#3C4852] mb-3">Daily live classes</h3>
               <p className="text-[15px] text-slate-600 font-medium leading-relaxed">Chat with educators, ask questions, answer live polls, and get your doubts cleared - all while the class is going on</p>
             </div>
           </div>
           <div className="flex flex-col gap-6">
-            <img src="/practice_revise.png" alt="Practice and revise" className="w-full object-contain rounded-xl shadow-sm" />
+            <img src="/practice_revise.svg" alt="Practice and revise" className="w-full object-contain rounded-xl shadow-sm" />
             <div>
               <h3 className="text-[22px] font-semibold text-[#3C4852] mb-3">Practice and revise</h3>
               <p className="text-[15px] text-slate-600 font-medium leading-relaxed">Learning isn't just limited to classes with our practice section, mock tests and lecture notes shared as PDFs for your revision</p>
             </div>
           </div>
           <div className="flex flex-col gap-6">
-            <img src="/learn_anytime.png" alt="Learn anytime, anywhere" className="w-full object-contain rounded-xl shadow-sm" />
+            <img src="/daily_live_classes.svg" alt="Learn anytime, anywhere" className="w-full object-contain rounded-xl shadow-sm" />
             <div>
               <h3 className="text-[22px] font-semibold text-[#3C4852] mb-3">Learn anytime, anywhere</h3>
               <p className="text-[15px] text-slate-600 font-medium leading-relaxed">One subscription gets you access to all our live and recorded classes to watch from the comfort of any of your devices</p>
             </div>
           </div>
         </div>
-      </section> */}
+      </section>
 
       {/* App Download Section */}
-      {/* <section className="max-w-[1200px] mx-auto px-6 py-32 flex flex-col md:flex-row items-center justify-between gap-12">
+      <section className="max-w-[1200px] mx-auto px-6 pt-2 pb-32  flex flex-col md:flex-row items-center justify-between gap-12">
         <div className="flex-1 max-w-xl">
-          <h2 className="text-[32px] md:text-[40px] font-bold text-[#3C4852] leading-[1.15] tracking-tight mb-4">
+          <h2 className="text-[32px] md:text-[40px] font-semibold text-[#3C4852] mb-4">
             Get the learning app
           </h2>
-          <p className="text-[#3C4852] text-xl mb-10 font-medium">
+          <p className="text-[18px] text-slate-600 font-medium leading-relaxed mb-10">
             Download lessons and learn anytime, anywhere with the Targate Coaching Classes app
           </p>
           <div className="flex flex-wrap items-center gap-4">
@@ -115,13 +125,13 @@ export default function DesktopLanding() {
           </div>
         </div>
         <div className="flex-1 flex justify-center md:justify-end items-center mt-8 md:mt-0">
-          <img 
-            src="/app_mockup.png" 
-            alt="App Interface Mockups" 
-            className="w-full max-w-[400px] object-contain drop-shadow-2xl rounded-2xl" 
+          <img
+            src="/get-app-desk.svg"
+            alt="App Interface Mockups"
+            className="w-full max-w-[400px] object-contain rounded-2xl"
           />
         </div>
-      </section> */}
+      </section>
 
       {/* Footer */}
       <footer className="w-full bg-[#181a1b] text-[#a0a5aa] flex flex-col justify-between mt-12" style={{ minHeight: '100vh' }}>
@@ -232,6 +242,44 @@ export default function DesktopLanding() {
           </div>
         </div>
       </footer>
+      
+      {showOffer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute cursor-pointer inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setShowOffer(false)}
+          />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-[90%] max-w-md
+                          px-6 py-8 text-center animate-[scaleIn_0.2s_ease-out]">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2
+                            bg-gradient-to-r from-pink-500 to-rose-500
+                            text-white text-xs font-semibold px-4 py-1 rounded-full">
+              🎉 Limited Time Offer
+            </div>
+            <div className="text-5xl mb-4">🎁</div>
+            <h3 className="text-xl font-bold text-slate-800">Welcome!</h3>
+            <p className="mt-2 text-sm text-slate-600">
+              Get <span className="font-semibold text-green-600">5 FREE test access</span>{" "}
+              for your first preparation track.
+            </p>
+            <p className="mt-1 text-xs text-slate-500">Valid for new students only</p>
+            <button
+              onClick={() => { setShowOffer(false); navigate("/register"); }}
+              className="mt-6 w-full py-3 rounded-xl cursor-pointer
+                         bg-slate-800 text-white font-semibold text-sm
+                         hover:bg-slate-900 transition"
+            >
+              Claim your gift 🎁
+            </button>
+            <button
+              onClick={() => setShowOffer(false)}
+              className="mt-3 cursor-pointer text-xs text-slate-500 hover:underline"
+            >
+              Maybe later
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

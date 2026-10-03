@@ -34,6 +34,7 @@ export default function TestAttempt() {
   const [isLoading,     setIsLoading]     = useState(false);   // loading after "I'm ready"
   const [hasSubmitted,  setHasSubmitted]  = useState(false);
   const [testTitle,     setTestTitle]     = useState("Assessment");
+  const [testInfo,      setTestInfo]      = useState(null);
   const [startError,    setStartError]    = useState(null);
   const [modal,         setModal]         = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -116,6 +117,21 @@ export default function TestAttempt() {
   useEffect(() => { hasSubmittedRef.current = hasSubmitted; }, [hasSubmitted]);
   useEffect(() => { activeBlockRef.current  = activeBlock;  }, [activeBlock]);
   useEffect(() => { blocksRef.current       = blocks;       }, [blocks]);
+
+  // Fetch initial test info for lobby
+  useEffect(() => {
+    if (!examStarted && !hasSubmitted) {
+      api.get(`/student/test-info/${testId}`)
+        .then(res => {
+          setTestInfo(res.data);
+          setTestTitle(res.data.title || "Assessment");
+        })
+        .catch(err => {
+          console.error("Failed to fetch test info:", err);
+          // Optional: handle error state here
+        });
+    }
+  }, [testId, examStarted, hasSubmitted]);
 
   /* ═══════════════════════════════════════════════════════════════
      1. DATA HYDRATION — only fires when user clicks "I am ready to begin"
@@ -592,6 +608,7 @@ export default function TestAttempt() {
       <ExamLobby
         testTitle={testTitle}
         userName={user?.name}
+        testInfo={testInfo}
         enterFullscreen={startExam}     // ← API fires HERE, not on mount
         isLoading={isLoading}
         exitApp={() => navigate("/student")}

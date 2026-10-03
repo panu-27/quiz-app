@@ -2,21 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ArrowUp, WifiOff, Users, Zap, Star } from "lucide-react";
 import api from "../api/axios";
 
-const FALLBACK_DATA = [
-  { rank: 1, name: "Adison Press", points: "2,569", country: "🇨🇦", avatar: null },
-  { rank: 2, name: "Ruben Geidt", points: "1,469", country: "🇩🇪", avatar: null },
-  { rank: 3, name: "Jakob Levin", points: "1,053", country: "🇨🇿", avatar: null },
-  { rank: 4, name: "Madelyn Dias", points: "590", country: "🇮🇳", avatar: null },
-  { rank: 5, name: "Zain Vaccaro", points: "448", country: "🇮🇹", avatar: null },
-  { rank: 6, name: "Skylar Geidt", points: "410", country: "🇩🇪", avatar: null },
-  { rank: 7, name: "Elena Rossi", points: "370", country: "🇮🇹", avatar: null },
-  { rank: 8, name: "Yuki Tanaka", points: "350", country: "🇯🇵", avatar: null },
-  { rank: 9, name: "Lars Thomsen", points: "340", country: "🇩🇰", avatar: null },
-  { rank: 10, name: "Hana Kim", points: "320", country: "🇰🇷", avatar: null },
-  { rank: 11, name: "Sofia Silva", points: "310", country: "🇧🇷", avatar: null },
-  { rank: 12, name: "Liam O'Brien", points: "295", country: "🇮🇪", avatar: null, current: true },
-];
-
 const GLOBAL_STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap');
   * { font-family: 'DM Sans', sans-serif; }
@@ -224,7 +209,6 @@ function SkeletonRow({ compact = false }) {
 export default function EliteLeaderboard() {
   const [allRanks, setAllRanks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [usingFallback, setUsingFallback] = useState(false);
   const [showJumpBtn, setShowJumpBtn] = useState(false);
 
   const userRankRef = useRef(null);
@@ -237,11 +221,10 @@ export default function EliteLeaderboard() {
       try {
         const { data } = await api.get("/leaderboard/stats/all");
         if (!cancelled) {
-          setAllRanks(Array.isArray(data) && data.length > 0 ? data : FALLBACK_DATA);
-          setUsingFallback(!Array.isArray(data) || data.length === 0);
+          setAllRanks(Array.isArray(data) ? data : []);
         }
       } catch {
-        if (!cancelled) { setAllRanks(FALLBACK_DATA); setUsingFallback(true); }
+        if (!cancelled) { setAllRanks([]); }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -274,12 +257,6 @@ export default function EliteLeaderboard() {
       <div className="md:hidden min-h-screen bg-[#7A41F7] relative flex flex-col">
         <div className="px-5 pt-12 pb-2 flex items-center justify-between shrink-0">
           <br />
-          {usingFallback && (
-            <div className="flex items-center gap-1.5 bg-black/20 rounded-full px-3 py-1.5">
-              <WifiOff size={10} className="text-white/60" />
-              <span className="text-[9px] font-bold text-white/60 uppercase">Demo</span>
-            </div>
-          )}
         </div>
 
         <div className="shrink-0 px-2">
@@ -302,7 +279,8 @@ export default function EliteLeaderboard() {
           <div className="space-y-2 px-4 max-w-md mx-auto">
             {loading
               ? Array.from({ length: 6 }).map((_, i) => <SkeletonRow key={i} />)
-              : listRanks.map(user => <MobileRankRow key={user.rank} user={user} innerRef={user.current ? userRankRef : null} />)}
+              : listRanks.length > 0 ? listRanks.map(user => <MobileRankRow key={user.rank} user={user} innerRef={user.current ? userRankRef : null} />)
+              : <div className="text-center text-slate-400 text-sm mt-8">No rankings available yet.</div>}
           </div>
         </div>
 
@@ -352,18 +330,17 @@ export default function EliteLeaderboard() {
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Institute</p>
             <h1 className="text-2xl font-bold text-slate-900 font-display tracking-tight">Leaderboard</h1>
           </div>
-          {usingFallback && (
-            <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-100 rounded-full px-3 py-1.5">
-              <WifiOff size={10} className="text-amber-500" />
-              <span className="text-[9px] font-bold text-amber-600 uppercase tracking-wide">Demo</span>
-            </div>
-          )}
         </div>
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Standings</p>
                   <span className="text-[9px] font-bold text-slate-300">{allRanks.length} students</span>
                 </div>
                 <div className="space-y-1.5 max-h-[500px] overflow-y-auto no-scrollbar pr-1">
+                  {allRanks.length === 0 && !loading && (
+                    <div className="text-center py-10 text-slate-400 text-sm bg-white rounded-xl border border-slate-100">
+                      No rankings available yet. Complete a test to get on the leaderboard!
+                    </div>
+                  )}
                   {allRanks.map((user, idx) => (
                     <DesktopRankRow
                       key={user.rank}

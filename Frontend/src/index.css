@@ -13,6 +13,12 @@
   html {
     font-family: "Poppins", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   }
+
+  /* Hide default browser eye icon for password inputs */
+  input::-ms-reveal,
+  input::-ms-clear {
+    display: none;
+  }
 }
 @keyframes scaleIn {
   from {

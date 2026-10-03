@@ -788,8 +788,8 @@ export default function StudentDashboard() {
                   ].map((link, i) => (
                     <button
                       key={i}
-                      onClick={() => navigate(link.path)}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-purple-50 hover:text-[#7A41F7] transition-all text-sm font-medium group/link"
+                      type="button"
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-purple-50 hover:text-[#7A41F7] transition-all text-sm font-medium group/link cursor-default"
                     >
                       <span className="text-slate-400 group-hover/link:text-[#7A41F7] transition-colors">{link.icon}</span>
                       {link.label}

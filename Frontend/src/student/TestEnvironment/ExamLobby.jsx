@@ -7,7 +7,7 @@ const PowerIcon = ({ className }) => (
   </svg>
 );
 
-const ExamLobby = ({ testTitle, userName, enterFullscreen, exitApp, isLoading = false }) => {
+const ExamLobby = ({ testTitle, userName, testInfo, enterFullscreen, exitApp, isLoading = false }) => {
   const [agreed, setAgreed] = useState(false);
 
   return (
@@ -34,9 +34,9 @@ const ExamLobby = ({ testTitle, userName, enterFullscreen, exitApp, isLoading = 
           <h3 className="bg-white px-3 py-1 text-[15px] font-bold border-b border-gray-300">Examinee Details</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 p-3 text-[13px] leading-relaxed">
             <div className="flex gap-2"><span className="text-gray-600">Name:</span> <span className="font-semibold uppercase">{userName}</span></div>
-            <div className="flex gap-2"><span className="text-gray-600">Exam Duration:</span> <span className="font-semibold">180 Minutes</span></div>
-            <div className="flex gap-2"><span className="text-gray-600">Date of Exam:</span> <span className="font-semibold">05/04/2025</span></div>
-            <div className="flex gap-2"><span className="text-gray-600">Maximum marks:</span> <span className="font-semibold">200</span></div>
+            <div className="flex gap-2"><span className="text-gray-600">Exam Duration:</span> <span className="font-semibold">{testInfo?.duration ? `${testInfo.duration} Minutes` : "Loading..."}</span></div>
+            <div className="flex gap-2"><span className="text-gray-600">Test Author:</span> <span className="font-semibold">{testInfo?.author || "Loading..."}</span></div>
+            <div className="flex gap-2"><span className="text-gray-600">Maximum marks:</span> <span className="font-semibold">{testInfo?.maxScore || "Loading..."}</span></div>
           </div>
         </div>
 
@@ -48,10 +48,10 @@ const ExamLobby = ({ testTitle, userName, enterFullscreen, exitApp, isLoading = 
             <div>
               <p className="font-bold underline mb-2">About Question Paper :</p>
               <ul className="list-disc ml-6 space-y-1">
-                <li>There are in all 150 Questions for this exam, <strong>Physics</strong> - 50 Questions (1 mark each), <strong>Chemistry</strong> - 50 Questions (1 mark each), <strong>Mathematics</strong> - 50 Questions (2 marks each).</li>
-                <li>You will be given 180 minutes to answer all questions.</li>
+                <li>There are in all <strong>{testInfo?.totalQuestions || "Loading..."} Questions</strong> for this exam.</li>
+                <li>You will be given {testInfo?.duration || "Loading..."} minutes to answer all questions.</li>
                 <li><strong>There is no negative marking system for this test.</strong></li>
-                <li>Questions will be in two languages (English, Marathi).</li>
+                <li>Questions will be in English.</li>
                 <li>Mode of Examination - Online.</li>
                 <li>The test comprises multiple choice objective type questions (Four Options).</li>
               </ul>

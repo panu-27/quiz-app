@@ -245,3 +245,59 @@ export const getAllTestsWithAttempts = async (req, res) => {
     res.status(500).json({ message: "Server Error", error: err.message });
   }
 };
+
+export const getTestInfo = async (req, res) => {
+  try {
+    const { testId } = req.params;
+    const test = await Test.findById(testId)
+      .populate("teacherId", "name")
+      .select("title duration markingScheme blocks teacherId examType sets metadata")
+      .lean();
+
+    if (!test) return res.status(404).json({ message: "Test not found" });
+
+    // Compute max score & total questions
+    const ms = test.markingScheme || {};
+    const defaultCorrect = ms.defaultCorrect ?? 1;
+
+    const subjectWiseMap = {};
+    for (const sw of ms.subjectWise || []) {
+      if (sw.subjectId)
+        subjectWiseMap[sw.subjectId.toString()] = sw.correctMarks ?? defaultCorrect;
+    }
+
+    let sourceBlocks = test.blocks || [];
+    if (test.metadata?.distribution === "4 Sets" && test.sets) {
+      const setKeys = Object.keys(test.sets);
+      if (setKeys.length > 0) {
+        sourceBlocks = test.sets[setKeys[0]] || [];
+      }
+    }
+
+    let maxScore = 0;
+    let totalQuestions = 0;
+    for (const block of sourceBlocks) {
+      for (const sec of block.sections || []) {
+        const numQ = sec.numQuestions || (sec.questions ? sec.questions.length : 0);
+        const marks = sec.subject
+          ? (subjectWiseMap[sec.subject.toString()] ?? defaultCorrect)
+          : defaultCorrect;
+        
+        maxScore += numQ * marks;
+        totalQuestions += numQ;
+      }
+    }
+
+    res.json({
+      title: test.title,
+      duration: test.duration,
+      author: test.teacherId?.name || "Target Coaching",
+      maxScore,
+      totalQuestions,
+      examType: test.examType
+    });
+  } catch (err) {
+    console.error("Error in getTestInfo:", err);
+    res.status(500).json({ message: "Server Error", error: err.message });
+  }
+};

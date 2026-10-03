@@ -10,6 +10,13 @@ const upload = multer({ storage: storage });
 
 router.get("/my-tests", auth, role(["STUDENT"]), controller.getMyTests);
 
+router.get(
+  "/test-info/:testId",
+  auth,
+  role(["STUDENT"]),
+  controller.getTestInfo
+);
+
 router.post(
   "/attempt/start/:testId",
   auth,
