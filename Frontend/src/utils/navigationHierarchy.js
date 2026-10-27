@@ -68,9 +68,9 @@ export function getParentRoute(currentPath, locationState = {}) {
     return "/student/quiztest";
   }
 
-  // Active Quiz attempt -> Traps back press by opening quit dialog
+  // Active Quiz attempt -> Traps back press and stays on /student/quiztest
   if (path === "/student/quiztest") {
-    return "/student/quiztest?dialog=quit";
+    return "/student/quiztest";
   }
 
   // Stage 2 settings -> Parent is Stage 1 (Quiz selection) or previous step

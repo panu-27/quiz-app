@@ -271,16 +271,21 @@ export default function App() {
         maxAllowedIdxRef.current = currentIdx;
       }
 
-      // 0. For in-page (non-routed) overlays on the same page, allow component interceptor
-      if (!previousPath.endsWith("/counsellor") && previousFullUrl === newFullUrl) {
+      // 0. Check if any component intercepts the back button (Active Exam Guard, Modals, Overlays)
+      if (!previousPath.endsWith("/counsellor")) {
         if (executeBackAction()) {
+          window.history.pushState(null, "", previousFullUrl);
           return;
         }
       }
 
-      // 0.1 Active Quiz Back Protection: Trap back button on active quiz and open quit dialog URL!
-      if (previousPath === '/student/quiztest' && !previousSearch && newPath !== '/student/quiztest') {
-        navigate('/student/quiztest?dialog=quit');
+      // 0.1 Active Exam / Quiz Guard Fallback: If still on test or quiz, trap back and trigger interceptor
+      if (
+        (previousPath === "/student/quiztest" && newPath !== "/student/quiztest") ||
+        (previousPath.startsWith("/student/test/") && newPath !== previousPath)
+      ) {
+        window.history.pushState(null, "", previousFullUrl);
+        executeBackAction();
         return;
       }
 

@@ -144,48 +144,24 @@ const TestAttempt = ({ examData, onFinish, parentAttemptId }) => {
     const [reporting, setReporting] = useState(false);
     const [reportDone, setReportDone] = useState(false);
 
-    const isPanelOpen = panelParam === 'open' || panelOpen;
-    const isQuitOpen = activeDialog === 'quit' || showConfirmLeave;
-    const isSubmitOpen = activeDialog === 'submit' || showConfirmSubmit;
-    const isReportOpen = activeDialog === 'report' || showReportModal;
+    const isPanelOpen = panelOpen || panelParam === 'open';
+    const isQuitOpen = showConfirmLeave || activeDialog === 'quit';
+    const isSubmitOpen = showConfirmSubmit || activeDialog === 'submit';
+    const isReportOpen = showReportModal || activeDialog === 'report';
 
     const openPanel = () => {
         setPanelOpen(true);
-        navigateRouter('/student/quiztest?panel=open', { state: location.state });
     };
     const openQuitDialog = () => {
         setShowConfirmLeave(true);
-        navigateRouter('/student/quiztest?dialog=quit', { state: location.state });
     };
     const openSubmitDialog = () => {
         setShowConfirmSubmit(true);
-        navigateRouter('/student/quiztest?dialog=submit', { state: location.state });
     };
     const openReportDialog = () => {
         setShowReportModal(true);
         setReportDone(false);
-        navigateRouter('/student/quiztest?dialog=report', { state: location.state });
     };
-
-    useEffect(() => {
-        if (!activeDialog) {
-            setShowConfirmLeave(false);
-            setShowConfirmSubmit(false);
-            setShowReportModal(false);
-        } else if (activeDialog === 'quit') {
-            setShowConfirmLeave(true);
-        } else if (activeDialog === 'submit') {
-            setShowConfirmSubmit(true);
-        } else if (activeDialog === 'report') {
-            setShowReportModal(true);
-        }
-
-        if (!panelParam) {
-            setPanelOpen(false);
-        } else if (panelParam === 'open') {
-            setPanelOpen(true);
-        }
-    }, [activeDialog, panelParam]);
 
     const closeOverlay = () => {
         setPanelOpen(false);
@@ -193,11 +169,7 @@ const TestAttempt = ({ examData, onFinish, parentAttemptId }) => {
         setShowConfirmSubmit(false);
         setShowReportModal(false);
         if (location.search) {
-            if (window.history.state && window.history.state.idx > 0) {
-                navigateRouter(-1);
-            } else {
-                navigateRouter('/student/quiztest', { replace: true });
-            }
+            navigateRouter('/student/quiztest', { replace: true, state: location.state });
         }
     };
 
@@ -207,18 +179,38 @@ const TestAttempt = ({ examData, onFinish, parentAttemptId }) => {
     );
     const visiblePool = flattenedPool;
 
-    /* ── Hardware / Browser Back Button Interceptors ── */
+    /* ── Hardware / Browser Back Button Interceptors (matching teacher test pattern) ── */
+    
+    // 1. Report sheet overlay
     useBackButton(() => {
-        if (isQuitOpen || isSubmitOpen || isReportOpen || isPanelOpen) {
-            closeOverlay();
-            return true;
-        }
-        if (!submitted) {
-            openQuitDialog();
-            return true;
-        }
-        return false;
-    });
+        setShowReportModal(false);
+        return true;
+    }, showReportModal || activeDialog === 'report');
+
+    // 2. Submit confirmation modal
+    useBackButton(() => {
+        setShowConfirmSubmit(false);
+        return true;
+    }, showConfirmSubmit || activeDialog === 'submit');
+
+    // 3. Question map panel overlay
+    useBackButton(() => {
+        setPanelOpen(false);
+        return true;
+    }, panelOpen || panelParam === 'open');
+
+    // 4. Confirm leave modal: back press resumes quiz
+    useBackButton(() => {
+        setShowConfirmLeave(false);
+        return true;
+    }, showConfirmLeave || activeDialog === 'quit');
+
+    // 5. Base exam guard: If exam is active, intercept back to show exit confirmation
+    useBackButton(() => {
+        if (submitted) return false;
+        setShowConfirmLeave(true);
+        return true;
+    }, !submitted);
 
     const finalizeAndRedirectResult = () => {
         if (hasSubmittedToServer) return;
