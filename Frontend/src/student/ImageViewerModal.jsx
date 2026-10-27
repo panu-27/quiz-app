@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, ZoomIn, ZoomOut, RotateCcw, Download } from 'lucide-react';
+import { ArrowLeft, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import useBackButton from '../hooks/useBackButton';
 
 const STATUS_BAR_H = 28.5;
 const HEADER_H = 56;
+const TOP_OFFSET = STATUS_BAR_H + 12;
+const HEADER_TOTAL_H = TOP_OFFSET + HEADER_H;
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 4;
 const DOUBLE_TAP_ZOOM = 2.5;
@@ -220,12 +222,13 @@ export default function ImageViewerModal({
             }}
             onMouseUp={handleMouseUp}
         >
-            {/* ══ HEADER BAR (Pinned with STATUS_BAR_H top spacing) ══ */}
+            {/* ══ HEADER BAR (Pinned with TOP_OFFSET spacing) ══ */}
             <header
                 className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between px-3 sm:px-5"
                 style={{
-                    paddingTop: STATUS_BAR_H,
-                    height: HEADER_H + STATUS_BAR_H,
+                    paddingTop: TOP_OFFSET,
+                    paddingBottom: 8,
+                    minHeight: HEADER_TOTAL_H,
                     background: colors.bar,
                     backdropFilter: 'blur(14px)',
                     WebkitBackdropFilter: 'blur(14px)',
@@ -254,23 +257,6 @@ export default function ImageViewerModal({
                         )}
                     </div>
                 </div>
-
-                {/* Right action button */}
-                <div className="flex items-center gap-1">
-                    <a
-                        href={src}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        download
-                        className="w-9 h-9 rounded-full flex items-center justify-center transition-colors active:scale-95 flex-shrink-0"
-                        style={{ color: colors.text }}
-                        onMouseEnter={(e) => { e.currentTarget.style.background = colors.hover; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                        title="Download or View Raw"
-                    >
-                        <Download size={18} strokeWidth={1.8} />
-                    </a>
-                </div>
             </header>
 
             {/* ══ INTERACTIVE IMAGE CANVAS ══ */}
@@ -279,7 +265,7 @@ export default function ImageViewerModal({
                 className="flex-1 w-full relative flex items-center justify-center overflow-hidden"
                 style={{
                     background: colors.canvasBg,
-                    paddingTop: HEADER_H + STATUS_BAR_H + 8,
+                    paddingTop: HEADER_TOTAL_H + 8,
                     cursor: zoom > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default',
                     touchAction: 'none',
                 }}

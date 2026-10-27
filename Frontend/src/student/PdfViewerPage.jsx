@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Loader2, FileText } from 'lucide-react';
+import { ArrowLeft, Loader2, FileText, RotateCw } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 import workerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url';
 import { useTheme } from '../context/ThemeContext';
@@ -13,6 +13,8 @@ const MAX_ZOOM = 3.5;
 const DOUBLE_TAP_ZOOM = 2;
 const HEADER_H = 56;
 const STATUS_BAR_H = 28.5;
+const TOP_OFFSET = STATUS_BAR_H + 12;
+const HEADER_TOTAL_H = TOP_OFFSET + HEADER_H;
 
 /* Monochrome palette */
 const PALETTE = {
@@ -149,7 +151,7 @@ function PdfCanvasViewer({
     onPageChange,
     onLoadSuccess,
     onScrollDirection,
-    topPad = HEADER_H + STATUS_BAR_H + 16,
+    topPad = HEADER_TOTAL_H + 16,
     bottomPad = 96,
     onReady,
     onError,
@@ -486,7 +488,6 @@ export default function PdfViewerPage({
     const [loadError, setLoadError] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [numPages, setNumPages] = useState(0);
-    const [headerHidden, setHeaderHidden] = useState(false);
 
     const handleBack = () => {
         if (onClose) {
@@ -533,7 +534,6 @@ export default function PdfViewerPage({
         setZoom(1);
         setCurrentPage(1);
         setNumPages(0);
-        setHeaderHidden(false);
     }, [resolvedUrl]);
 
     const fileName = title ? `${title}.pdf` : 'Document.pdf';
@@ -544,18 +544,17 @@ export default function PdfViewerPage({
             className="fixed inset-0 z-[99999] flex flex-col select-none overflow-hidden"
             style={{ background: colors.root, color: colors.text, fontFamily: "'Instrument Sans', system-ui, sans-serif" }}
         >
-            {/* Header — overlays the document; slides away on scroll down, returns on scroll up */}
+            {/* Header — permanently fixed at top; never hidden on scroll */}
             <header
-                className="absolute top-0 left-0 right-0 z-50 flex items-center gap-2 px-2 sm:px-4"
+                className="absolute top-0 left-0 right-0 z-50 flex items-center gap-2 px-3 sm:px-5"
                 style={{
-                    paddingTop: STATUS_BAR_H,
-                    height: HEADER_H + STATUS_BAR_H,
+                    paddingTop: TOP_OFFSET,
+                    paddingBottom: 8,
+                    minHeight: HEADER_TOTAL_H,
                     background: colors.bar,
-                    backdropFilter: 'blur(12px)',
-                    WebkitBackdropFilter: 'blur(12px)',
+                    backdropFilter: 'blur(14px)',
+                    WebkitBackdropFilter: 'blur(14px)',
                     borderBottom: `1px solid ${colors.border}`,
-                    transform: headerHidden ? `translateY(-${HEADER_H + STATUS_BAR_H}px)` : 'translateY(0)',
-                    transition: 'transform 0.25s ease',
                 }}
             >
                 <button
@@ -586,7 +585,7 @@ export default function PdfViewerPage({
             {/* Document area */}
             <div className="pdf-viewer-container flex-1 w-full relative" style={{ background: colors.canvasBg }}>
                 {source === 'pyq' && !pdfUrl ? (
-                    <div style={{ padding: '24px 16px', paddingTop: HEADER_H + STATUS_BAR_H + 24, width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'auto' }}>
+                    <div style={{ padding: '24px 16px', paddingTop: HEADER_TOTAL_H + 24, width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'auto' }}>
                         <div style={{
                             width: '100%',
                             maxWidth: 450,
@@ -637,7 +636,7 @@ export default function PdfViewerPage({
                     </div>
                 ) : pdfUrl && loadError ? (
                     <>
-                        <div style={{ position: 'absolute', top: HEADER_H + STATUS_BAR_H + 10, left: 12, right: 12, zIndex: 41, pointerEvents: 'none' }}>
+                        <div style={{ position: 'absolute', top: HEADER_TOTAL_H + 10, left: 12, right: 12, zIndex: 41, pointerEvents: 'none' }}>
                             <p
                                 style={{
                                     fontSize: 11,
@@ -657,7 +656,7 @@ export default function PdfViewerPage({
                         <iframe
                             src={`${resolvedUrl}#toolbar=0&navpanes=0`}
                             title="Document Viewer"
-                            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none', paddingTop: HEADER_H + STATUS_BAR_H, background: colors.canvasBg }}
+                            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none', paddingTop: HEADER_TOTAL_H, background: colors.canvasBg }}
                         />
                     </>
                 ) : pdfUrl ? (
@@ -673,7 +672,6 @@ export default function PdfViewerPage({
                             onZoomChange={setZoom}
                             onPageChange={setCurrentPage}
                             onLoadSuccess={({ numPages }) => setNumPages(numPages)}
-                            onScrollDirection={setHeaderHidden}
                             onReady={() => setViewerReady(true)}
                             onError={(e) => setLoadError(e?.message || String(e) || 'unknown error')}
                         />
@@ -685,10 +683,10 @@ export default function PdfViewerPage({
                     </div>
                 )}
 
-                {/* Floating dock — page number, zoom badge, reading progress */}
+                {/* Floating dock — page number, zoom badge, rotate option */}
                 {numPages > 0 && !loadError && (
                     <div
-                        className="absolute left-1/2 z-40 flex items-center overflow-hidden rounded-full"
+                        className="absolute left-1/2 z-40 flex items-center overflow-hidden rounded-full shadow-lg"
                         style={{
                             bottom: 'calc(env(safe-area-inset-bottom, 0px) + 22px)',
                             transform: 'translateX(-50%)',
@@ -717,6 +715,16 @@ export default function PdfViewerPage({
                                 {Math.round(zoom * 100)}%
                             </button>
                         )}
+                        {/* Visual rotate button */}
+                        <button
+                            type="button"
+                            className="h-full px-3.5 flex items-center justify-center transition-colors hover:opacity-80 active:scale-95 focus:outline-none"
+                            style={{ color: colors.text, borderLeft: `1px solid ${colors.border}` }}
+                            title="Rotate (Visual)"
+                            aria-label="Rotate"
+                        >
+                            <RotateCw size={15} strokeWidth={1.8} />
+                        </button>
                         <div
                             className="absolute left-0 bottom-0 pointer-events-none"
                             style={{
