@@ -638,11 +638,14 @@ export default function PYQProgress() {
                             <p style={{ color: '#fff', fontWeight: 700, fontSize: 13, margin: 0 }}>5 free questions available</p>
                             <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, margin: 0, marginTop: 2 }}>Get unlimited access with Prime.</p>
                         </div>
-                        <button style={{
-                            background: '#fff', color: '#7A41F7', fontWeight: 700,
-                            fontSize: 12, padding: '8px 16px', borderRadius: 12,
-                            border: 'none', cursor: 'pointer', flexShrink: 0,
-                        }}>
+                        <button
+                            onClick={() => window.open('https://forms.gle/oHKY3wtTYrpGGDp76', '_blank')}
+                            style={{
+                                background: '#fff', color: '#7A41F7', fontWeight: 700,
+                                fontSize: 12, padding: '8px 16px', borderRadius: 12,
+                                border: 'none', cursor: 'pointer', flexShrink: 0,
+                            }}
+                        >
                             Join Prime
                         </button>
                     </div>

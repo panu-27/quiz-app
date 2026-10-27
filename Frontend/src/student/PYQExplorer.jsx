@@ -1206,7 +1206,12 @@ export default function PYQExplorer() {
                                 <p className="text-white font-bold text-[13px]">5 free questions available</p>
                                 <p className="text-white/60 text-[11px]">Get unlimited access with Prime.</p>
                             </div>
-                            <button className="bg-white text-[#7A41F7] font-bold text-[12px] px-4 py-2.5 rounded-xl flex-shrink-0">Join Prime</button>
+                            <button
+                                onClick={() => window.open('https://forms.gle/oHKY3wtTYrpGGDp76', '_blank')}
+                                className="bg-white text-[#7A41F7] font-bold text-[12px] px-4 py-2.5 rounded-xl flex-shrink-0 cursor-pointer active:scale-95 transition-transform"
+                            >
+                                Join Prime
+                            </button>
                         </div>
                     </div>
                 )}

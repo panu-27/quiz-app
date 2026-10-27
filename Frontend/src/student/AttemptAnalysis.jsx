@@ -205,22 +205,30 @@ export default function AttemptAnalytics() {
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
+      {/* ── Fixed Header on Scroll ── */}
       <nav
-        className={`sticky top-0 z-50 px-6 py-2 flex justify-center items-center  ${isDark ? "bg-[#0E131F]" : "bg-white"
-          }`}
-        style={{ paddingTop: STATUS_BAR_H + 2 }}
+        className={`fixed top-0 left-0 right-0 z-50 px-6 py-2.5 flex justify-center items-center border-b transition-colors ${
+          isDark
+            ? "bg-[#0E131F]/95 backdrop-blur-md border-white/[0.06]"
+            : "bg-white/95 backdrop-blur-md border-slate-100 shadow-sm"
+        }`}
+        style={{ paddingTop: STATUS_BAR_H + 4 }}
       >
         <button
           onClick={handleNavBack}
-          className={`absolute left-5 p-2 rounded-full transition-colors ${isDark ? "hover:bg-white/[0.05]" : "hover:bg-slate-100"
-            }`}
+          className={`absolute left-5 p-2 rounded-full transition-colors ${
+            isDark ? "hover:bg-white/[0.05]" : "hover:bg-slate-100"
+          }`}
         >
           <ArrowLeft size={20} className={isDark ? "text-white" : "text-slate-900"} />
         </button>
         <h2 className={`text-lg font-bold ${isDark ? "text-white" : "text-slate-900"}`}>Good Job!</h2>
       </nav>
 
-      <main className="flex-1 max-w-lg mx-auto w-full px-5 pt-5 space-y-6 flex flex-col">
+      <main
+        className="flex-1 max-w-lg mx-auto w-full px-5 space-y-6 flex flex-col"
+        style={{ paddingTop: STATUS_BAR_H + 62 }}
+      >
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
           {/* Hero card */}
           <div className="bg-[#FF9494] rounded-[2rem] p-8 text-center relative overflow-hidden shadow-xl shadow-rose-100/30 flex flex-col items-center">
