@@ -20,16 +20,62 @@ export default function NoticeBoard() {
   const isDark = theme === "dark";
   const [notices, setNotices] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activePdf, setActivePdf] = useState(null); // { url, title }
-  const [activeImage, setActiveImage] = useState(null); // { src, title }
+
+  const isPdfRoute = location.pathname === '/student/notices/pdf';
+  const isImageRoute = location.pathname === '/student/notices/image';
+
+  // State or sessionStorage fallback for active viewer content
+  const [viewerPdf, setViewerPdf] = useState(() => {
+    if (location.state?.pdfUrl) {
+      return { url: location.state.pdfUrl, title: location.state.title || 'Notice Attachment' };
+    }
+    try {
+      const saved = sessionStorage.getItem('notice_viewer_pdf');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+
+  const [viewerImage, setViewerImage] = useState(() => {
+    if (location.state?.src) {
+      return { src: location.state.src, title: location.state.title || 'Notice Image' };
+    }
+    try {
+      const saved = sessionStorage.getItem('notice_viewer_image');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    if (isPdfRoute && location.state?.pdfUrl) {
+      const data = { url: location.state.pdfUrl, title: location.state.title || 'Notice Attachment' };
+      setViewerPdf(data);
+      try { sessionStorage.setItem('notice_viewer_pdf', JSON.stringify(data)); } catch (e) {}
+    }
+  }, [isPdfRoute, location.state]);
+
+  useEffect(() => {
+    if (isImageRoute && location.state?.src) {
+      const data = { src: location.state.src, title: location.state.title || 'Notice Image' };
+      setViewerImage(data);
+      try { sessionStorage.setItem('notice_viewer_image', JSON.stringify(data)); } catch (e) {}
+    }
+  }, [isImageRoute, location.state]);
+
+  const handleCloseViewer = () => {
+    if (window.history.state && window.history.state.idx > 0) {
+      navigate(-1);
+    } else {
+      navigate('/student/notices', { replace: true });
+    }
+  };
 
   const handleBack = () => {
-    if (activePdf) {
-      setActivePdf(null);
-      return true;
-    }
-    if (activeImage) {
-      setActiveImage(null);
+    if (isPdfRoute || isImageRoute) {
+      handleCloseViewer();
       return true;
     }
     let parent = location.state?.from;
@@ -46,6 +92,24 @@ export default function NoticeBoard() {
   };
 
   useBackButton(handleBack);
+
+  const openPdfViewer = (fileUrl, title) => {
+    const data = { url: fileUrl, title: title || 'Notice Attachment' };
+    setViewerPdf(data);
+    try { sessionStorage.setItem('notice_viewer_pdf', JSON.stringify(data)); } catch (e) {}
+    navigate('/student/notices/pdf', {
+      state: { pdfUrl: fileUrl, title: title || 'Notice Attachment', from: '/student/notices' }
+    });
+  };
+
+  const openImageViewer = (imgUrl, title) => {
+    const data = { src: imgUrl, title: title || 'Notice Image' };
+    setViewerImage(data);
+    try { sessionStorage.setItem('notice_viewer_image', JSON.stringify(data)); } catch (e) {}
+    navigate('/student/notices/image', {
+      state: { src: imgUrl, title: title || 'Notice Image', from: '/student/notices' }
+    });
+  };
 
   // Initialize lastViewed synchronously
   const [lastViewed, setLastViewed] = useState(() => {
@@ -242,10 +306,7 @@ export default function NoticeBoard() {
                             <button
                               onClick={() => {
                                 const fileUrl = resolveMediaUrl(notice.attachmentUrl);
-                                setActivePdf({
-                                  url: fileUrl,
-                                  title: notice.title || 'Notice Attachment',
-                                });
+                                openPdfViewer(fileUrl, notice.title || 'Notice Attachment');
                               }}
                               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${isDark ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
                             >
@@ -269,10 +330,7 @@ export default function NoticeBoard() {
                             className="w-full h-auto rounded-xl cursor-pointer object-contain hover:opacity-95 transition-opacity"
                             onClick={() => {
                               const imgUrl = resolveMediaUrl(notice.imageUrl);
-                              setActiveImage({
-                                src: imgUrl,
-                                title: notice.title || 'Notice Image',
-                              });
+                              openImageViewer(imgUrl, notice.title || 'Notice Image');
                             }}
                           />
                         </div>
@@ -287,10 +345,7 @@ export default function NoticeBoard() {
                             className="w-full h-auto rounded-xl cursor-pointer object-contain hover:opacity-95 transition-opacity"
                             onClick={() => {
                               const imgUrl = resolveMediaUrl(notice.attachmentUrl);
-                              setActiveImage({
-                                src: imgUrl,
-                                title: notice.title || 'Notice Image',
-                              });
+                              openImageViewer(imgUrl, notice.title || 'Notice Image');
                             }}
                           />
                         </div>
@@ -306,20 +361,20 @@ export default function NoticeBoard() {
       </div>
 
       {/* ══ IN-APP PDF VIEWER (Same design as Library with STATUS_BAR_H) ══ */}
-      {activePdf && (
+      {isPdfRoute && viewerPdf && (
         <PdfViewerPage
-          pdfUrl={activePdf.url}
-          title={activePdf.title}
-          onClose={() => setActivePdf(null)}
+          pdfUrl={viewerPdf.url}
+          title={viewerPdf.title}
+          onClose={handleCloseViewer}
         />
       )}
 
       {/* ══ IN-APP IMAGE VIEWER (Interactive pinch/zoom with STATUS_BAR_H) ══ */}
-      {activeImage && (
+      {isImageRoute && viewerImage && (
         <ImageViewerModal
-          src={activeImage.src}
-          title={activeImage.title}
-          onClose={() => setActiveImage(null)}
+          src={viewerImage.src}
+          title={viewerImage.title}
+          onClose={handleCloseViewer}
         />
       )}
 

@@ -23,7 +23,7 @@ export default function RefundPolicyPage() {
     return (
         <div className={`min-h-screen flex flex-col ${isDark ? 'bg-[#000711]' : 'bg-white'}`}>
             {/* Standard Header (Fixed on scroll) */}
-            <div className={`fixed top-0 left-0 right-0 z-40 px-5 pb-3.5 border-b shadow-sm ${isDark ? 'bg-[#000711]/95 backdrop-blur-md border-slate-800/80' : 'bg-white/95 backdrop-blur-md border-slate-200/80'}`} style={{ paddingTop: STATUS_BAR_H + 10 }}>
+            <div className={`fixed top-0 left-0 right-0 z-40 px-5 pb-3.5 ${isDark ? 'bg-[#000711]/95 backdrop-blur-md border-slate-800/80' : 'bg-white/95 backdrop-blur-md border-slate-200/80'}`} style={{ paddingTop: STATUS_BAR_H + 10 }}>
                 <div className="flex items-center gap-4">
                     <button
                         onClick={handleBack}

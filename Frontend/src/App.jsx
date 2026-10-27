@@ -118,7 +118,12 @@ export default function App() {
   // prime the browser history so the browser Back button is enabled and takes them to the parent route.
   useEffect(() => {
     const fullCurrentUrl = window.location.pathname + window.location.search;
-    if (fullCurrentUrl.endsWith("/counsellor") || (fullCurrentUrl.startsWith("/student/quiz/settings") && window.location.search)) {
+    if (
+      fullCurrentUrl.endsWith("/counsellor") ||
+      fullCurrentUrl === "/student/notices/pdf" ||
+      fullCurrentUrl === "/student/notices/image" ||
+      fullCurrentUrl.startsWith("/student/quiz/settings")
+    ) {
       const parent = getParentRoute(fullCurrentUrl, window.history.state) || "/student";
       const currentIdx = window.history.state?.idx;
       if (currentIdx === undefined || currentIdx === 0) {
@@ -352,6 +357,7 @@ export default function App() {
             <Route path="test/:testId" element={<TestAttempt />} />
             <Route path="quiz" element={<StudentQuizFlow />} />
             <Route path="quiz/settings" element={<StudentQuizFlow />} />
+            <Route path="quiz/settings/:stepId" element={<StudentQuizFlow />} />
             <Route path="quiz/*" element={<StudentQuizFlow />} />
             <Route path="quiztest" element={<StudentQuizTest />} />
             <Route path="pyq" element={<PYQExplorer />} />
@@ -369,6 +375,8 @@ export default function App() {
             <Route path="feedback" element={<FeedbackPage />} />
             <Route path="subscription" element={<StudentSubscription />} />
             <Route path="notices" element={<NoticeBoard />} />
+            <Route path="notices/pdf" element={<NoticeBoard />} />
+            <Route path="notices/image" element={<NoticeBoard />} />
             <Route path="prime" element={<Prime />} />
             <Route path="prime/counsellor" element={<Prime initialCounsellor={true} />} />
             <Route path="prime/course/:courseId" element={<PrimeCourse />} />

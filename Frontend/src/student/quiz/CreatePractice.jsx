@@ -18,7 +18,12 @@ export default function CreatePractice({ onStartPractice, onBackToApp }) {
 
   const isSettings = location.pathname.includes('/settings');
   const step = isSettings ? 2 : 1;
-  const subStep = Math.max(0, parseInt(searchParams.get('step') || '0', 10));
+  const pathParts = location.pathname.split('/').filter(Boolean);
+  let stepIdFromPath = 0;
+  if (pathParts[2] === 'settings' && pathParts[3]) {
+    stepIdFromPath = parseInt(pathParts[3], 10) || 0;
+  }
+  const subStep = Math.max(0, stepIdFromPath || parseInt(searchParams.get('step') || '0', 10));
 
   const [subjects, setSubjects] = useState([]);
   const [chaptersMap, setChaptersMap] = useState({});
@@ -215,17 +220,30 @@ export default function CreatePractice({ onStartPractice, onBackToApp }) {
   };
 
   const handlePrev = () => {
-    if (subStep > 0) {
-      const prevStep = subStep - 1;
-      navigate(prevStep === 0 ? '/student/quiz/settings' : `/student/quiz/settings?step=${prevStep}`, { replace: true });
+    if (subStep > 1) {
+      if (window.history.state?.idx > 0) {
+        navigate(-1);
+      } else {
+        navigate(`/student/quiz/settings/${subStep - 1}`);
+      }
+    } else if (subStep === 1) {
+      if (window.history.state?.idx > 0) {
+        navigate(-1);
+      } else {
+        navigate('/student/quiz/settings');
+      }
     } else {
-      navigate('/student/quiz', { replace: true });
+      if (window.history.state?.idx > 0) {
+        navigate(-1);
+      } else {
+        navigate('/student/quiz');
+      }
     }
   };
 
   const handleNextOrStart = () => {
     if (subStep < activeSubjects.length) {
-      navigate(`/student/quiz/settings?step=${subStep + 1}`);
+      navigate(`/student/quiz/settings/${subStep + 1}`);
     } else {
       handleStart();
     }

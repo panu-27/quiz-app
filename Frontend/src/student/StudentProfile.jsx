@@ -517,7 +517,7 @@ function MobileSettingsPage({ onBack, name, email, avatarUrl, onAvatarChange, pr
                         <button
                             onClick={() => {
                                 if (!user?.approved) {
-                                    try { sessionStorage.setItem('student_goal_parent', '/student/profile'); } catch(e) {}
+                                    try { sessionStorage.setItem('student_goal_parent', '/student/profile'); } catch (e) { }
                                     navigate('/student/goal-selection', { state: { from: '/student/profile' } });
                                 }
                             }}
@@ -593,18 +593,24 @@ function MobileSettingsPage({ onBack, name, email, avatarUrl, onAvatarChange, pr
                             { icon: <PlaySquare size={18} className="text-[#00E2B8]" />, label: "Enrollments", action: () => navigate('/student') },
                             { icon: <Download size={18} className="text-[#A855F7]" />, label: "Downloads", action: () => navigate('/student/downloads', { state: { from: '/student/profile' } }) },
                             { icon: <Bell size={18} className="text-[#00E2B8]" />, label: "Updates", action: () => navigate('/student/notices', { state: { from: '/student/profile' } }) },
-                            { icon: <Award size={18} className="text-amber-500" />, label: "Leaderboard", action: () => {
-                                try { sessionStorage.setItem('student_leaderboard_parent', '/student/profile'); } catch(e) {}
-                                navigate('/student/personal', { state: { from: '/student/profile' } });
-                            }},
-                            { icon: <HelpCircle size={18} className="text-[#3B82F6]" />, label: "FAQs", action: () => {
-                                try { sessionStorage.setItem('student_faqs_parent', '/student/profile'); } catch(e) {}
-                                navigate('/student/faqs', { state: { from: '/student/profile' } });
-                            }},
-                            { icon: <Settings size={18} className={isDark ? 'text-slate-400' : 'text-slate-500'} />, label: "Settings", action: () => {
-                                try { sessionStorage.setItem('student_settings_parent', '/student/profile'); } catch(e) {}
-                                navigate('/student/settings', { state: { from: '/student/profile' } });
-                            }}
+                            {
+                                icon: <Award size={18} className="text-amber-500" />, label: "Leaderboard", action: () => {
+                                    try { sessionStorage.setItem('student_leaderboard_parent', '/student/profile'); } catch (e) { }
+                                    navigate('/student/personal', { state: { from: '/student/profile' } });
+                                }
+                            },
+                            {
+                                icon: <HelpCircle size={18} className="text-[#3B82F6]" />, label: "FAQs", action: () => {
+                                    try { sessionStorage.setItem('student_faqs_parent', '/student/profile'); } catch (e) { }
+                                    navigate('/student/faqs', { state: { from: '/student/profile' } });
+                                }
+                            },
+                            {
+                                icon: <Settings size={18} className={isDark ? 'text-slate-400' : 'text-slate-500'} />, label: "Settings", action: () => {
+                                    try { sessionStorage.setItem('student_settings_parent', '/student/profile'); } catch (e) { }
+                                    navigate('/student/settings', { state: { from: '/student/profile' } });
+                                }
+                            }
                         ].map((item, i) => (
                             <button key={i} onClick={item.action} className={`flex items-center gap-3 px-4 py-4 rounded-xl border bg-transparent text-left active:scale-95 transition-all ${isDark ? 'border-[#2A3649] hover:bg-slate-800/40' : 'border-slate-200 hover:bg-slate-50'}`}>
                                 {item.icon}
@@ -708,7 +714,7 @@ export default function StudentProfile() {
         const fromCandidate = location.state?.from || queryFrom;
         const isChildRoute = fromCandidate && PROFILE_CHILD_ROUTES.some(r => fromCandidate === r || fromCandidate.startsWith(r + '/'));
         if (fromCandidate && !isChildRoute && fromCandidate.startsWith('/student')) {
-            try { sessionStorage.setItem('student_profile_parent', fromCandidate); } catch(e) {}
+            try { sessionStorage.setItem('student_profile_parent', fromCandidate); } catch (e) { }
             return fromCandidate;
         }
         try {
@@ -716,7 +722,7 @@ export default function StudentProfile() {
             if (saved && !PROFILE_CHILD_ROUTES.some(r => saved === r || saved.startsWith(r + '/')) && saved.startsWith('/student')) {
                 return saved;
             }
-        } catch(e) {}
+        } catch (e) { }
         return '/student';
     }, [location.state?.from, location.search, PROFILE_CHILD_ROUTES]);
 
@@ -1090,7 +1096,7 @@ MOBILE (< lg) — Unacademy-style layout
             <div className={`lg:hidden  min-h-screen flex  flex-col ${isDark ? 'bg-[#0A0F1A]' : 'bg-[#F4F7FC]'}`}>
 
                 {/* Fixed Header containing Back button + Profile + Avatar */}
-                <div className={`fixed top-0 left-0 right-0 z-40 px-5 pb-3 flex rounded-b-2xl flex-col gap-4 shadow-sm ${isDark ? 'bg-[#151E2E]/95 border-b border-slate-800 backdrop-blur-md' : 'bg-white/95 border-b border-slate-200 backdrop-blur-md'}`} style={{ paddingTop: STATUS_BAR_H + 8 }}>
+                <div className={`fixed top-0 left-0 right-0 z-40 px-5 pb-3 mt-1 flex rounded-b-2xl flex-col gap-4 shadow-sm ${isDark ? 'bg-[#151E2E]/95  backdrop-blur-md' : 'bg-white/95 backdrop-blur-md'}`} style={{ paddingTop: STATUS_BAR_H + 8 }}>
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <button
@@ -1108,7 +1114,7 @@ MOBILE (< lg) — Unacademy-style layout
                             <button
                                 onClick={() => {
                                     if (!authUser?.approved) {
-                                        try { sessionStorage.setItem('student_goal_parent', '/student/profile'); } catch(e) {}
+                                        try { sessionStorage.setItem('student_goal_parent', '/student/profile'); } catch (e) { }
                                         navigate('/student/goal-selection', { state: { from: '/student/profile' } });
                                     }
                                 }}
@@ -1243,18 +1249,24 @@ MOBILE (< lg) — Unacademy-style layout
                                 { icon: <PlaySquare size={18} className="text-[#00E2B8]" />, label: 'Home', action: () => navigate('/student') },
                                 { icon: <Download size={18} className="text-[#A855F7]" />, label: 'Downloads', action: () => navigate('/student/downloads', { state: { from: '/student/profile' } }) },
                                 { icon: <Bell size={18} className="text-[#00E2B8]" />, label: 'Updates', action: () => navigate('/student/notices', { state: { from: '/student/profile' } }) },
-                                { icon: <Award size={18} className="text-amber-500" />, label: 'Leaderboard', action: () => {
-                                    try { sessionStorage.setItem('student_leaderboard_parent', '/student/profile'); } catch(e) {}
-                                    navigate('/student/personal', { state: { from: '/student/profile' } });
-                                }},
-                                { icon: <HelpCircle size={18} className="text-[#3B82F6]" />, label: 'FAQs', action: () => {
-                                    try { sessionStorage.setItem('student_faqs_parent', '/student/profile'); } catch(e) {}
-                                    navigate('/student/faqs', { state: { from: '/student/profile' } });
-                                }},
-                                { icon: <Settings size={18} className={isDark ? 'text-slate-400' : 'text-slate-500'} />, label: 'Settings', action: () => {
-                                    try { sessionStorage.setItem('student_settings_parent', '/student/profile'); } catch(e) {}
-                                    navigate('/student/settings', { state: { from: '/student/profile' } });
-                                }},
+                                {
+                                    icon: <Award size={18} className="text-amber-500" />, label: 'Leaderboard', action: () => {
+                                        try { sessionStorage.setItem('student_leaderboard_parent', '/student/profile'); } catch (e) { }
+                                        navigate('/student/personal', { state: { from: '/student/profile' } });
+                                    }
+                                },
+                                {
+                                    icon: <HelpCircle size={18} className="text-[#3B82F6]" />, label: 'FAQs', action: () => {
+                                        try { sessionStorage.setItem('student_faqs_parent', '/student/profile'); } catch (e) { }
+                                        navigate('/student/faqs', { state: { from: '/student/profile' } });
+                                    }
+                                },
+                                {
+                                    icon: <Settings size={18} className={isDark ? 'text-slate-400' : 'text-slate-500'} />, label: 'Settings', action: () => {
+                                        try { sessionStorage.setItem('student_settings_parent', '/student/profile'); } catch (e) { }
+                                        navigate('/student/settings', { state: { from: '/student/profile' } });
+                                    }
+                                },
                             ].map((item, i) => (
                                 <button
                                     key={i}

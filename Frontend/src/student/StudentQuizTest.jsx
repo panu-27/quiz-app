@@ -17,11 +17,16 @@ export default function StudentQuizTest() {
 
     if (!examData) return null;
 
+    const handleFinish = () => {
+        const returnPath = location.state?.from || '/student/quiz';
+        navigate(returnPath, { replace: true });
+    };
+
     return (
         <TestAttempt
             examData={examData}
             parentAttemptId={parentAttemptId}
-            onFinish={() => navigate('/student', { replace: true })}
+            onFinish={handleFinish}
         />
     );
 }

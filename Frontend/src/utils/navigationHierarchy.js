@@ -50,20 +50,30 @@ export function getParentRoute(currentPath, locationState = {}) {
     return STUDENT_ROOT;
   }
 
+  // Notice attachments -> Parent is Notice list
+  if (path === "/student/notices/pdf" || path === "/student/notices/image") {
+    return "/student/notices";
+  }
+
   // Quiz flow stages (Strict single-parent hierarchy):
-  // Stage 3 attempt -> Parent is Quiz settings
+  // Quiz attempt -> Parent is Quiz root
   if (path.startsWith("/student/quiztest")) {
-    return "/student/quiz/settings";
+    return "/student/quiz";
   }
 
   // Stage 2 settings -> Parent is Stage 1 (Quiz selection) or previous step
   if (path === "/student/quiz/settings" || path.startsWith("/student/quiz/settings")) {
     let stepNum = 0;
-    try {
-      stepNum = parseInt(searchParams?.get("step") || "0", 10);
-    } catch(e) {}
+    const parts = path.split("/").filter(Boolean);
+    if (parts[2] === "settings" && parts[3]) {
+      stepNum = parseInt(parts[3], 10) || 0;
+    } else {
+      try {
+        stepNum = parseInt(searchParams?.get("step") || "0", 10);
+      } catch(e) {}
+    }
     if (stepNum > 1) {
-      return `/student/quiz/settings?step=${stepNum - 1}`;
+      return `/student/quiz/settings/${stepNum - 1}`;
     }
     if (stepNum === 1) {
       return "/student/quiz/settings";

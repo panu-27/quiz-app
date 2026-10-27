@@ -131,6 +131,7 @@ const TestAttempt = ({ examData, onFinish, parentAttemptId }) => {
     const [attemptStartTime] = useState(Date.now());
     const [panelOpen, setPanelOpen] = useState(false);
     const [showConfirmSubmit, setShowConfirmSubmit] = useState(false);
+    const [showConfirmLeave, setShowConfirmLeave] = useState(false);
 
     const [showReportModal, setShowReportModal] = useState(false);
     const [reporting, setReporting] = useState(false);
@@ -142,32 +143,49 @@ const TestAttempt = ({ examData, onFinish, parentAttemptId }) => {
     );
     const visiblePool = (reviewMode || submitted) ? flattenedPool : blockQuestions;
 
-    /* ── Hardware Back Button Interceptors ── */
-    
-    // 1. Base page guard: If exam is active, intercept back to show submit confirmation
-    useBackButton(() => {
-        if (submitted || reviewMode) return false;
-        setShowConfirmSubmit(true);
-        return true;
-    }, !submitted && !reviewMode);
+    /* ── Hardware / Browser Back Button Interceptors ── */
 
-    // 2. Question Map Panel
+    // 1. Report Modal
     useBackButton(() => {
-        setPanelOpen(false);
+        setShowReportModal(false);
         return true;
-    }, panelOpen);
+    }, showReportModal);
 
-    // 3. Confirm Submit Modal (Cancel)
+    // 2. Confirm Submit Modal
     useBackButton(() => {
         setShowConfirmSubmit(false);
         return true;
     }, showConfirmSubmit);
 
-    // 4. Report Modal
+    // 3. Confirm Leave Modal
     useBackButton(() => {
-        setShowReportModal(false);
+        setShowConfirmLeave(false);
         return true;
-    }, showReportModal);
+    }, showConfirmLeave);
+
+    // 4. Question Map Panel
+    useBackButton(() => {
+        setPanelOpen(false);
+        return true;
+    }, panelOpen);
+
+    // 5. Review Mode -> Back returns to Results Report
+    useBackButton(() => {
+        setReviewMode(false);
+        return true;
+    }, reviewMode);
+
+    // 6. Results Report Screen -> Back cleanly finishes quiz
+    useBackButton(() => {
+        onFinish?.();
+        return true;
+    }, submitted && !reviewMode);
+
+    // 7. Active Quiz In-Progress Guard -> Show "Leave Quiz?" modal
+    useBackButton(() => {
+        setShowConfirmLeave(true);
+        return true;
+    }, !submitted && !reviewMode && !showConfirmLeave && !showConfirmSubmit && !panelOpen && !showReportModal);
 
     const isUnlimited = useMemo(() => {
         return blocks[activeBlockIdx]?.duration >= 9999;
@@ -338,9 +356,18 @@ const TestAttempt = ({ examData, onFinish, parentAttemptId }) => {
         return (
             <div style={{ position: 'fixed', inset: 0, background: '#fff', display: 'flex', flexDirection: 'column', zIndex: 9999, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                 <div style={{ padding: '16px 24px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div>
-                        <h2 style={{ fontSize: 16, fontWeight: 800, color: '#111827', margin: 0 }}>Quiz Analysis Report</h2>
-                        <p style={{ fontSize: 11, color: '#64748B', margin: '2px 0 0' }}>{examData.title}</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <button
+                            onClick={onFinish}
+                            style={{ background: '#F1F5F9', border: 'none', padding: '6px 12px', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: '#64748B', fontWeight: 700, fontSize: 13, fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                            title="Exit"
+                        >
+                            <ArrowLeft size={16} /> Exit
+                        </button>
+                        <div>
+                            <h2 style={{ fontSize: 16, fontWeight: 800, color: '#111827', margin: 0 }}>Quiz Analysis Report</h2>
+                            <p style={{ fontSize: 11, color: '#64748B', margin: '2px 0 0' }}>{examData.title}</p>
+                        </div>
                     </div>
                     <button onClick={onFinish} style={{ background: '#F1F5F9', border: 'none', padding: 6, borderRadius: 8, cursor: 'pointer' }}><X size={18} color="#64748B" /></button>
                 </div>
@@ -470,6 +497,13 @@ const TestAttempt = ({ examData, onFinish, parentAttemptId }) => {
             <header style={{ height: 60, borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px' }}>
                 {!reviewMode ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <button
+                            onClick={() => setShowConfirmLeave(true)}
+                            style={{ background: '#F1F5F9', border: 'none', padding: 8, borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            title="Leave Quiz"
+                        >
+                            <ArrowLeft size={18} color="#64748B" />
+                        </button>
                         {blocks.length > 1 && (
                             <span style={{ fontSize: 11, fontWeight: 800, color: '#7C3AED', background: '#F5F3FF', padding: '3px 8px', borderRadius: 6 }}>
                                 {blocks[activeBlockIdx]?.blockName}
@@ -641,6 +675,38 @@ const TestAttempt = ({ examData, onFinish, parentAttemptId }) => {
                                 )}
                             </>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* ── CONFIRM LEAVE MODAL ── */}
+            {showConfirmLeave && (
+                <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(4px)', padding: 20 }}>
+                    <div style={{ background: '#fff', borderRadius: 20, padding: 24, maxWidth: 320, width: '100%', textAlign: 'center', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+                        <div style={{ width: 50, height: 50, background: '#FEF2F2', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                            <AlertTriangle color="#EF4444" size={24} />
+                        </div>
+                        <h3 style={{ fontSize: 18, fontWeight: 800, color: '#111827', margin: '0 0 8px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Leave Quiz?</h3>
+                        <p style={{ fontSize: 14, color: '#64748B', marginBottom: 24, lineHeight: 1.5, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                            Are you sure you want to leave this quiz? Your current attempt and responses will not be saved.
+                        </p>
+                        <div style={{ display: 'flex', gap: 10 }}>
+                            <button
+                                onClick={() => setShowConfirmLeave(false)}
+                                style={{ flex: 1, padding: 12, borderRadius: 12, background: '#F1F5F9', border: 'none', color: '#64748B', fontWeight: 700, cursor: 'pointer', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                            >
+                                Resume
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setShowConfirmLeave(false);
+                                    onFinish?.();
+                                }}
+                                style={{ flex: 1, padding: 12, borderRadius: 12, background: '#EF4444', border: 'none', color: '#fff', fontWeight: 700, cursor: 'pointer', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                            >
+                                Leave
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

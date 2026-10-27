@@ -114,7 +114,7 @@ export default function StudentLayout() {
     '/student/privacy-policy',
     '/student/cookie-policy',
     '/student/refund-policy'
-  ].includes(location.pathname) || location.pathname.startsWith('/student/settings');
+  ].includes(location.pathname) || location.pathname.startsWith('/student/settings') || location.pathname.startsWith('/student/notices');
 
   const showNavbar = isTestPage || isAnalysisPage || hideForPdf || isQuizTest || isQuizPage || isPYQPage || isProfilePage || isFeedbackPage || isListedAttempts || isPdfPage || isSettingsPages;
   const showChrome = isMobile && !showNavbar;
