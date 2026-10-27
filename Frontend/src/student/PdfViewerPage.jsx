@@ -12,6 +12,7 @@ const MIN_ZOOM = 1; // 100% = full device width; can't zoom out past it
 const MAX_ZOOM = 3.5;
 const DOUBLE_TAP_ZOOM = 2;
 const HEADER_H = 56;
+const STATUS_BAR_H = 28.5;
 
 /* Monochrome palette */
 const PALETTE = {
@@ -148,7 +149,7 @@ function PdfCanvasViewer({
     onPageChange,
     onLoadSuccess,
     onScrollDirection,
-    topPad = HEADER_H + 16,
+    topPad = HEADER_H + STATUS_BAR_H + 16,
     bottomPad = 96,
     onReady,
     onError,
@@ -462,7 +463,11 @@ function PdfCanvasViewer({
 /* ══════════════════════════════════════════════════════════
    PAGE
 ══════════════════════════════════════════════════════════ */
-export default function PdfViewerPage() {
+export default function PdfViewerPage({
+    pdfUrl: propPdfUrl,
+    title: propTitle,
+    onClose,
+} = {}) {
     const { theme } = useTheme();
     const colors = theme === 'light' ? PALETTE.light : PALETTE.dark;
     const navigate = useNavigate();
@@ -471,8 +476,8 @@ export default function PdfViewerPage() {
 
     const searchParams = new URLSearchParams(location.search);
     const stateData = location.state || {};
-    const pdfUrl = stateData.pdfUrl || searchParams.get('url');
-    const title = stateData.title || searchParams.get('title') || '';
+    const pdfUrl = propPdfUrl || stateData.pdfUrl || searchParams.get('url');
+    const title = propTitle || stateData.title || searchParams.get('title') || '';
     const date = stateData.date || '';
     const questions = stateData.questions;
 
@@ -484,6 +489,10 @@ export default function PdfViewerPage() {
     const [headerHidden, setHeaderHidden] = useState(false);
 
     const handleBack = () => {
+        if (onClose) {
+            onClose();
+            return true;
+        }
         const fromPath = stateData.from || (source === 'pyq' || location.pathname.includes('/pyq') ? '/student/pyq' : '/student/library');
         navigate(fromPath, { replace: true });
         return true;
@@ -539,12 +548,13 @@ export default function PdfViewerPage() {
             <header
                 className="absolute top-0 left-0 right-0 z-50 flex items-center gap-2 px-2 sm:px-4"
                 style={{
-                    height: HEADER_H,
+                    paddingTop: STATUS_BAR_H,
+                    height: HEADER_H + STATUS_BAR_H,
                     background: colors.bar,
                     backdropFilter: 'blur(12px)',
                     WebkitBackdropFilter: 'blur(12px)',
                     borderBottom: `1px solid ${colors.border}`,
-                    transform: headerHidden ? 'translateY(-100%)' : 'translateY(0)',
+                    transform: headerHidden ? `translateY(-${HEADER_H + STATUS_BAR_H}px)` : 'translateY(0)',
                     transition: 'transform 0.25s ease',
                 }}
             >
@@ -576,7 +586,7 @@ export default function PdfViewerPage() {
             {/* Document area */}
             <div className="pdf-viewer-container flex-1 w-full relative" style={{ background: colors.canvasBg }}>
                 {source === 'pyq' && !pdfUrl ? (
-                    <div style={{ padding: '24px 16px', paddingTop: HEADER_H + 24, width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'auto' }}>
+                    <div style={{ padding: '24px 16px', paddingTop: HEADER_H + STATUS_BAR_H + 24, width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'auto' }}>
                         <div style={{
                             width: '100%',
                             maxWidth: 450,
@@ -627,7 +637,7 @@ export default function PdfViewerPage() {
                     </div>
                 ) : pdfUrl && loadError ? (
                     <>
-                        <div style={{ position: 'absolute', top: HEADER_H + 10, left: 12, right: 12, zIndex: 41, pointerEvents: 'none' }}>
+                        <div style={{ position: 'absolute', top: HEADER_H + STATUS_BAR_H + 10, left: 12, right: 12, zIndex: 41, pointerEvents: 'none' }}>
                             <p
                                 style={{
                                     fontSize: 11,
@@ -637,6 +647,8 @@ export default function PdfViewerPage() {
                                     padding: '4px 10px',
                                     borderRadius: 999,
                                     display: 'inline-block',
+                                    backdropFilter: 'blur(10px)',
+                                    WebkitBackdropFilter: 'blur(10px)',
                                 }}
                             >
                                 Fallback viewer: {loadError}
@@ -645,7 +657,7 @@ export default function PdfViewerPage() {
                         <iframe
                             src={`${resolvedUrl}#toolbar=0&navpanes=0`}
                             title="Document Viewer"
-                            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none', paddingTop: HEADER_H, background: colors.canvasBg }}
+                            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none', paddingTop: HEADER_H + STATUS_BAR_H, background: colors.canvasBg }}
                         />
                     </>
                 ) : pdfUrl ? (

@@ -104,6 +104,7 @@ export default function StudentLayout() {
 
   const isSettingsPages = [
     '/student/settings',
+    '/student/settings/logout',
     '/student/delete-account',
     '/student/downloads',
     '/student/faqs',
@@ -113,7 +114,7 @@ export default function StudentLayout() {
     '/student/privacy-policy',
     '/student/cookie-policy',
     '/student/refund-policy'
-  ].includes(location.pathname);
+  ].includes(location.pathname) || location.pathname.startsWith('/student/settings');
 
   const showNavbar = isTestPage || isAnalysisPage || hideForPdf || isQuizTest || isQuizPage || isPYQPage || isProfilePage || isFeedbackPage || isListedAttempts || isPdfPage || isSettingsPages;
   const showChrome = isMobile && !showNavbar;

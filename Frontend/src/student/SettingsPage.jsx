@@ -70,6 +70,13 @@ export default function SettingsPage({ initialLogout = false }) {
     setShowLogoutModal(isLogoutRoute);
   }, [isLogoutRoute]);
 
+  useEffect(() => {
+    if (showLogoutModal || isLogoutRoute) {
+      document.body.setAttribute('data-hide-nav', 'true');
+      return () => document.body.removeAttribute('data-hide-nav');
+    }
+  }, [showLogoutModal, isLogoutRoute]);
+
   const closeLogoutModal = () => {
     setShowLogoutModal(false);
     if (location.pathname === '/student/settings/logout') {

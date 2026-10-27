@@ -6,6 +6,8 @@ import { initSocket } from "../api/socket";
 import axios from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
 import useBackButton from "../hooks/useBackButton";
+import PdfViewerPage from "./PdfViewerPage";
+import ImageViewerModal from "./ImageViewerModal";
 
 const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 const STATUS_BAR_H = 28.5;
@@ -18,11 +20,21 @@ export default function NoticeBoard() {
   const isDark = theme === "dark";
   const [notices, setNotices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activePdf, setActivePdf] = useState(null); // { url, title }
+  const [activeImage, setActiveImage] = useState(null); // { src, title }
 
   const handleBack = () => {
+    if (activePdf) {
+      setActivePdf(null);
+      return true;
+    }
+    if (activeImage) {
+      setActiveImage(null);
+      return true;
+    }
     let parent = location.state?.from;
     if (!parent) {
-      try { parent = sessionStorage.getItem('student_notices_parent'); } catch(e) {}
+      try { parent = sessionStorage.getItem('student_notices_parent'); } catch (e) { }
     }
     if (!parent) parent = '/student';
     if (window.history.state && window.history.state.idx > 0) {
@@ -34,7 +46,7 @@ export default function NoticeBoard() {
   };
 
   useBackButton(handleBack);
-  
+
   // Initialize lastViewed synchronously
   const [lastViewed, setLastViewed] = useState(() => {
     const stored = localStorage.getItem("lastNoticeViewAt");
@@ -42,7 +54,7 @@ export default function NoticeBoard() {
     // If first time opening, default to user's account creation time (or epoch)
     return user?.createdAt ? new Date(user.createdAt) : new Date(0);
   });
-  
+
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -51,7 +63,7 @@ export default function NoticeBoard() {
 
   useEffect(() => {
     fetchNotices();
-    
+
     const socket = initSocket();
     socket.connect();
 
@@ -132,20 +144,20 @@ export default function NoticeBoard() {
       `}</style>
 
       {/* ══ FIXED HEADER AREA ══ */}
-      <div className={`fixed top-0 left-0 right-0 z-40 px-5 pb-3 flex flex-col gap-4 border-b ${isDark ? 'bg-[#0A0F1A]/95 border-slate-800/80 backdrop-blur-md' : 'bg-[#F4F7FC]/95 border-slate-200/80 backdrop-blur-md'}`} style={{ paddingTop: STATUS_BAR_H + 8 }}>
-          <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                  <button
-                      onClick={handleBack}
-                      className={`w-10 h-10 -ml-2 flex items-center justify-center transition-colors ${isDark ? 'text-white' : 'text-slate-800'}`}
-                  >
-                      <ArrowLeft size={24} />
-                  </button>
-                  <h1 className={`text-[17px] font-bold font-display truncate leading-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>
-                      Updates
-                  </h1>
-              </div>
+      <div className={`fixed top-0 left-0 right-0 z-40 px-5 pb-3 flex flex-col gap-4  ${isDark ? 'bg-[#0A0F1A]/95 border-slate-800/80 backdrop-blur-md' : 'bg-[#F4F7FC]/95 border-slate-200/80 backdrop-blur-md'}`} style={{ paddingTop: STATUS_BAR_H + 8 }}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleBack}
+              className={`w-10 h-10 -ml-2 flex items-center justify-center transition-colors ${isDark ? 'text-white' : 'text-slate-800'}`}
+            >
+              <ArrowLeft size={24} />
+            </button>
+            <h1 className={`text-[17px] font-bold font-display truncate leading-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>
+              Updates
+            </h1>
           </div>
+        </div>
       </div>
 
       {/* List Content */}
@@ -187,14 +199,14 @@ export default function NoticeBoard() {
                   {/* Unread Messages Divider */}
                   {showUnreadDivider && (
                     <div className="flex items-center justify-center my-4" style={{ animation: 'slideUp 0.3s ease-out' }}>
-                       <span className={`px-3 py-1 rounded-lg text-[10px] font-bold tracking-wider ${isDark ? 'bg-slate-800/50 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
-                         UNREAD MESSAGES
-                       </span>
+                      <span className={`px-3 py-1 rounded-lg text-[10px] font-bold tracking-wider ${isDark ? 'bg-slate-800/50 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
+                        UNREAD MESSAGES
+                      </span>
                     </div>
                   )}
 
                   {/* WhatsApp Style Message Bubble */}
-                  <div 
+                  <div
                     className="flex items-start gap-2.5"
                     style={{ animation: `slideUp 0.3s ease-out both` }}
                   >
@@ -209,7 +221,7 @@ export default function NoticeBoard() {
 
                     {/* Chat Bubble Group */}
                     <div className="flex flex-col gap-1.5 max-w-[85%]">
-                      
+
                       {/* Main Text Bubble */}
                       <div className={`relative rounded-2xl rounded-tl-none px-4 py-3 shadow-sm ${isDark ? 'bg-[#1E293B] text-slate-200 border border-slate-800' : 'bg-white text-slate-800 border border-slate-100'}`}>
                         {/* Title / Teacher Name */}
@@ -218,7 +230,7 @@ export default function NoticeBoard() {
                             {notice.title}
                           </span>
                         </div>
-                        
+
                         {/* Message Content */}
                         <p className={`text-[14px] leading-relaxed whitespace-pre-wrap ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                           {notice.content}
@@ -227,33 +239,41 @@ export default function NoticeBoard() {
                         {/* Document Attachment Button */}
                         {notice.attachmentUrl && !/\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i.test(notice.attachmentUrl) && (
                           <div className="mt-3 mb-1">
-                              <button
-                                  onClick={() => {
-                                    const fileUrl = resolveMediaUrl(notice.attachmentUrl);
-                                    const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}`;
-                                    window.open(viewerUrl, '_blank');
-                                  }}
-                                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${isDark ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
-                                >
-                                <FileText size={14} /> Open Attachment
-                              </button>
+                            <button
+                              onClick={() => {
+                                const fileUrl = resolveMediaUrl(notice.attachmentUrl);
+                                setActivePdf({
+                                  url: fileUrl,
+                                  title: notice.title || 'Notice Attachment',
+                                });
+                              }}
+                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${isDark ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}
+                            >
+                              <FileText size={14} /> Open Attachment
+                            </button>
                           </div>
                         )}
 
                         {/* Time */}
                         <div className={`text-[10px] font-medium text-right mt-1.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                          {new Date(notice.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                          {new Date(notice.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>
                       </div>
 
                       {/* Dedicated Image Bubble */}
                       {notice.imageUrl && (
                         <div className={`relative rounded-2xl p-1 shadow-sm w-fit ${isDark ? 'bg-[#1E293B] border border-slate-800' : 'bg-white border border-slate-100'}`}>
-                          <img 
-                            src={resolveMediaUrl(notice.imageUrl)} 
-                            alt="Attached Graphic" 
+                          <img
+                            src={resolveMediaUrl(notice.imageUrl)}
+                            alt="Attached Graphic"
                             className="w-full h-auto rounded-xl cursor-pointer object-contain hover:opacity-95 transition-opacity"
-                            onClick={() => window.open(resolveMediaUrl(notice.imageUrl), '_blank')}
+                            onClick={() => {
+                              const imgUrl = resolveMediaUrl(notice.imageUrl);
+                              setActiveImage({
+                                src: imgUrl,
+                                title: notice.title || 'Notice Image',
+                              });
+                            }}
                           />
                         </div>
                       )}
@@ -261,11 +281,17 @@ export default function NoticeBoard() {
                       {/* Legacy Image Attachment Bubble */}
                       {notice.attachmentUrl && /\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i.test(notice.attachmentUrl) && (
                         <div className={`relative rounded-2xl p-1 shadow-sm w-fit ${isDark ? 'bg-[#1E293B] border border-slate-800' : 'bg-white border border-slate-100'}`}>
-                          <img 
-                            src={resolveMediaUrl(notice.attachmentUrl)} 
-                            alt="Attached Graphic" 
+                          <img
+                            src={resolveMediaUrl(notice.attachmentUrl)}
+                            alt="Attached Graphic"
                             className="w-full h-auto rounded-xl cursor-pointer object-contain hover:opacity-95 transition-opacity"
-                            onClick={() => window.open(resolveMediaUrl(notice.attachmentUrl), '_blank')}
+                            onClick={() => {
+                              const imgUrl = resolveMediaUrl(notice.attachmentUrl);
+                              setActiveImage({
+                                src: imgUrl,
+                                title: notice.title || 'Notice Image',
+                              });
+                            }}
                           />
                         </div>
                       )}
@@ -278,6 +304,24 @@ export default function NoticeBoard() {
           </div>
         )}
       </div>
+
+      {/* ══ IN-APP PDF VIEWER (Same design as Library with STATUS_BAR_H) ══ */}
+      {activePdf && (
+        <PdfViewerPage
+          pdfUrl={activePdf.url}
+          title={activePdf.title}
+          onClose={() => setActivePdf(null)}
+        />
+      )}
+
+      {/* ══ IN-APP IMAGE VIEWER (Interactive pinch/zoom with STATUS_BAR_H) ══ */}
+      {activeImage && (
+        <ImageViewerModal
+          src={activeImage.src}
+          title={activeImage.title}
+          onClose={() => setActiveImage(null)}
+        />
+      )}
 
       <style>{`
         @keyframes slideUp {
