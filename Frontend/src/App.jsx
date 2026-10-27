@@ -23,6 +23,7 @@ import StudentProfile from "./student/StudentProfile";
 import LeaderboardPage from "./student/LeaderboardPage";
 import StudentQuizFlow from "./student/StudentQuizFlow";
 import StudentQuizTest from "./student/StudentQuizTest";
+import StudentQuizResult from "./student/quiz/StudentQuizResult";
 import PYQExplorer from "./student/PYQExplorer";
 import PYQProgress from "./student/PYQProgress";
 import PYQBookmarks from "./student/PYQBookmarks";
@@ -122,7 +123,8 @@ export default function App() {
       fullCurrentUrl.endsWith("/counsellor") ||
       fullCurrentUrl === "/student/notices/pdf" ||
       fullCurrentUrl === "/student/notices/image" ||
-      fullCurrentUrl.startsWith("/student/quiz/settings")
+      fullCurrentUrl.startsWith("/student/quiz/settings") ||
+      fullCurrentUrl.startsWith("/student/quiztest")
     ) {
       const parent = getParentRoute(fullCurrentUrl, window.history.state) || "/student";
       const currentIdx = window.history.state?.idx;
@@ -276,6 +278,12 @@ export default function App() {
         }
       }
 
+      // 0.1 Active Quiz Back Protection: Trap back button on active quiz and open quit dialog URL!
+      if (previousPath === '/student/quiztest' && !previousSearch && newPath !== '/student/quiztest') {
+        navigate('/student/quiztest?dialog=quit');
+        return;
+      }
+
       const rootPaths = ["/", "/login", "/student", "/admin", "/institute-admin", "/super"];
 
       // 1. If at root, do not intercept normal browser back navigation
@@ -358,8 +366,10 @@ export default function App() {
             <Route path="quiz" element={<StudentQuizFlow />} />
             <Route path="quiz/settings" element={<StudentQuizFlow />} />
             <Route path="quiz/settings/:stepId" element={<StudentQuizFlow />} />
+            <Route path="quiz/result" element={<StudentQuizResult />} />
             <Route path="quiz/*" element={<StudentQuizFlow />} />
             <Route path="quiztest" element={<StudentQuizTest />} />
+            <Route path="quiztest/result" element={<StudentQuizResult />} />
             <Route path="pyq" element={<PYQExplorer />} />
             <Route path="pyq/papers" element={<PYQPapers />} />
             <Route path="pyq/progress" element={<PYQProgress />} />

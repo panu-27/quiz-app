@@ -82,7 +82,7 @@ export default function StudentLayout() {
 
   const isTestPage = location.pathname.includes("/test/");
   const isAnalysisPage = location.pathname.includes("/analytics");
-  const isQuizTest = location.pathname === "/student/quiztest";
+  const isQuizTest = location.pathname.startsWith("/student/quiztest");
   const isQuizPage = location.pathname.startsWith("/student/quiz");
   const isPYQPage = location.pathname.startsWith('/student/pyq');
   const isProfilePage = location.pathname.startsWith('/student/profile');

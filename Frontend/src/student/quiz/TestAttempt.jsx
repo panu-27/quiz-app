@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { Check, X, ChevronLeft, ChevronRight, Clock, Menu, AlertTriangle, Info, ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
 import api from '../../api/axios.js'; // ← shared axios instance (auth + base URL handled there)
 import useBackButton from '../../hooks/useBackButton';
@@ -129,70 +130,192 @@ const TestAttempt = ({ examData, onFinish, parentAttemptId }) => {
     const [reviewMode, setReviewMode] = useState(false);
     const [hasSubmittedToServer, setHasSubmittedToServer] = useState(false);
     const [attemptStartTime] = useState(Date.now());
+    const navigateRouter = useNavigate();
+    const [searchParams] = useSearchParams();
+    const location = useLocation();
+
+    const activeDialog = searchParams.get('dialog'); // 'quit' | 'submit' | 'report' | null
+    const panelParam = searchParams.get('panel'); // 'open' | null
+
     const [panelOpen, setPanelOpen] = useState(false);
     const [showConfirmSubmit, setShowConfirmSubmit] = useState(false);
     const [showConfirmLeave, setShowConfirmLeave] = useState(false);
-
     const [showReportModal, setShowReportModal] = useState(false);
     const [reporting, setReporting] = useState(false);
     const [reportDone, setReportDone] = useState(false);
+
+    const isPanelOpen = panelParam === 'open' || panelOpen;
+    const isQuitOpen = activeDialog === 'quit' || showConfirmLeave;
+    const isSubmitOpen = activeDialog === 'submit' || showConfirmSubmit;
+    const isReportOpen = activeDialog === 'report' || showReportModal;
+
+    const openPanel = () => {
+        setPanelOpen(true);
+        navigateRouter('/student/quiztest?panel=open', { state: location.state });
+    };
+    const openQuitDialog = () => {
+        setShowConfirmLeave(true);
+        navigateRouter('/student/quiztest?dialog=quit', { state: location.state });
+    };
+    const openSubmitDialog = () => {
+        setShowConfirmSubmit(true);
+        navigateRouter('/student/quiztest?dialog=submit', { state: location.state });
+    };
+    const openReportDialog = () => {
+        setShowReportModal(true);
+        setReportDone(false);
+        navigateRouter('/student/quiztest?dialog=report', { state: location.state });
+    };
+
+    useEffect(() => {
+        if (!activeDialog) {
+            setShowConfirmLeave(false);
+            setShowConfirmSubmit(false);
+            setShowReportModal(false);
+        } else if (activeDialog === 'quit') {
+            setShowConfirmLeave(true);
+        } else if (activeDialog === 'submit') {
+            setShowConfirmSubmit(true);
+        } else if (activeDialog === 'report') {
+            setShowReportModal(true);
+        }
+
+        if (!panelParam) {
+            setPanelOpen(false);
+        } else if (panelParam === 'open') {
+            setPanelOpen(true);
+        }
+    }, [activeDialog, panelParam]);
+
+    const closeOverlay = () => {
+        setPanelOpen(false);
+        setShowConfirmLeave(false);
+        setShowConfirmSubmit(false);
+        setShowReportModal(false);
+        if (location.search) {
+            if (window.history.state && window.history.state.idx > 0) {
+                navigateRouter(-1);
+            } else {
+                navigateRouter('/student/quiztest', { replace: true });
+            }
+        }
+    };
 
     const blockQuestions = useMemo(
         () => flattenedPool.filter(p => p.blockIdx === activeBlockIdx),
         [flattenedPool, activeBlockIdx]
     );
-    const visiblePool = (reviewMode || submitted) ? flattenedPool : blockQuestions;
+    const visiblePool = flattenedPool;
 
     /* ── Hardware / Browser Back Button Interceptors ── */
-
-    // 1. Report Modal
     useBackButton(() => {
-        setShowReportModal(false);
-        return true;
-    }, showReportModal);
+        if (isQuitOpen || isSubmitOpen || isReportOpen || isPanelOpen) {
+            closeOverlay();
+            return true;
+        }
+        if (!submitted) {
+            openQuitDialog();
+            return true;
+        }
+        return false;
+    });
 
-    // 2. Confirm Submit Modal
-    useBackButton(() => {
-        setShowConfirmSubmit(false);
-        return true;
-    }, showConfirmSubmit);
+    const finalizeAndRedirectResult = () => {
+        if (hasSubmittedToServer) return;
+        setHasSubmittedToServer(true);
+        setSubmitted(true);
 
-    // 3. Confirm Leave Modal
-    useBackButton(() => {
-        setShowConfirmLeave(false);
-        return true;
-    }, showConfirmLeave);
+        let totalScore = 0;
+        let totalCorrect = 0, totalWrong = 0, totalSkipped = 0;
 
-    // 4. Question Map Panel
-    useBackButton(() => {
-        setPanelOpen(false);
-        return true;
-    }, panelOpen);
+        const blockResults = blocks.map((block, bIdx) => {
+            const bqPool = flattenedPool.filter(p => p.blockIdx === bIdx);
+            const subjNames = [...new Set(bqPool.map(p => p.subjectName))];
+            const subjectResults = subjNames.map(subj => {
+                const qs = bqPool.filter(p => p.subjectName === subj);
+                const marks = getMarks(bIdx, subj, totalBlocks);
+                let score = 0, correct = 0, wrong = 0, skipped = 0;
+                qs.forEach(q => {
+                    const ua = answers[q.globalIdx];
+                    if (ua === undefined) { skipped++; }
+                    else if (ua === q.correctAnswer) { correct++; score += marks.correct; }
+                    else { wrong++; score += marks.wrong; }
+                });
+                return { subj, total: qs.length, correct, wrong, skipped, score, marks };
+            });
 
-    // 5. Review Mode -> Back returns to Results Report
-    useBackButton(() => {
-        setReviewMode(false);
-        return true;
-    }, reviewMode);
+            const blockScore   = subjectResults.reduce((s, sr) => s + sr.score,   0);
+            const blockCorrect = subjectResults.reduce((s, sr) => s + sr.correct,  0);
+            const blockWrong   = subjectResults.reduce((s, sr) => s + sr.wrong,    0);
+            const blockSkipped = subjectResults.reduce((s, sr) => s + sr.skipped,  0);
+            const blockTotal   = subjectResults.reduce((s, sr) => s + sr.total,    0);
 
-    // 6. Results Report Screen -> Back cleanly finishes quiz
-    useBackButton(() => {
-        onFinish?.();
-        return true;
-    }, submitted && !reviewMode);
+            totalScore   += blockScore;
+            totalCorrect += blockCorrect;
+            totalWrong   += blockWrong;
+            totalSkipped += blockSkipped;
 
-    // 7. Active Quiz In-Progress Guard -> Show "Leave Quiz?" modal
-    useBackButton(() => {
-        setShowConfirmLeave(true);
-        return true;
-    }, !submitted && !reviewMode && !showConfirmLeave && !showConfirmSubmit && !panelOpen && !showReportModal);
+            return { blockName: block.blockName, blockIdx: bIdx, blockScore, blockTotal, blockCorrect, blockWrong, blockSkipped, subjectResults };
+        });
+
+        const maxScore = flattenedPool.reduce((s, q) => {
+            const marks = getMarks(q.blockIdx, q.subjectName, totalBlocks);
+            return s + marks.correct;
+        }, 0);
+
+        const accuracy = totalCorrect + totalWrong > 0
+            ? Math.round((totalCorrect / (totalCorrect + totalWrong)) * 100)
+            : 0;
+
+        const timeTakenSeconds = Math.floor((Date.now() - attemptStartTime) / 1000);
+
+        const resultPayload = {
+            examTitle: examData.title || 'Practice Quiz',
+            totalScore,
+            maxScore,
+            accuracy,
+            totalCorrect,
+            totalWrong,
+            totalSkipped,
+            timeTakenSeconds,
+            blockResults,
+            questions: flattenedPool,
+            answers
+        };
+
+        try {
+            sessionStorage.setItem('latest_quiz_result', JSON.stringify(resultPayload));
+            sessionStorage.removeItem('active_quiz_session');
+        } catch(e) {}
+
+        const blocksWithAnswers = blocks.map(block => ({
+            ...block,
+            sections: block.sections.map(section => ({
+                ...section,
+                questions: section.questions.map(q => {
+                    const poolQ = flattenedPool.find(p => p.questionId === q.questionId);
+                    const chosenOption = poolQ && answers[poolQ.globalIdx] !== undefined ? answers[poolQ.globalIdx] : -1;
+                    return { ...q, chosenOption };
+                })
+            }))
+        }));
+
+        api.post('/quiz/submit-attempt', {
+            blocks: blocksWithAnswers,
+            timeTakenSeconds,
+            type: 'practice',
+            parentAttemptId: parentAttemptId || undefined
+        }).catch(err => console.error("Failed to submit practice quiz:", err));
+
+        navigateRouter('/student/quiztest/result', { replace: true, state: { result: resultPayload } });
+    };
 
     const isUnlimited = useMemo(() => {
         return blocks[activeBlockIdx]?.duration >= 9999;
     }, [blocks, activeBlockIdx]);
 
     useEffect(() => {
-        if (submitted || reviewMode || isUnlimited) return;
+        if (submitted || isUnlimited) return;
         const timer = setInterval(() => {
             setTimeLeft(prev => {
                 if (prev <= 1) {
@@ -206,7 +329,7 @@ const TestAttempt = ({ examData, onFinish, parentAttemptId }) => {
                         }
                         return blockDurationSecs(nextBlockIdx);
                     } else {
-                        setSubmitted(true);
+                        finalizeAndRedirectResult();
                         return 0;
                     }
                 }
@@ -214,7 +337,7 @@ const TestAttempt = ({ examData, onFinish, parentAttemptId }) => {
             });
         }, 1000);
         return () => clearInterval(timer);
-    }, [submitted, reviewMode, activeBlockIdx, blocks.length, isUnlimited]);
+    }, [submitted, activeBlockIdx, blocks.length, isUnlimited]);
 
     const navigate = (targetGlobalIdx) => {
         const pool = visiblePool;
@@ -283,190 +406,13 @@ const TestAttempt = ({ examData, onFinish, parentAttemptId }) => {
     // ════════════════════════════════════════════════
     // RESULT SCREEN & SUBMISSION
     // ════════════════════════════════════════════════
-    useEffect(() => {
-        if (submitted && !reviewMode && !hasSubmittedToServer) {
-            setHasSubmittedToServer(true);
-            const blocksWithAnswers = blocks.map(block => ({
-                ...block,
-                sections: block.sections.map(section => ({
-                    ...section,
-                    questions: section.questions.map(q => {
-                        const poolQ = flattenedPool.find(p => p.questionId === q.questionId);
-                        const chosenOption = poolQ && answers[poolQ.globalIdx] !== undefined ? answers[poolQ.globalIdx] : -1;
-                        return { ...q, chosenOption };
-                    })
-                }))
-            }));
-            const timeTakenSeconds = Math.floor((Date.now() - attemptStartTime) / 1000);
-            api.post('/quiz/submit-attempt', {
-                blocks: blocksWithAnswers,
-                timeTakenSeconds,
-                type: 'practice',
-                parentAttemptId: parentAttemptId || undefined
-            }).catch(err => console.error("Failed to submit practice quiz:", err));
-        }
-    }, [submitted, reviewMode, hasSubmittedToServer, blocks, flattenedPool, answers, attemptStartTime, parentAttemptId]);
-
-    if (submitted && !reviewMode) {
-
-        let totalScore = 0;
-        let totalCorrect = 0, totalWrong = 0, totalSkipped = 0;
-
-        const blockResults = blocks.map((block, bIdx) => {
-            const bqPool = flattenedPool.filter(p => p.blockIdx === bIdx);
-            const subjNames = [...new Set(bqPool.map(p => p.subjectName))];
-            const subjectResults = subjNames.map(subj => {
-                const qs = bqPool.filter(p => p.subjectName === subj);
-                const marks = getMarks(bIdx, subj, totalBlocks);
-                let score = 0, correct = 0, wrong = 0, skipped = 0;
-                qs.forEach(q => {
-                    const ua = answers[q.globalIdx];
-                    if (ua === undefined) { skipped++; }
-                    else if (ua === q.correctAnswer) { correct++; score += marks.correct; }
-                    else { wrong++; score += marks.wrong; }
-                });
-                return { subj, total: qs.length, correct, wrong, skipped, score, marks };
-            });
-
-            const blockScore   = subjectResults.reduce((s, sr) => s + sr.score,   0);
-            const blockCorrect = subjectResults.reduce((s, sr) => s + sr.correct,  0);
-            const blockWrong   = subjectResults.reduce((s, sr) => s + sr.wrong,    0);
-            const blockSkipped = subjectResults.reduce((s, sr) => s + sr.skipped,  0);
-            const blockTotal   = subjectResults.reduce((s, sr) => s + sr.total,    0);
-
-            totalScore   += blockScore;
-            totalCorrect += blockCorrect;
-            totalWrong   += blockWrong;
-            totalSkipped += blockSkipped;
-
-            return { blockName: block.blockName, blockIdx: bIdx, blockScore, blockTotal, blockCorrect, blockWrong, blockSkipped, subjectResults };
-        });
-
-        const maxScore = flattenedPool.reduce((s, q) => {
-            const marks = getMarks(q.blockIdx, q.subjectName, totalBlocks);
-            return s + marks.correct;
-        }, 0);
-
-        const accuracy = totalCorrect + totalWrong > 0
-            ? Math.round((totalCorrect / (totalCorrect + totalWrong)) * 100)
-            : 0;
-
-        const BLOCK_COLORS = ['#4F46E5', '#7C3AED'];
-
+    if (submitted) {
         return (
-            <div style={{ position: 'fixed', inset: 0, background: '#fff', display: 'flex', flexDirection: 'column', zIndex: 9999, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                <div style={{ padding: '16px 24px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <button
-                            onClick={onFinish}
-                            style={{ background: '#F1F5F9', border: 'none', padding: '6px 12px', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: '#64748B', fontWeight: 700, fontSize: 13, fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-                            title="Exit"
-                        >
-                            <ArrowLeft size={16} /> Exit
-                        </button>
-                        <div>
-                            <h2 style={{ fontSize: 16, fontWeight: 800, color: '#111827', margin: 0 }}>Quiz Analysis Report</h2>
-                            <p style={{ fontSize: 11, color: '#64748B', margin: '2px 0 0' }}>{examData.title}</p>
-                        </div>
-                    </div>
-                    <button onClick={onFinish} style={{ background: '#F1F5F9', border: 'none', padding: 6, borderRadius: 8, cursor: 'pointer' }}><X size={18} color="#64748B" /></button>
-                </div>
-
-                <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
-                    
-
-                    {/* Stat tiles */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, maxWidth: 600, margin: '0 auto 24px' }}>
-                        <div style={{ padding: 16, borderRadius: 16, background: '#EEF2FF', border: '1.5px solid #C7D2FE', gridColumn: '1 / -1' }}>
-                            <p style={{ fontSize: 10, fontWeight: 800, color: '#4F46E5', textTransform: 'uppercase', marginBottom: 4 }}>Total Score</p>
-                            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                                <span style={{ fontSize: 32, fontWeight: 900, color: '#4F46E5' }}>{totalScore}</span>
-                                <span style={{ fontSize: 14, fontWeight: 600, color: '#818CF8' }}>/ {maxScore}</span>
-                            </div>
-                            <div style={{ height: 6, background: '#C7D2FE', borderRadius: 4, overflow: 'hidden', marginTop: 8 }}>
-                                <div style={{ height: '100%', background: '#4F46E5', borderRadius: 4, width: `${maxScore > 0 ? (Math.max(0, totalScore) / maxScore) * 100 : 0}%`, transition: 'width 0.8s ease' }} />
-                            </div>
-                        </div>
-                        <div style={{ padding: 16, borderRadius: 16, background: '#F5F3FF', border: '1.5px solid #EDE9FE' }}>
-                            <p style={{ fontSize: 10, fontWeight: 800, color: '#7C3AED', textTransform: 'uppercase', marginBottom: 4 }}>Accuracy</p>
-                            <span style={{ fontSize: 24, fontWeight: 900, color: '#7C3AED' }}>{accuracy}%</span>
-                        </div>
-                        <div style={{ padding: 16, borderRadius: 16, background: '#F8FAFC', border: '1.5px solid #E2E8F0' }}>
-                            <p style={{ fontSize: 10, fontWeight: 800, color: '#64748B', textTransform: 'uppercase', marginBottom: 4 }}>Skipped</p>
-                            <span style={{ fontSize: 24, fontWeight: 900, color: '#334155' }}>{totalSkipped}</span>
-                        </div>
-                        <div style={{ padding: 16, borderRadius: 16, background: '#F0FDF4', border: '1.5px solid #DCFCE7' }}>
-                            <p style={{ fontSize: 10, fontWeight: 800, color: '#16A34A', textTransform: 'uppercase', marginBottom: 4 }}>Correct</p>
-                            <span style={{ fontSize: 24, fontWeight: 900, color: '#16A34A' }}>{totalCorrect}</span>
-                        </div>
-                        <div style={{ padding: 16, borderRadius: 16, background: '#FEF2F2', border: '1.5px solid #FEE2E2' }}>
-                            <p style={{ fontSize: 10, fontWeight: 800, color: '#991B1B', textTransform: 'uppercase', marginBottom: 4 }}>Wrong</p>
-                            <span style={{ fontSize: 24, fontWeight: 900, color: '#991B1B' }}>{totalWrong}</span>
-                        </div>
-                    </div>
-
-                    {/* Per-block breakdown */}
-                    <div style={{ maxWidth: 600, margin: '0 auto' }}>
-                        {blockResults.map((br) => {
-                            const accent = BLOCK_COLORS[br.blockIdx] || '#4F46E5';
-                            return (
-                                <div key={br.blockName} style={{ background: '#FAFAFA', border: '1.5px solid #F0F0F4', borderRadius: 16, padding: '14px 16px', marginBottom: 14 }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                            <div style={{ width: 8, height: 8, borderRadius: '50%', background: accent }} />
-                                            <span style={{ fontWeight: 800, fontSize: 13, color: '#1F2937' }}>{br.blockName}</span>
-                                            <span style={{ fontSize: 10, color: '#9CA3AF', fontWeight: 600 }}>{br.blockTotal}Q</span>
-                                        </div>
-                                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                                            <span style={{ fontSize: 20, fontWeight: 900, color: accent }}>{br.blockScore}</span>
-                                            <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 600 }}>pts</span>
-                                        </div>
-                                    </div>
-                                    <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
-                                        <span style={{ fontSize: 11, color: '#16A34A', fontWeight: 700 }}>✓ {br.blockCorrect}</span>
-                                        <span style={{ fontSize: 11, color: '#DC2626', fontWeight: 700 }}>✗ {br.blockWrong}</span>
-                                        <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 700 }}>— {br.blockSkipped}</span>
-                                    </div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                        {br.subjectResults.map(sr => (
-                                            <div key={sr.subj} style={{ background: '#fff', borderRadius: 10, padding: '10px 12px', border: '1px solid #F0F0F4' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                        <span style={{ fontWeight: 700, fontSize: 13, color: '#1F2937' }}>{sr.subj}</span>
-                                                        <span style={{ fontSize: 9, fontWeight: 800, color: accent, background: `${accent}18`, padding: '2px 6px', borderRadius: 4, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                                                            +{sr.marks.correct}/0
-                                                        </span>
-                                                    </div>
-                                                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
-                                                        <span style={{ fontSize: 16, fontWeight: 900, color: accent }}>{sr.score}</span>
-                                                        <span style={{ fontSize: 10, color: '#9CA3AF' }}>/ {sr.total * sr.marks.correct}</span>
-                                                    </div>
-                                                </div>
-                                                <div style={{ height: 4, background: '#F0F0F4', borderRadius: 3, overflow: 'hidden' }}>
-                                                    <div style={{ height: '100%', background: accent, borderRadius: 3, width: `${sr.total > 0 ? (Math.max(0, sr.score) / (sr.total * sr.marks.correct)) * 100 : 0}%`, transition: 'width 0.8s ease' }} />
-                                                </div>
-                                                <div style={{ display: 'flex', gap: 12, marginTop: 6 }}>
-                                                    <span style={{ fontSize: 11, color: '#16A34A', fontWeight: 600 }}>✓ {sr.correct}</span>
-                                                    <span style={{ fontSize: 11, color: '#DC2626', fontWeight: 600 }}>✗ {sr.wrong}</span>
-                                                    <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 600 }}>— {sr.skipped}</span>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                <div style={{ padding: '16px 24px 24px', borderTop: '1px solid #F1F5F9', display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 600, width: '100%', margin: '0 auto' }}>
-                    <button onClick={() => setReviewMode(true)} style={{ width: '100%', height: 50, borderRadius: 14, background: '#4F46E5', color: '#fff', border: 'none', fontWeight: 800, fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                        Review Detailed Answers <ChevronRight size={16} />
-                    </button>
-                    <button onClick={onFinish} style={{ width: '100%', height: 50, borderRadius: 14, background: '#fff', color: '#64748B', border: '1.5px solid #E2E8F0', fontWeight: 700, fontSize: 15, cursor: 'pointer', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                        Exit to Dashboard
-                    </button>
-                </div>
+            <div style={{ position: 'fixed', inset: 0, background: '#0E131F', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+                <Loader2 size={36} color="#3B82F6" style={{ animation: 'spin 1s linear infinite', marginBottom: 12 }} />
+                <p style={{ color: '#8492A6', fontSize: 14, fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                    Generating your detailed quiz report...
+                </p>
             </div>
         );
     }
@@ -498,7 +444,7 @@ const TestAttempt = ({ examData, onFinish, parentAttemptId }) => {
                 {!reviewMode ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <button
-                            onClick={() => setShowConfirmLeave(true)}
+                            onClick={openQuitDialog}
                             style={{ background: '#F1F5F9', border: 'none', padding: 8, borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                             title="Leave Quiz"
                         >
@@ -524,7 +470,7 @@ const TestAttempt = ({ examData, onFinish, parentAttemptId }) => {
                         <div style={{ fontSize: 14, fontWeight: 800, color: '#4F46E5' }}>Quiz Review</div>
                     </div>
                 )}
-                <button onClick={() => setPanelOpen(true)} style={{ background: '#F1F5F9', border: 'none', padding: 8, borderRadius: 8, cursor: 'pointer' }}>
+                <button onClick={openPanel} style={{ background: '#F1F5F9', border: 'none', padding: 8, borderRadius: 8, cursor: 'pointer' }}>
                     <Menu size={20} color="#4F46E5" />
                 </button>
             </header>
@@ -548,7 +494,7 @@ const TestAttempt = ({ examData, onFinish, parentAttemptId }) => {
                                 <span style={{ color: curMarks.wrong < 0 ? '#DC2626' : '#94A3B8', marginLeft: 4 }}>{curMarks.wrong === 0 ? '/ 0' : curMarks.wrong}</span>
                             </span>
                             <button
-                                onClick={() => { setShowReportModal(true); setReportDone(false); }}
+                                onClick={openReportDialog}
                                 style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', color: '#94A3B8', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: '4px 8px', borderRadius: 6, transition: '0.15s' }}
                                 onMouseOver={e => e.currentTarget.style.color = '#EF4444'}
                                 onMouseOut={e => e.currentTarget.style.color = '#94A3B8'}
@@ -635,7 +581,7 @@ const TestAttempt = ({ examData, onFinish, parentAttemptId }) => {
             </footer>
 
             {/* ── REPORT BOTTOM SHEET ── */}
-            {showReportModal && (
+            {isReportOpen && (
                 <div style={{ position: 'fixed', inset: 0, zIndex: 2000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(6px)' }}>
                     <div style={{ background: '#fff', borderRadius: '24px 24px 0 0', width: '100%', maxWidth: 480, boxShadow: '0 -8px 40px rgba(0,0,0,0.12)', animation: 'slideUp 0.22s cubic-bezier(.22,1,.36,1)', paddingBottom: 32 }}>
                         <div style={{ width: 36, height: 4, background: '#E5E7EB', borderRadius: 2, margin: '12px auto 0' }} />
@@ -646,6 +592,7 @@ const TestAttempt = ({ examData, onFinish, parentAttemptId }) => {
                                 </div>
                                 <p style={{ fontSize: 16, fontWeight: 800, color: '#111827', margin: '0 0 4px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Report Submitted!</p>
                                 <p style={{ fontSize: 13, color: '#6B7280', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Thanks! Our team will review this question.</p>
+                                <button onClick={closeOverlay} style={{ marginTop: 16, padding: '10px 24px', background: '#4F46E5', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, cursor: 'pointer' }}>Done</button>
                             </div>
                         ) : (
                             <>
@@ -654,7 +601,7 @@ const TestAttempt = ({ examData, onFinish, parentAttemptId }) => {
                                         <p style={{ fontSize: 17, fontWeight: 800, color: '#111827', margin: 0, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Report a Problem</p>
                                         <p style={{ fontSize: 12, color: '#9CA3AF', marginTop: 3, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Q{q?.localIdx} · Select what's wrong</p>
                                     </div>
-                                    <button disabled={reporting} onClick={() => setShowReportModal(false)} style={{ background: '#F1F5F9', border: 'none', padding: 7, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                    <button disabled={reporting} onClick={closeOverlay} style={{ background: '#F1F5F9', border: 'none', padding: 7, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                         <X size={16} color="#64748B" />
                                     </button>
                                 </div>
@@ -679,63 +626,72 @@ const TestAttempt = ({ examData, onFinish, parentAttemptId }) => {
                 </div>
             )}
 
-            {/* ── CONFIRM LEAVE MODAL ── */}
-            {showConfirmLeave && (
+            {/* ── CONFIRM QUIT MODAL ── */}
+            {isQuitOpen && (
                 <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(4px)', padding: 20 }}>
-                    <div style={{ background: '#fff', borderRadius: 20, padding: 24, maxWidth: 320, width: '100%', textAlign: 'center', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-                        <div style={{ width: 50, height: 50, background: '#FEF2F2', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                            <AlertTriangle color="#EF4444" size={24} />
+                    <div style={{ background: '#fff', borderRadius: 24, padding: 24, maxWidth: 360, width: '100%', textAlign: 'center', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+                        <div style={{ width: 56, height: 56, background: '#FEF2F2', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                            <AlertTriangle color="#EF4444" size={28} />
                         </div>
-                        <h3 style={{ fontSize: 18, fontWeight: 800, color: '#111827', margin: '0 0 8px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Leave Quiz?</h3>
-                        <p style={{ fontSize: 14, color: '#64748B', marginBottom: 24, lineHeight: 1.5, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                            Are you sure you want to leave this quiz? Your current attempt and responses will not be saved.
+                        <h3 style={{ fontSize: 19, fontWeight: 800, color: '#111827', margin: '0 0 8px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Do you want to quit this?</h3>
+                        <p style={{ fontSize: 13, color: '#64748B', marginBottom: 20, lineHeight: 1.5, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                            You can choose to end your exam now and generate your detailed performance result report, or resume answering questions.
                         </p>
-                        <div style={{ display: 'flex', gap: 10 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                             <button
-                                onClick={() => setShowConfirmLeave(false)}
-                                style={{ flex: 1, padding: 12, borderRadius: 12, background: '#F1F5F9', border: 'none', color: '#64748B', fontWeight: 700, cursor: 'pointer', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                                onClick={closeOverlay}
+                                style={{ width: '100%', padding: 13, borderRadius: 12, background: '#4F46E5', border: 'none', color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer', fontFamily: "'Plus Jakarta Sans', sans-serif", boxShadow: '0 4px 12px rgba(79,70,229,0.25)' }}
                             >
-                                Resume
+                                Resume Test
+                            </button>
+                            <button
+                                onClick={finalizeAndRedirectResult}
+                                style={{ width: '100%', padding: 13, borderRadius: 12, background: '#F0FDF4', border: '1.5px solid #BBF7D0', color: '#15803D', fontWeight: 800, fontSize: 14, cursor: 'pointer', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                            >
+                                End Exam & View Results
                             </button>
                             <button
                                 onClick={() => {
-                                    setShowConfirmLeave(false);
-                                    onFinish?.();
+                                    setSubmitted(true);
+                                    if (onFinish) onFinish();
+                                    else navigateRouter('/student/quiz', { replace: true });
                                 }}
-                                style={{ flex: 1, padding: 12, borderRadius: 12, background: '#EF4444', border: 'none', color: '#fff', fontWeight: 700, cursor: 'pointer', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                                style={{ width: '100%', padding: 10, borderRadius: 12, background: 'transparent', border: 'none', color: '#94A3B8', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
                             >
-                                Leave
+                                Discard & Exit
                             </button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* ── CONFIRM SUBMIT ── */}
-            {showConfirmSubmit && (
+            {/* ── CONFIRM SUBMIT MODAL ── */}
+            {isSubmitOpen && (
                 <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(4px)', padding: 20 }}>
-                    <div style={{ background: '#fff', borderRadius: 20, padding: 24, maxWidth: 320, width: '100%', textAlign: 'center', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-                        <div style={{ width: 50, height: 50, background: '#FEF2F2', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                            <AlertTriangle color="#EF4444" size={24} />
+                    <div style={{ background: '#fff', borderRadius: 24, padding: 24, maxWidth: 340, width: '100%', textAlign: 'center', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+                        <div style={{ width: 56, height: 56, background: '#EEF2FF', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                            <CheckCircle2 color="#4F46E5" size={28} />
                         </div>
-                        <h3 style={{ fontSize: 18, fontWeight: 800, color: '#111827', margin: '0 0 8px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Finish Quiz?</h3>
-                        <p style={{ fontSize: 14, color: '#64748B', marginBottom: 24, lineHeight: 1.5, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>You cannot change your answers after submitting.</p>
+                        <h3 style={{ fontSize: 19, fontWeight: 800, color: '#111827', margin: '0 0 8px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Submit Test?</h3>
+                        <p style={{ fontSize: 13, color: '#64748B', marginBottom: 20, lineHeight: 1.5, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                            Are you ready to submit your exam? All responses will be graded and you'll receive your detailed score analysis.
+                        </p>
                         <div style={{ display: 'flex', gap: 10 }}>
-                            <button onClick={() => setShowConfirmSubmit(false)} style={{ flex: 1, padding: 12, borderRadius: 12, background: '#F1F5F9', border: 'none', color: '#64748B', fontWeight: 700, cursor: 'pointer', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Keep Going</button>
-                            <button onClick={() => { setSubmitted(true); setShowConfirmSubmit(false); }} style={{ flex: 1, padding: 12, borderRadius: 12, background: '#EF4444', border: 'none', color: '#fff', fontWeight: 700, cursor: 'pointer', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Submit</button>
+                            <button onClick={closeOverlay} style={{ flex: 1, padding: 12, borderRadius: 12, background: '#F1F5F9', border: 'none', color: '#64748B', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Keep Going</button>
+                            <button onClick={finalizeAndRedirectResult} style={{ flex: 1, padding: 12, borderRadius: 12, background: '#4F46E5', border: 'none', color: '#fff', fontWeight: 800, fontSize: 13, cursor: 'pointer', fontFamily: "'Plus Jakarta Sans', sans-serif", boxShadow: '0 4px 12px rgba(79,70,229,0.25)' }}>Submit</button>
                         </div>
                     </div>
                 </div>
             )}
 
             {/* ── QUESTION MAP PANEL ── */}
-            {panelOpen && (
+            {isPanelOpen && (
                 <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex' }}>
-                    <div onClick={() => setPanelOpen(false)} style={{ flex: 1, background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(4px)' }} />
+                    <div onClick={closeOverlay} style={{ flex: 1, background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(4px)' }} />
                     <div style={{ width: 300, background: '#fff', height: '100%', display: 'flex', flexDirection: 'column', boxShadow: '-4px 0 15px rgba(0,0,0,0.1)' }}>
                         <div style={{ padding: '20px 20px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <h3 style={{ fontWeight: 600, fontSize: 18, color: '#1E293B', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Questions</h3>
-                            <button onClick={() => setPanelOpen(false)} style={{ background: '#F1F5F9', border: 'none', padding: 6, borderRadius: '50%', cursor: 'pointer' }}><X size={20} color="#64748B" /></button>
+                            <button onClick={closeOverlay} style={{ background: '#F1F5F9', border: 'none', padding: 6, borderRadius: '50%', cursor: 'pointer' }}><X size={20} color="#64748B" /></button>
                         </div>
                         <div style={{ padding: '0 20px 10px', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                             {[{ cls: 'status-ans', label: 'Answered' }, { cls: 'status-not-ans', label: 'Not Answered' }, { cls: 'status-not-visited', label: 'Not Visited' }, { cls: 'status-mfr', label: 'Marked' }].map(({ cls, label }) => (
@@ -752,7 +708,7 @@ const TestAttempt = ({ examData, onFinish, parentAttemptId }) => {
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
                                         {visiblePool.filter(p => p.subjectName === subj).map(p => (
                                             <button key={p.globalIdx}
-                                                onClick={() => { navigate(p.globalIdx); setPanelOpen(false); }}
+                                                onClick={() => { navigate(p.globalIdx); closeOverlay(); }}
                                                 style={{ height: 38, borderRadius: 8, border: p.globalIdx === cur ? '2px solid #4F46E5' : 'none', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
                                                 className={getBtnStatus(p.globalIdx)}>
                                                 {p.localIdx}
@@ -764,7 +720,7 @@ const TestAttempt = ({ examData, onFinish, parentAttemptId }) => {
                         </div>
                         {!reviewMode && (
                             <div style={{ padding: 20, borderTop: '1px solid #f1f5f9' }}>
-                                <button onClick={() => { setPanelOpen(false); setShowConfirmSubmit(true); }}
+                                <button onClick={openSubmitDialog}
                                     style={{ width: '100%', background: '#EF4444', color: '#fff', border: 'none', padding: 14, borderRadius: 12, fontWeight: 700, fontSize: 14, cursor: 'pointer', boxShadow: '0 4px 12px rgba(239,68,68,0.2)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                                     SUBMIT TEST
                                 </button>

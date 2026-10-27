@@ -55,10 +55,22 @@ export function getParentRoute(currentPath, locationState = {}) {
     return "/student/notices";
   }
 
-  // Quiz flow stages (Strict single-parent hierarchy):
-  // Quiz attempt -> Parent is Quiz root
-  if (path.startsWith("/student/quiztest")) {
+  // Quiz Result Screen -> Parent is /student/quiz (or /student/quiztest/result if reviewing answers)
+  if (path === "/student/quiztest/result" || path === "/student/quiz/result") {
+    if (searchParams?.get("review") === "true") {
+      return path;
+    }
     return "/student/quiz";
+  }
+
+  // Quiz attempt internal dialogs/drawers -> Parent is /student/quiztest
+  if (path === "/student/quiztest" && (searchParams?.get("dialog") || searchParams?.get("panel"))) {
+    return "/student/quiztest";
+  }
+
+  // Active Quiz attempt -> Traps back press by opening quit dialog
+  if (path === "/student/quiztest") {
+    return "/student/quiztest?dialog=quit";
   }
 
   // Stage 2 settings -> Parent is Stage 1 (Quiz selection) or previous step

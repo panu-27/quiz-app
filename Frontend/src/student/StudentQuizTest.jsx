@@ -6,8 +6,28 @@ export default function StudentQuizTest() {
     const location = useLocation();
     const navigate = useNavigate();
 
-    // The 'questions' here is actually the full exam object returned by fetchQuizQuestions
-    const { questions: examData, parentAttemptId } = location.state || {};
+    // Check location.state first, then fallback to sessionStorage
+    let examData = location.state?.questions;
+    let parentAttemptId = location.state?.parentAttemptId;
+
+    if (examData) {
+        try {
+            sessionStorage.setItem('active_quiz_session', JSON.stringify({
+                examData,
+                parentAttemptId,
+                from: location.state?.from || '/student/quiz'
+            }));
+        } catch (e) {}
+    } else {
+        try {
+            const cached = sessionStorage.getItem('active_quiz_session');
+            if (cached) {
+                const parsed = JSON.parse(cached);
+                examData = parsed.examData;
+                parentAttemptId = parsed.parentAttemptId;
+            }
+        } catch (e) {}
+    }
 
     useEffect(() => {
         if (!examData) {
@@ -18,6 +38,9 @@ export default function StudentQuizTest() {
     if (!examData) return null;
 
     const handleFinish = () => {
+        try {
+            sessionStorage.removeItem('active_quiz_session');
+        } catch (e) {}
         const returnPath = location.state?.from || '/student/quiz';
         navigate(returnPath, { replace: true });
     };
