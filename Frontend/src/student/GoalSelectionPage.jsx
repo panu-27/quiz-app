@@ -220,9 +220,10 @@ export default function GoalSelectionPage() {
 
             {/* Main Content */}
             <div className="flex-1 relative pb-10">
-                {/* BLUE HEADER BLOCK */}
+                {/* BLUE HEADER BLOCK (Fixed on scroll) */}
                 <div
-                    className={`sticky top-0 z-50 ${headerBlue} rounded-b-xl pt-[50px] pb-6 px-5 shadow-lg`}
+                    className={`fixed top-0 left-0 right-0 z-50 ${headerBlue} rounded-b-xl pb-5 px-5 shadow-lg`}
+                    style={{ paddingTop: STATUS_BAR_H + 12 }}
                 >
                     <div className="flex items-center gap-3 max-w-md mx-auto mb-3">
                         <button
@@ -252,7 +253,7 @@ export default function GoalSelectionPage() {
                 </div>
 
                 {/* ACCORDION LIST */}
-                <div className="mt-6 px-2 max-w-3xl mx-auto w-full flex flex-col gap-3">
+                <div className="px-2 max-w-3xl mx-auto w-full flex flex-col gap-3" style={{ paddingTop: STATUS_BAR_H + 138 }}>
                     {filteredCategories.map((category) => {
                         const isAlwaysOpen = category.id === 'boards' || category.id === 'competitive';
                         const isExpanded = isAlwaysOpen || expandedCategory === category.id;

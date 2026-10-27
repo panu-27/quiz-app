@@ -6,7 +6,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import api from "../api/axios";
 import useBackButton from "../hooks/useBackButton";
 
-const STATUS_BAR_H = 43.7;
+const STATUS_BAR_H = 28.5;
 
 const DEFAULT_AVATAR = (seed = "student") =>
   `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed)}`;
@@ -189,22 +189,20 @@ export default function SettingsPage({ initialLogout = false }) {
   return (
     <div className={`min-h-screen flex flex-col ${isDark ? 'bg-[#0A0F1A]' : 'bg-white'}`}>
 
-      {/* Top Deep Blue Header Section */}
-      <div className={`sticky top-0 z-40 ${isDark ? 'bg-[#0A0F1A]' : 'bg-white'}`}>
-        <div className={`relative px-5 pt-12 pb-8 rounded-b-xl flex flex-col items-center shadow-md ${isDark ? 'bg-[#151B2B]' : 'bg-[#2E287C]'}`}>
+      {/* Top Deep Blue Header Section (Fixed on scroll) */}
+      <div className="fixed top-0 left-0 right-0 z-40">
+        <div className={`px-5 pb-5 rounded-b-2xl flex flex-col items-center shadow-md ${isDark ? 'bg-[#151B2B]' : 'bg-[#2E287C]'}`} style={{ paddingTop: STATUS_BAR_H + 8 }}>
 
           {/* Header Bar */}
-          <div className="absolute top-0 left-0 right-0 px-5 flex items-center gap-4" style={{ paddingTop: STATUS_BAR_H + 12 }}>
-            <button onClick={handleBack} className="p-2 -ml-2 text-white hover:bg-white/10 rounded-sm transition-colors">
+          <div className="w-full flex items-center gap-4 mb-4">
+            <button onClick={handleBack} className="p-2 -ml-2 text-white hover:bg-white/10 rounded-full transition-colors">
               <ArrowLeft size={24} />
             </button>
             <h1 className="text-white text-[17px] font-bold">Settings</h1>
           </div>
 
-
-
           {/* Action Buttons Row */}
-          <div className="flex gap-2 mt-16 -mb-4">
+          <div className="flex gap-2 w-full justify-center">
             <HeaderActionBtn icon={<Mail size={20} strokeWidth={1.5} />} label="Email" />
             <HeaderActionBtn icon={<Phone size={20} strokeWidth={1.5} />} label="Call" />
             <HeaderActionBtn icon={<MessageCircle size={20} strokeWidth={1.5} />} label="Whatsapp" />
@@ -215,7 +213,7 @@ export default function SettingsPage({ initialLogout = false }) {
       </div>
 
       {/* Content List Area (Boxy layout) */}
-      <div className="flex-1 px-5 pt-6 pb-16">
+      <div className="flex-1 px-5 pb-16" style={{ paddingTop: STATUS_BAR_H + 165 }}>
 
         <ListItem
           sectionTitle="Email"

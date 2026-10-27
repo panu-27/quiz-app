@@ -131,8 +131,8 @@ export default function NoticeBoard() {
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
 
-      {/* ══ STICKY HEADER AREA ══ */}
-      <div className={`flex-shrink-0 sticky top-0 z-40 px-5 pb-4 flex flex-col gap-4 ${isDark ? 'bg-[#0A0F1A]' : 'bg-[#F4F7FC]'}`} style={{ paddingTop: STATUS_BAR_H + 8 }}>
+      {/* ══ FIXED HEADER AREA ══ */}
+      <div className={`fixed top-0 left-0 right-0 z-40 px-5 pb-3 flex flex-col gap-4 border-b ${isDark ? 'bg-[#0A0F1A]/95 border-slate-800/80 backdrop-blur-md' : 'bg-[#F4F7FC]/95 border-slate-200/80 backdrop-blur-md'}`} style={{ paddingTop: STATUS_BAR_H + 8 }}>
           <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                   <button
@@ -149,7 +149,7 @@ export default function NoticeBoard() {
       </div>
 
       {/* List Content */}
-      <div className="flex-1 px-5 pt-2 pb-28 space-y-3">
+      <div className="flex-1 px-5 pb-28 space-y-3" style={{ paddingTop: STATUS_BAR_H + 62 }}>
         {loading ? (
           <div className="flex justify-center py-10">
             <div className="w-6 h-6 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
