@@ -579,6 +579,27 @@ export default function TestAttempt() {
     });
   }, [performSubmit]);
 
+  useBackButton(() => {
+    if (violationModal) {
+      dismissViolationModal();
+      return true;
+    }
+    if (modal) {
+      setModal(null);
+      return true;
+    }
+    if (isSidebarOpen) {
+      setIsSidebarOpen(false);
+      return true;
+    }
+    if (!examStarted) {
+      navigate('/student', { replace: true });
+      return true;
+    }
+    exitApp();
+    return true;
+  });
+
   /* ─────────────────────────────────────────────────────────────────
      EARLY RETURNS
      ───────────────────────────────────────────────────────────────── */

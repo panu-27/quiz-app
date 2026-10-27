@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import api from "../api/axios";
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { Capacitor } from '@capacitor/core';
+import useBackButton from "../hooks/useBackButton";
 
 const STATUS_BAR_H = 28.5;
 
@@ -22,6 +23,12 @@ export default function ListedAttempts() {
   const [test, setTest] = useState(location.state?.test || null);
   const [loading, setLoading] = useState(!test);
   const [searchQuery, setSearchQuery] = useState("");
+
+  const handleBack = () => {
+    const parent = location.state?.from || "/student/history";
+    navigate(parent, { replace: true });
+    return true;
+  };
 
   useEffect(() => {
     // Manage status bar color
@@ -153,7 +160,7 @@ export default function ListedAttempts() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <button
-              onClick={() => navigate(-1)}
+              onClick={handleBack}
               className={`w-10 h-10 -ml-2 flex items-center justify-center transition-colors ${isDark ? 'text-white' : 'text-slate-800'
                 }`}
             >
@@ -201,9 +208,9 @@ export default function ListedAttempts() {
                 key={attempt._id}
                 onClick={() => {
                   if (test.isGeneratedQuiz) {
-                    navigate(`/student/analytics/quiz/${attempt._id}`);
+                    navigate(`/student/analytics/quiz/${attempt._id}`, { state: { from: location.pathname } });
                   } else {
-                    navigate(`/student/analytics/${test._id}/attempt/${attempt.attemptNumber}`);
+                    navigate(`/student/analytics/${test._id}/attempt/${attempt.attemptNumber}`, { state: { from: location.pathname } });
                   }
                 }}
                 style={{

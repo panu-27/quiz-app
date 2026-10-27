@@ -160,6 +160,19 @@ export default function PYQPapers() {
     const [sortByNewest, setSortByNewest] = useState(true);
     const [showFilters, setShowFilters] = useState(false);
     
+    const handleBack = () => {
+        if (showFilters) {
+            setShowFilters(false);
+            return true;
+        }
+        if (window.history.state && window.history.state.idx > 0) {
+            navigate(-1);
+        } else {
+            navigate('/student/library', { replace: true });
+        }
+        return true;
+    };
+    
     useBackButton(() => {
         if (showFilters) {
             setShowFilters(false);
@@ -262,7 +275,7 @@ export default function PYQPapers() {
             >
                 <div className="flex items-center gap-2">
                     <button
-                        onClick={() => navigate(-1)}
+                        onClick={handleBack}
                         className={`w-10 h-10 -ml-2 flex items-center justify-center rounded-xl active:scale-95 transition-colors ${isDark ? 'text-white' : 'text-slate-800'}`}
                     >
                         <ArrowLeft size={24} />

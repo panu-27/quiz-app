@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
 import {
   ArrowLeft, Download, Trophy, Target, Zap,
@@ -9,6 +9,7 @@ import {
 import LoaderAnalysis from "./LoaderAnalysis";
 import api from "../api/axios";
 import { useTheme } from "../context/ThemeContext";
+import useBackButton from "../hooks/useBackButton";
 
 const STATUS_BAR_H = 28.5;
 
@@ -75,6 +76,7 @@ const LatexText = ({ text, style: styleProp, className = '' }) => {
 export default function AnswerSheet() {
   const { testId, attemptNumber, attemptId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
@@ -90,6 +92,30 @@ export default function AnswerSheet() {
   const [selectedReasons, setSelectedReasons] = useState([]);
   const [additionalInfo, setAdditionalInfo] = useState('');
   const [reportDone, setReportDone] = useState(false);
+
+  const handleBack = () => {
+    if (reportTarget) {
+      setReportTarget(null);
+      setSelectedReasons([]);
+      setAdditionalInfo('');
+      setReportDone(false);
+      return true;
+    }
+    const parent = location.state?.from || location.pathname.replace(/\/answers$/, "");
+    navigate(parent, { replace: true });
+    return true;
+  };
+
+  useBackButton(() => {
+    if (reportTarget) {
+      setReportTarget(null);
+      setSelectedReasons([]);
+      setAdditionalInfo('');
+      setReportDone(false);
+      return true;
+    }
+    return false;
+  }, !!reportTarget);
 
   const listRef = useRef(null);
 
@@ -251,14 +277,14 @@ export default function AnswerSheet() {
     return (
       <div className="w-full min-h-screen bg-white flex flex-col font-sans">
         <nav className="sticky top-0 z-50 bg-white px-6 py-4 flex justify-center items-center border-b border-slate-50">
-          <button onClick={() => navigate(-1)} className="absolute left-5 p-2 hover:bg-slate-100 rounded-full transition-colors">
+          <button onClick={handleBack} className="absolute left-5 p-2 hover:bg-slate-100 rounded-full transition-colors">
             <ArrowLeft size={20} className="text-slate-900" />
           </button>
         </nav>
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
           <p className="text-slate-550 font-medium text-lg mb-4">Try after some time</p>
           <button 
-            onClick={() => navigate(-1)} 
+            onClick={handleBack} 
             className="px-6 py-2.5 bg-slate-100 text-slate-800 rounded-full font-bold text-sm hover:bg-slate-200 transition-colors"
           >
             Go Back
@@ -281,13 +307,21 @@ export default function AnswerSheet() {
         <div className="flex-1 flex flex-col min-h-0">
           {/* Sticky Navigation & Filters Row */}
           <div 
-            className={`sticky top-0 z-50 transition-colors ${
+            className={`sticky top-0 z-50 transition-colors flex items-center gap-3 ${
               isDark ? "bg-[#0E131F]" : "bg-white"
             }`} 
             style={{ padding: `0 16px`, paddingTop: STATUS_BAR_H + 12 }}
           >
+            <button
+              onClick={handleBack}
+              className={`p-1.5 -ml-1 rounded-full transition-colors flex-shrink-0 ${
+                isDark ? "hover:bg-white/10 text-white" : "hover:bg-slate-100 text-slate-800"
+              }`}
+            >
+              <ArrowLeft size={20} />
+            </button>
             {/* Horizontal Subject filters */}
-            <div className="flex gap-6 overflow-x-auto no-scrollbar pt-2 border-b border-slate-200/60 dark:border-white/[0.04]">
+            <div className="flex-1 flex gap-6 overflow-x-auto no-scrollbar pt-2 border-b border-slate-200/60 dark:border-white/[0.04]">
               {(data?.groupedAnalysis || []).map((s) => {
                 const isActive = s.subjectName === selectedSubjectName;
                 return (

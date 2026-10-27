@@ -7,12 +7,25 @@
   --breakpoint-md: 1024px;
   
   --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-display: "Sora", ui-sans-serif, system-ui, sans-serif;
+}
+
+.font-display {
+  font-family: 'Sora', sans-serif !important;
 }
 
 @layer base {
-  html {
+  html, body {
     font-family: "Poppins", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    touch-action: pan-x pan-y;
   }
+
+  /* Allow full touch interaction (scroll + pinch-zoom) inside PDF viewer */
+  .pdf-viewer-container,
+  .pdf-viewer-container * {
+    touch-action: auto !important;
+  }
+
 
   /* Hide default browser eye icon for password inputs */
   input::-ms-reveal,

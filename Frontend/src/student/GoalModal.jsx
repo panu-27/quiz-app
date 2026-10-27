@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X, Plus, BookOpen, Trophy, FlaskConical, Atom, Stethoscope, Lock, ChevronDown } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
+import useBackButton from "../hooks/useBackButton";
 
 /* ─── Goal list data ─────────────────────────────────────── */
 const GOALS = [
@@ -132,6 +133,11 @@ export default function GoalModal({ isOpen, onClose, onSelectGoal }) {
   const [selectedId, setSelectedId] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [visible, setVisible] = useState(false);
+
+  useBackButton(() => {
+    onClose();
+    return true;
+  }, isOpen);
 
   // Animate in on open
   useEffect(() => {

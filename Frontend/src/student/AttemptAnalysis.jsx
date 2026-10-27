@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import {
   ArrowLeft, Download, Trophy, X, Share2,
@@ -7,12 +7,14 @@ import {
 import LoaderAnalysis from "./LoaderAnalysis";
 import api from "../api/axios";
 import { useTheme } from "../context/ThemeContext";
+import useBackButton from "../hooks/useBackButton";
 
 const STATUS_BAR_H = 28.5;
 
 export default function AttemptAnalytics() {
   const { testId, attemptNumber, attemptId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
@@ -22,16 +24,21 @@ export default function AttemptAnalytics() {
   const [downloading, setDownloading] = useState(false);
   const [sharing, setSharing] = useState(false);
 
-  const handleOpenAnswers = () => {
-    if (attemptId) {
-      navigate(`/student/analytics/quiz/${attemptId}/answers`);
-    } else {
-      navigate(`/student/analytics/${testId}/attempt/${attemptNumber}/answers`);
-    }
+  const handleNavBack = () => {
+    const parent = location.state?.from || "/student/history";
+    navigate(parent, { replace: true });
+    return true;
   };
 
-  const handleNavBack = () => {
-    navigate(-1);
+  useBackButton(handleNavBack);
+
+  const handleOpenAnswers = () => {
+    const fromPath = location.pathname;
+    if (attemptId) {
+      navigate(`/student/analytics/quiz/${attemptId}/answers`, { state: { from: fromPath } });
+    } else {
+      navigate(`/student/analytics/${testId}/attempt/${attemptNumber}/answers`, { state: { from: fromPath } });
+    }
   };
 
   useEffect(() => {
@@ -167,14 +174,14 @@ export default function AttemptAnalytics() {
     return (
       <div className="w-full min-h-screen bg-white flex flex-col font-sans">
         <nav className="sticky top-0 z-50 bg-white px-6 py-4 flex justify-center items-center border-b border-slate-50">
-          <button onClick={() => navigate(-1)} className="absolute left-5 p-2 hover:bg-slate-100 rounded-full transition-colors">
+          <button onClick={handleNavBack} className="absolute left-5 p-2 hover:bg-slate-100 rounded-full transition-colors">
             <ArrowLeft size={20} className="text-slate-900" />
           </button>
         </nav>
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
           <p className="text-slate-550 font-medium text-lg mb-4">Try after some time</p>
           <button
-            onClick={() => navigate(-1)}
+            onClick={handleNavBack}
             className="px-6 py-2.5 bg-slate-100 text-slate-800 rounded-full font-bold text-sm hover:bg-slate-200 transition-colors"
           >
             Go Back

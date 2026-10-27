@@ -35,19 +35,19 @@ export const getTestAnalytics = async (req, res) => {
   try {
     const { testId } = req.params;
     const teacherId = req.user.id;
- 
+
     if (!mongoose.Types.ObjectId.isValid(testId)) {
       return res.status(400).json({ message: "Invalid Test ID format" });
     }
- 
+
     // Explicit ObjectId cast — prevents silent string/ObjectId mismatch
     const testObjectId = new mongoose.Types.ObjectId(testId);
- 
+
     const test = await Test.findOne({ _id: testObjectId, teacherId }).populate("batches");
     if (!test) return res.status(404).json({ message: "Test not found or unauthorized" });
- 
+
     const examType = test.examType;
- 
+
     // ─────────────────────────────────────────────────────────────
     // 1. Only completed first attempts — source of truth for
     //    both the leaderboard AND attendance detection
@@ -59,17 +59,17 @@ export const getTestAnalytics = async (req, res) => {
     })
       .populate("studentId", "name email profilePic")
       .sort({ totalScore: -1, timeTaken: 1 });
- 
+
     const attendedIds = new Set(
       completedAttempts.map((a) => a.studentId?._id?.toString()).filter(Boolean)
     );
- 
+
     // ─────────────────────────────────────────────────────────────
     // 2. Eligible students for absentee calculation
     //    NOTE: User schema has batchId (singular) — read students
     //    from Batch.students[] array instead
     // ─────────────────────────────────────────────────────────────
- 
+
     // Helper: given batch docs, collect all unique student IDs
     // from Batch.students[] then fetch those User documents
     const getStudentsFromBatches = async (batchDocs) => {
@@ -81,9 +81,9 @@ export const getTestAnalytics = async (req, res) => {
       if (studentIds.length === 0) return [];
       return User.find({ _id: { $in: studentIds } }).select("name email profilePic");
     };
- 
+
     let allEligibleStudents = [];
- 
+
     if (examType !== "OTHER") {
       // PCM / PCB / PCMB / JEE / NEET:
       // All students from ALL batches assigned to this test
@@ -93,14 +93,14 @@ export const getTestAnalytics = async (req, res) => {
       // Step 1 — detect subject(s) from test sections
       // Step 2 — map subject → which MHT_CET batch types are eligible
       // Step 3 — find those batches in the institute → get their students
- 
+
       const subjectNames = new Set();
       for (const block of test.blocks || []) {
         for (const sec of block.sections || []) {
           if (sec.subjectName) subjectNames.add(sec.subjectName.toLowerCase().trim());
         }
       }
- 
+
       // Subject → batch pattern mapping:
       // Physics / Chemistry → PCM + PCB + PCMB
       // Maths               → PCM + PCMB
@@ -126,7 +126,7 @@ export const getTestAnalytics = async (req, res) => {
           batchPatterns.add("PCMB");
         }
       }
- 
+
       if (batchPatterns.size === 0) {
         // Unrecognised subject — fallback to assigned batches
         allEligibleStudents = await getStudentsFromBatches(test.batches);
@@ -135,29 +135,29 @@ export const getTestAnalytics = async (req, res) => {
         const regexList = [...batchPatterns].map(
           (p) => new RegExp(`(?<![A-Z])${p}(?![A-Z])`, "i")
         );
- 
+
         // Fetch ALL batches for this institute — not just assigned ones,
         // because for OTHER exams the test may not be assigned to all
         // relevant batches
         const allInstituteBatches = await Batch.find({
           instituteId: test.instituteId,
         }).select("_id name students");
- 
+
         const matchedBatches = allInstituteBatches.filter((b) =>
-          regexList.some((rx) => rx.test(b.name)) || 
+          regexList.some((rx) => rx.test(b.name)) ||
           test.batches.some((tb) => tb._id.toString() === b._id.toString())
         );
-        
+
         const matchedClasses = new Set(matchedBatches.map(b => b.className).filter(Boolean));
-        const finalBatches = allInstituteBatches.filter(b => 
-            matchedBatches.some(mb => mb._id.toString() === b._id.toString()) || 
-            (matchedClasses.has(b.className) && /FREE/i.test(b.name))
+        const finalBatches = allInstituteBatches.filter(b =>
+          matchedBatches.some(mb => mb._id.toString() === b._id.toString()) ||
+          (matchedClasses.has(b.className) && /FREE/i.test(b.name))
         );
- 
+
         allEligibleStudents = await getStudentsFromBatches(finalBatches);
       }
     }
- 
+
     // Deduplicate — a student can appear in multiple batches
     const seen = new Set();
     allEligibleStudents = allEligibleStudents.filter((s) => {
@@ -166,11 +166,11 @@ export const getTestAnalytics = async (req, res) => {
       seen.add(id);
       return true;
     });
- 
+
     const absentees = allEligibleStudents.filter(
       (s) => !attendedIds.has(s._id.toString())
     );
- 
+
     // ─────────────────────────────────────────────────────────────
     // 3. Leaderboard with flat per-subject scores
     // ─────────────────────────────────────────────────────────────
@@ -181,35 +181,35 @@ export const getTestAnalytics = async (req, res) => {
         for (const block of a.blocks || []) {
           for (const sec of block.sections || []) {
             subjectScores.push({
-              blockName:   block.blockName,
+              blockName: block.blockName,
               subjectName: sec.subjectName || block.blockName || "Section",
-              score:       sec.score       ?? 0,
-              correct:     sec.correct     ?? 0,
-              wrong:       sec.wrong       ?? 0,
+              score: sec.score ?? 0,
+              correct: sec.correct ?? 0,
+              wrong: sec.wrong ?? 0,
               unattempted: sec.unattempted ?? 0,
             });
           }
         }
         return {
-          _id:              a._id,
-          studentId:        a.studentId,
-          score:            a.totalScore,
-          timeTaken:        a.timeTaken,
-          totalCorrect:     a.totalCorrect,
-          totalWrong:       a.totalWrong,
+          _id: a._id,
+          studentId: a.studentId,
+          score: a.totalScore,
+          timeTaken: a.timeTaken,
+          totalCorrect: a.totalCorrect,
+          totalWrong: a.totalWrong,
           totalUnattempted: a.totalUnattempted,
           subjectScores,
         };
       });
- 
+
     // ─────────────────────────────────────────────────────────────
     // 4. maxScore — numQuestions × correctMarks per section
     //    Uses subjectWise marking if defined for that subject,
     //    otherwise falls back to markingScheme.defaultCorrect
     // ─────────────────────────────────────────────────────────────
-    const markingScheme  = test.markingScheme || {};
+    const markingScheme = test.markingScheme || {};
     const defaultCorrect = markingScheme.defaultCorrect ?? 1;
- 
+
     // Build lookup: subjectId (string) → correctMarks
     const subjectWiseMap = {};
     for (const sw of markingScheme.subjectWise || []) {
@@ -217,7 +217,7 @@ export const getTestAnalytics = async (req, res) => {
         subjectWiseMap[sw.subjectId.toString()] = sw.correctMarks ?? defaultCorrect;
       }
     }
- 
+
     const maxScore = (test.blocks || []).reduce((total, block) => {
       return (
         total +
@@ -229,18 +229,18 @@ export const getTestAnalytics = async (req, res) => {
         }, 0)
       );
     }, 0);
- 
+
     // ─────────────────────────────────────────────────────────────
     // 5. Stats
     // ─────────────────────────────────────────────────────────────
     const attendedCount = attendedIds.size;
-    const totalCount    = allEligibleStudents.length;
+    const totalCount = allEligibleStudents.length;
     const avgScore =
       completedAttempts.length > 0
         ? completedAttempts.reduce((acc, a) => acc + (a.totalScore || 0), 0) /
-          completedAttempts.length
+        completedAttempts.length
         : 0;
- 
+
     // ─────────────────────────────────────────────────────────────
     // 6. coachingName — look up Institute by test.instituteId
     // ─────────────────────────────────────────────────────────────
@@ -252,7 +252,7 @@ export const getTestAnalytics = async (req, res) => {
     } catch (_) {
       // Institute model not registered or not found — keep default
     }
- 
+
     // ─────────────────────────────────────────────────────────────
     // 7. Block structure for frontend column headers
     // ─────────────────────────────────────────────────────────────
@@ -262,17 +262,17 @@ export const getTestAnalytics = async (req, res) => {
         subjectName: s.subjectName || b.blockName || "Section",
       })),
     }));
- 
+
     res.json({
       testTitle: test.title,
       examType,
       maxScore,
       coachingName,
       stats: {
-        totalEligible:        totalCount,
-        attended:             attendedCount,
-        absent:               absentees.length,
-        averageScore:         parseFloat(avgScore.toFixed(2)),
+        totalEligible: totalCount,
+        attended: attendedCount,
+        absent: absentees.length,
+        averageScore: parseFloat(avgScore.toFixed(2)),
         attendancePercentage:
           totalCount > 0
             ? ((attendedCount / totalCount) * 100).toFixed(1) + "%"
@@ -282,7 +282,7 @@ export const getTestAnalytics = async (req, res) => {
       absentees,
       blockStructure,
     });
- 
+
   } catch (err) {
     console.error("DETAILED ERROR:", err);
     res.status(500).json({ message: "Internal Server Error", error: err.message });
@@ -342,18 +342,18 @@ export const getPerformanceOverview = async (req, res) => {
       for (const name of subjectNames) {
         if (name.includes("phy") || name.includes("chem")) { batchPatterns.add("PCM"); batchPatterns.add("PCB"); batchPatterns.add("PCMB"); }
         if (name.includes("math")) { batchPatterns.add("PCM"); batchPatterns.add("PCMB"); }
-        if (name.includes("bio"))  { batchPatterns.add("PCB"); batchPatterns.add("PCMB"); }
+        if (name.includes("bio")) { batchPatterns.add("PCB"); batchPatterns.add("PCMB"); }
       }
       if (!batchPatterns.size) return getStudentsFromBatches(test.batches);
       const regexList = [...batchPatterns].map(p => new RegExp(`(?<![A-Z])${p}(?![A-Z])`, "i"));
       const all = await Batch.find({ instituteId: test.instituteId }).select("_id name className students");
-      const matchedBatches = all.filter(b => 
-        regexList.some(rx => rx.test(b.name)) || 
+      const matchedBatches = all.filter(b =>
+        regexList.some(rx => rx.test(b.name)) ||
         test.batches.some(tb => tb._id.toString() === b._id.toString())
       );
       const matchedClasses = new Set(matchedBatches.map(b => b.className).filter(Boolean));
-      const finalBatches = all.filter(b => 
-        matchedBatches.some(mb => mb._id.toString() === b._id.toString()) || 
+      const finalBatches = all.filter(b =>
+        matchedBatches.some(mb => mb._id.toString() === b._id.toString()) ||
         (matchedClasses.has(b.className) && /FREE/i.test(b.name))
       );
       return getStudentsFromBatches(finalBatches);
@@ -385,14 +385,14 @@ export const getPerformanceOverview = async (req, res) => {
     const absenteesByTest = {}; // testId → Set<studentId string>
 
     for (const test of tests) {
-      const tid      = test._id.toString();
+      const tid = test._id.toString();
       const attempts = attemptsByTest[tid] || [];
       const eligible = await getEligibleForTest(test);
       const eligibleMap = {};
       for (const s of eligible) eligibleMap[s._id.toString()] = s;
       const eligibleList = Object.values(eligibleMap);
-      const attendedIds  = new Set(attempts.map(a => a.studentId?._id?.toString()).filter(Boolean));
-      const absentIds    = eligibleList.filter(s => !attendedIds.has(s._id.toString())).map(s => s._id.toString());
+      const attendedIds = new Set(attempts.map(a => a.studentId?._id?.toString()).filter(Boolean));
+      const absentIds = eligibleList.filter(s => !attendedIds.has(s._id.toString())).map(s => s._id.toString());
       absenteesByTest[tid] = { absentSet: new Set(absentIds), eligibleMap };
 
       const maxScore = getMaxScore(test);
@@ -419,15 +419,15 @@ export const getPerformanceOverview = async (req, res) => {
     // ── BATCH TRAJECTORY ──
     // Compare avg% of first half vs second half of tests
     let batchTrajectory = "neutral";
-    let trajectoryPct   = 0;
+    let trajectoryPct = 0;
     if (testTrend.length >= 2) {
-      const half    = Math.ceil(testTrend.length / 2);
-      const first   = testTrend.slice(0, half).filter(t => t.avgPct > 0);
-      const second  = testTrend.slice(half).filter(t => t.avgPct > 0);
+      const half = Math.ceil(testTrend.length / 2);
+      const first = testTrend.slice(0, half).filter(t => t.avgPct > 0);
+      const second = testTrend.slice(half).filter(t => t.avgPct > 0);
       if (first.length && second.length) {
-        const firstAvg  = first.reduce((s, t) => s + t.avgPct, 0)  / first.length;
+        const firstAvg = first.reduce((s, t) => s + t.avgPct, 0) / first.length;
         const secondAvg = second.reduce((s, t) => s + t.avgPct, 0) / second.length;
-        trajectoryPct   = parseFloat((secondAvg - firstAvg).toFixed(1));
+        trajectoryPct = parseFloat((secondAvg - firstAvg).toFixed(1));
         batchTrajectory = trajectoryPct > 3 ? "improving" : trajectoryPct < -3 ? "declining" : "stable";
       }
     } else if (testTrend.length === 1) {
@@ -437,10 +437,10 @@ export const getPerformanceOverview = async (req, res) => {
     // ── STUDENT DATA: per-test scores in chronological order ──
     // studentTimeline: studentId → [{testId, testIdx, scorePct}]
     const studentTimeline = {};
-    const studentMeta     = {};
+    const studentMeta = {};
 
     for (let i = 0; i < tests.length; i++) {
-      const tid      = tests[i]._id.toString();
+      const tid = tests[i]._id.toString();
       const attempts = attemptsByTest[tid] || [];
       const maxScore = testTrend[i].maxScore;
 
@@ -458,10 +458,10 @@ export const getPerformanceOverview = async (req, res) => {
         }
         const scorePct = maxScore > 0 ? (a.totalScore / maxScore) * 100 : 0;
         studentTimeline[sid].push({ testIdx: i, testId: tid, scorePct, rawScore: a.totalScore, maxScore });
-        studentMeta[sid].totalCorrect      += a.totalCorrect      || 0;
-        studentMeta[sid].totalWrong        += a.totalWrong        || 0;
-        studentMeta[sid].totalUnattempted  += a.totalUnattempted  || 0;
-        studentMeta[sid].testsAttempted    += 1;
+        studentMeta[sid].totalCorrect += a.totalCorrect || 0;
+        studentMeta[sid].totalWrong += a.totalWrong || 0;
+        studentMeta[sid].totalUnattempted += a.totalUnattempted || 0;
+        studentMeta[sid].testsAttempted += 1;
       }
     }
 
@@ -472,7 +472,7 @@ export const getPerformanceOverview = async (req, res) => {
           // Only absent, never attempted — get name from eligible map
           const eligible = absenteesByTest[tid].eligibleMap[sid];
           if (eligible) {
-            studentMeta[sid] = { name: eligible.name, profilePic : eligible.profilePic , totalCorrect: 0, totalWrong: 0, totalUnattempted: 0, testsAttempted: 0, absentCount: 0 };
+            studentMeta[sid] = { name: eligible.name, profilePic: eligible.profilePic, totalCorrect: 0, totalWrong: 0, totalUnattempted: 0, testsAttempted: 0, absentCount: 0 };
             studentTimeline[sid] = [];
           }
         }
@@ -489,14 +489,14 @@ export const getPerformanceOverview = async (req, res) => {
     const classifyTrend = (timeline) => {
       if (timeline.length === 0) return "absent";
       if (timeline.length === 1) return "new";
-      const pcts  = timeline.map(t => t.scorePct);
-      const sd    = stdDev(pcts);
-      const half  = Math.ceil(pcts.length / 2);
+      const pcts = timeline.map(t => t.scorePct);
+      const sd = stdDev(pcts);
+      const half = Math.ceil(pcts.length / 2);
       const first = pcts.slice(0, half).reduce((a, b) => a + b, 0) / half;
-      const last  = pcts.slice(half).reduce((a, b) => a + b, 0) / (pcts.length - half);
-      const diff  = last - first;
+      const last = pcts.slice(half).reduce((a, b) => a + b, 0) / (pcts.length - half);
+      const diff = last - first;
       if (sd > 18) return "volatile";
-      if (diff >  5) return "rising";
+      if (diff > 5) return "rising";
       if (diff < -5) return "falling";
       return "consistent";
     };
@@ -516,46 +516,46 @@ export const getPerformanceOverview = async (req, res) => {
     });
 
     const studentRisk = Object.keys(studentMeta).map(sid => {
-      const meta     = studentMeta[sid];
+      const meta = studentMeta[sid];
       const timeline = studentTimeline[sid] || [];
-      const trend    = classifyTrend(timeline);
-      const avgPct   = timeline.length > 0 ? timeline.reduce((s, t) => s + t.scorePct, 0) / timeline.length : 0;
-      const absRate  = tests.length > 0 ? (meta.absentCount / tests.length) * 100 : 0;
+      const trend = classifyTrend(timeline);
+      const avgPct = timeline.length > 0 ? timeline.reduce((s, t) => s + t.scorePct, 0) / timeline.length : 0;
+      const absRate = tests.length > 0 ? (meta.absentCount / tests.length) * 100 : 0;
       const scorePct = pctileMap[sid] ?? 50;
 
       // Risk score 0–100
-      const scoreRisk   = Math.max(0, 100 - scorePct);          // low percentile = high risk
-      const absRisk     = Math.min(100, absRate * 1.5);          // >66% absent = max
-      const trendRisk   = trend === "falling" ? 80 : trend === "volatile" ? 50 : trend === "absent" ? 100 : 0;
-      const riskScore   = Math.round(scoreRisk * 0.4 + absRisk * 0.35 + trendRisk * 0.25);
+      const scoreRisk = Math.max(0, 100 - scorePct);          // low percentile = high risk
+      const absRisk = Math.min(100, absRate * 1.5);          // >66% absent = max
+      const trendRisk = trend === "falling" ? 80 : trend === "volatile" ? 50 : trend === "absent" ? 100 : 0;
+      const riskScore = Math.round(scoreRisk * 0.4 + absRisk * 0.35 + trendRisk * 0.25);
 
-      const riskLevel   = riskScore >= 65 ? "HIGH" : riskScore >= 35 ? "MEDIUM" : "SAFE";
+      const riskLevel = riskScore >= 65 ? "HIGH" : riskScore >= 35 ? "MEDIUM" : "SAFE";
 
       // Human-readable reason
       const reasons = [];
-      if (trend === "falling")   reasons.push("Score declining");
-      if (trend === "volatile")  reasons.push("Inconsistent performance");
-      if (absRate >= 40)         reasons.push(`Absent ${meta.absentCount}/${tests.length} tests`);
+      if (trend === "falling") reasons.push("Score declining");
+      if (trend === "volatile") reasons.push("Inconsistent performance");
+      if (absRate >= 40) reasons.push(`Absent ${meta.absentCount}/${tests.length} tests`);
       if (avgPct < 35 && timeline.length > 0) reasons.push("Consistently low scores");
-      if (trend === "absent")    reasons.push("Never attempted");
+      if (trend === "absent") reasons.push("Never attempted");
 
       return {
-        studentId:      sid,
-        name:           meta.name,
-        profilePic : meta.profilePic,
+        studentId: sid,
+        name: meta.name,
+        profilePic: meta.profilePic,
         trend,
         riskLevel,
         riskScore,
-        avgPct:         parseFloat(avgPct.toFixed(1)),
-        absentCount:    meta.absentCount,
+        avgPct: parseFloat(avgPct.toFixed(1)),
+        absentCount: meta.absentCount,
         testsAttempted: meta.testsAttempted,
-        totalTests:     tests.length,
-        accuracy:       (meta.totalCorrect + meta.totalWrong) > 0
+        totalTests: tests.length,
+        accuracy: (meta.totalCorrect + meta.totalWrong) > 0
           ? Math.round((meta.totalCorrect / (meta.totalCorrect + meta.totalWrong)) * 100)
           : 0,
-        reason:         reasons.join(" · ") || "Performing well",
+        reason: reasons.join(" · ") || "Performing well",
         // sparkline: last 5 score%s in order
-        sparkline:      timeline.slice(-5).map(t => parseFloat(t.scorePct.toFixed(1))),
+        sparkline: timeline.slice(-5).map(t => parseFloat(t.scorePct.toFixed(1))),
       };
     }).sort((a, b) => b.riskScore - a.riskScore);
 
@@ -565,43 +565,43 @@ export const getPerformanceOverview = async (req, res) => {
     const subjectByTest = {}; // subjectName → {testIdx → {correct, wrong, unattempted}}
 
     for (let i = 0; i < tests.length; i++) {
-      const tid      = tests[i]._id.toString();
+      const tid = tests[i]._id.toString();
       const attempts = attemptsByTest[tid] || [];
       for (const a of attempts) {
         for (const block of a.blocks || []) {
           for (const sec of block.sections || []) {
             const name = sec.subjectName || block.blockName || "Section";
             if (!subjectAgg[name]) subjectAgg[name] = { correct: 0, wrong: 0, unattempted: 0, scoreSum: 0, count: 0 };
-            subjectAgg[name].correct      += sec.correct     || 0;
-            subjectAgg[name].wrong        += sec.wrong       || 0;
-            subjectAgg[name].unattempted  += sec.unattempted || 0;
-            subjectAgg[name].scoreSum     += sec.score       || 0;
-            subjectAgg[name].count        += 1;
+            subjectAgg[name].correct += sec.correct || 0;
+            subjectAgg[name].wrong += sec.wrong || 0;
+            subjectAgg[name].unattempted += sec.unattempted || 0;
+            subjectAgg[name].scoreSum += sec.score || 0;
+            subjectAgg[name].count += 1;
 
             if (!subjectByTest[name]) subjectByTest[name] = {};
             if (!subjectByTest[name][i]) subjectByTest[name][i] = { correct: 0, wrong: 0, total: 0 };
             subjectByTest[name][i].correct += sec.correct || 0;
-            subjectByTest[name][i].wrong   += sec.wrong   || 0;
-            subjectByTest[name][i].total   += (sec.correct || 0) + (sec.wrong || 0);
+            subjectByTest[name][i].wrong += sec.wrong || 0;
+            subjectByTest[name][i].total += (sec.correct || 0) + (sec.wrong || 0);
           }
         }
       }
     }
 
     const subjectHealth = Object.entries(subjectAgg).map(([name, d]) => {
-      const accuracy    = (d.correct + d.wrong) > 0 ? Math.round((d.correct / (d.correct + d.wrong)) * 100) : 0;
-      const totalQ      = d.correct + d.wrong + d.unattempted;
-      const skipRate    = totalQ > 0 ? Math.round((d.unattempted / totalQ) * 100) : 0;
-      const problem     = d.unattempted > d.wrong ? "conceptual_gap" : "practice_needed";
+      const accuracy = (d.correct + d.wrong) > 0 ? Math.round((d.correct / (d.correct + d.wrong)) * 100) : 0;
+      const totalQ = d.correct + d.wrong + d.unattempted;
+      const skipRate = totalQ > 0 ? Math.round((d.unattempted / totalQ) * 100) : 0;
+      const problem = d.unattempted > d.wrong ? "conceptual_gap" : "practice_needed";
 
       // Trend: compare accuracy in last test vs first test for this subject
-      const testIndices = Object.keys(subjectByTest[name] || {}).map(Number).sort((a,b)=>a-b);
-      let subjectTrend  = "stable";
+      const testIndices = Object.keys(subjectByTest[name] || {}).map(Number).sort((a, b) => a - b);
+      let subjectTrend = "stable";
       if (testIndices.length >= 2) {
         const first = subjectByTest[name][testIndices[0]];
-        const last  = subjectByTest[name][testIndices[testIndices.length - 1]];
+        const last = subjectByTest[name][testIndices[testIndices.length - 1]];
         const firstAcc = first.total > 0 ? (first.correct / first.total) * 100 : 0;
-        const lastAcc  = last.total  > 0 ? (last.correct  / last.total)  * 100 : 0;
+        const lastAcc = last.total > 0 ? (last.correct / last.total) * 100 : 0;
         const diff = lastAcc - firstAcc;
         subjectTrend = diff > 5 ? "improving" : diff < -5 ? "declining" : "stable";
       }
@@ -612,10 +612,10 @@ export const getPerformanceOverview = async (req, res) => {
         skipRate,
         problem,       // "conceptual_gap" | "practice_needed"
         subjectTrend,  // "improving" | "declining" | "stable"
-        totalCorrect:  d.correct,
-        totalWrong:    d.wrong,
-        totalSkipped:  d.unattempted,
-        avgScore:      d.count > 0 ? parseFloat((d.scoreSum / d.count).toFixed(1)) : 0,
+        totalCorrect: d.correct,
+        totalWrong: d.wrong,
+        totalSkipped: d.unattempted,
+        avgScore: d.count > 0 ? parseFloat((d.scoreSum / d.count).toFixed(1)) : 0,
       };
     }).sort((a, b) => a.accuracy - b.accuracy); // weakest first
 
@@ -624,9 +624,9 @@ export const getPerformanceOverview = async (req, res) => {
 
     // 1. Batch trajectory
     if (batchTrajectory === "improving")
-      insights.push({ type: "positive", icon: "trending_up",   text: `Batch is on the rise — avg scores up ${trajectoryPct}% in recent tests compared to earlier ones.` });
+      insights.push({ type: "positive", icon: "trending_up", text: `Batch is on the rise — avg scores up ${trajectoryPct}% in recent tests compared to earlier ones.` });
     else if (batchTrajectory === "declining")
-      insights.push({ type: "warning",  icon: "trending_down", text: `Batch avg score has dropped ${Math.abs(trajectoryPct)}% over recent tests. Consider reviewing last 2 topics.` });
+      insights.push({ type: "warning", icon: "trending_down", text: `Batch avg score has dropped ${Math.abs(trajectoryPct)}% over recent tests. Consider reviewing last 2 topics.` });
 
     // 2. Consecutive decline
     const lastThree = testTrend.filter(t => t.avgPct > 0).slice(-3);
@@ -650,23 +650,23 @@ export const getPerformanceOverview = async (req, res) => {
     // 5. High-risk students count
     const highRisk = studentRisk.filter(s => s.riskLevel === "HIGH");
     if (highRisk.length > 0)
-      insights.push({ type: "danger", icon: "users", text: `${highRisk.length} student${highRisk.length > 1 ? "s are" : " is"} at HIGH risk — ${highRisk.slice(0,2).map(s=>s.name).join(", ")}${highRisk.length > 2 ? ` +${highRisk.length-2} more` : ""}.` });
+      insights.push({ type: "danger", icon: "users", text: `${highRisk.length} student${highRisk.length > 1 ? "s are" : " is"} at HIGH risk — ${highRisk.slice(0, 2).map(s => s.name).join(", ")}${highRisk.length > 2 ? ` +${highRisk.length - 2} more` : ""}.` });
 
     // 6. Most improved student
     const mostImproved = [...studentRisk].filter(s => s.trend === "rising" && s.sparkline.length >= 2)
-      .sort((a, b) => (b.sparkline[b.sparkline.length-1] - b.sparkline[0]) - (a.sparkline[a.sparkline.length-1] - a.sparkline[0]))[0];
+      .sort((a, b) => (b.sparkline[b.sparkline.length - 1] - b.sparkline[0]) - (a.sparkline[a.sparkline.length - 1] - a.sparkline[0]))[0];
     if (mostImproved)
-      insights.push({ type: "positive", icon: "star", text: `${mostImproved.name} is showing the strongest improvement — score up from ${mostImproved.sparkline[0]}% to ${mostImproved.sparkline[mostImproved.sparkline.length-1]}%.` });
+      insights.push({ type: "positive", icon: "star", text: `${mostImproved.name} is showing the strongest improvement — score up from ${mostImproved.sparkline[0]}% to ${mostImproved.sparkline[mostImproved.sparkline.length - 1]}%.` });
 
     // 7. Repeat absentees
     const seriousAbsent = studentRisk.filter(s => s.absentCount >= 2);
     if (seriousAbsent.length > 0)
-      insights.push({ type: "danger", icon: "calendar", text: `${seriousAbsent.length} student${seriousAbsent.length > 1 ? "s have" : " has"} missed 2 or more tests: ${seriousAbsent.slice(0,2).map(s=>s.name).join(", ")}${seriousAbsent.length > 2 ? ` and ${seriousAbsent.length-2} more` : ""}.` });
+      insights.push({ type: "danger", icon: "calendar", text: `${seriousAbsent.length} student${seriousAbsent.length > 1 ? "s have" : " has"} missed 2 or more tests: ${seriousAbsent.slice(0, 2).map(s => s.name).join(", ")}${seriousAbsent.length > 2 ? ` and ${seriousAbsent.length - 2} more` : ""}.` });
 
     // 8. Attendance drop in latest test
     if (testTrend.length >= 2) {
       const latest = testTrend[testTrend.length - 1];
-      const prev   = testTrend[testTrend.length - 2];
+      const prev = testTrend[testTrend.length - 2];
       if (prev.attendanceRate - latest.attendanceRate > 15)
         insights.push({ type: "warning", icon: "users", text: `Attendance dropped sharply in the latest test — ${latest.attendanceRate}% vs ${prev.attendanceRate}% in the previous one.` });
     }
@@ -677,14 +677,14 @@ export const getPerformanceOverview = async (req, res) => {
 
     res.json({
       summary: {
-        totalTests:        tests.length,
-        totalStudents:     Object.keys(studentMeta).length,
+        totalTests: tests.length,
+        totalStudents: Object.keys(studentMeta).length,
         batchTrajectory,
         trajectoryPct,
         overallAttendance: totalEligible > 0
           ? ((totalAttended / totalEligible) * 100).toFixed(1) + "%"
           : "0%",
-        highRiskCount:     highRisk.length,
+        highRiskCount: highRisk.length,
       },
       insights,      // smart callout cards
       testTrend,     // chronological per-test data
@@ -703,9 +703,9 @@ export const getMyBatches = async (req, res) => {
   try {
     // req.user is populated by your protect/auth middleware
     const batches = await service.getMyBatches(req.user);
-    
+
     // Return an empty array instead of an error if no batches found
-    res.status(200).json(batches || []); 
+    res.status(200).json(batches || []);
   } catch (err) {
     res.status(err.message === "Unauthorized" ? 401 : 400).json({
       message: err.message,
@@ -717,9 +717,9 @@ export const getMyBatches2 = async (req, res) => {
   try {
     // req.user is populated by your protect/auth middleware
     const batches = await service.getMyBatches2(req.user);
-    
+
     // Return an empty array instead of an error if no batches found
-    res.status(200).json(batches || []); 
+    res.status(200).json(batches || []);
   } catch (err) {
     res.status(err.message === "Unauthorized" ? 401 : 400).json({
       message: err.message,
@@ -783,19 +783,19 @@ export const deployMaterialCtrl = async (req, res) => {
   try {
     const { subjectId, chapterId, category, batchIds, isFree } = req.body;
     const file = req.file;
- 
-    if (!file)     return res.status(400).json({ message: "No file provided" });
+
+    if (!file) return res.status(400).json({ message: "No file provided" });
     if (!batchIds) return res.status(400).json({ message: "Please select at least one batch" });
- 
+
     const parsedBatchIds = typeof batchIds === "string" ? JSON.parse(batchIds) : batchIds;
     const isFreeBool = isFree === 'true' || isFree === true;
- 
+
     const result = await service.deployMaterial(
       req.user,
       { subjectId, chapterId, category, batchIds: parsedBatchIds, isFree: isFreeBool },
       file
     );
- 
+
     res.status(201).json(result);
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -832,8 +832,8 @@ export const scheduleTest = async (req, res) => {
     res.status(200).json({ message: "Test rescheduled successfully", test });
   } catch (err) {
     const status = err.message.includes("unauthorized") || err.message.includes("Unauthorized") ? 403
-                 : err.message.includes("not found") ? 404
-                 : 400;
+      : err.message.includes("not found") ? 404
+        : 400;
     res.status(status).json({ message: err.message });
   }
 };
@@ -846,47 +846,47 @@ export const scheduleTest = async (req, res) => {
 export const deleteStudyMaterial = async (req, res) => {
   try {
     const teacherId = req.user.id;
-    const { id }    = req.params;
- 
+    const { id } = req.params;
+
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid material ID" });
     }
- 
+
     const material = await Resource.findOneAndDelete({
-      _id:        id,
+      _id: id,
       uploadedBy: teacherId,   // teacher can only delete their own
     });
- 
+
     if (!material) {
       return res.status(404).json({ message: "Material not found or unauthorized" });
     }
- 
+
     res.json({ message: "Deleted successfully", id: material._id });
   } catch (err) {
     console.error("deleteStudyMaterial:", err);
     res.status(500).json({ message: "Internal Server Error", error: err.message });
   }
 };
- 
+
 /* ─────────────────────────────────────────────────────────────
    GET /teacher/study-material/:id  (single, for detail view)
 ───────────────────────────────────────────────────────────── */
 export const getStudyMaterialById = async (req, res) => {
   try {
     const teacherId = req.user.id;
-    const { id }    = req.params;
- 
+    const { id } = req.params;
+
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid material ID" });
     }
- 
+
     const material = await Resource.findOne({ _id: id, uploadedBy: teacherId })
       .populate("batchIds", "name");
- 
+
     if (!material) {
       return res.status(404).json({ message: "Material not found or unauthorized" });
     }
- 
+
     res.json(material);
   } catch (err) {
     console.error("getStudyMaterialById:", err);
@@ -899,16 +899,16 @@ export const getStudyMaterials = async (req, res) => {
   try {
     const teacherId = req.user.id;
     const { subject, category, search } = req.query;
- 
+
     const filter = { uploadedBy: teacherId };
-    if (subject  && subject  !== "all") filter.subject  = subject;
+    if (subject && subject !== "all") filter.subject = subject;
     if (category && category !== "all") filter.category = category;
-    if (search)  filter.title = { $regex: search.trim(), $options: "i" };
- 
+    if (search) filter.title = { $regex: search.trim(), $options: "i" };
+
     const materials = await Resource.find(filter)
       .populate("batchIds", "name")   // get batch names for display
       .sort({ createdAt: -1 });
- 
+
     res.json(materials);
   } catch (err) {
     console.error("getStudyMaterials:", err);

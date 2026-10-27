@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTheme } from "../context/ThemeContext";
 import { ArrowLeft, Eye, EyeOff, AlertCircle } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import api from "../api/axios";
 
 const STATUS_BAR_H = 28.5;
@@ -28,6 +28,17 @@ export default function ChangePasswordPage() {
     const { theme } = useTheme();
     const isDark = theme === "dark";
     const navigate = useNavigate();
+    const location = useLocation();
+
+    const handleBack = () => {
+        const parent = location.state?.from || '/student/settings';
+        if (window.history.state && window.history.state.idx > 0) {
+            navigate(-1);
+        } else {
+            navigate(parent, { replace: true });
+        }
+        return true;
+    };
 
     const [passForm, setPassForm] = useState({ oldPassword: "", password: "", confirm: "" });
     const [showO, setShowO] = useState(false);
@@ -47,7 +58,7 @@ export default function ChangePasswordPage() {
             setTimeout(() => {
                 setToast(null);
                 setPassForm({ oldPassword: "", password: "", confirm: "" });
-                navigate(-1);
+                handleBack();
             }, 2000);
         } catch (error) {
             setToast({ msg: error.response?.data?.message || "Failed to update password", type: "error" });
@@ -63,7 +74,7 @@ export default function ChangePasswordPage() {
             <div className={`flex-shrink-0 sticky top-0 z-40 px-5 pt-4 ${isDark ? 'bg-[#000711] ' : 'bg-white '}`} style={{ paddingTop: STATUS_BAR_H + 12 }}>
                 <div className="flex items-center gap-4">
                     <button
-                        onClick={() => navigate(-1)}
+                        onClick={handleBack}
                         className={`p-1 flex items-center justify-center transition-colors bg-transparent border-none ${isDark ? 'text-white' : 'text-slate-800'}`}
                     >
                         <ArrowLeft size={24} />
@@ -95,7 +106,7 @@ export default function ChangePasswordPage() {
             <div className={`fixed bottom-0 left-0 right-0 p-5 z-50 `}>
                 <div className="max-w-lg mx-auto flex gap-3">
                     <button
-                        onClick={() => navigate(-1)}
+                        onClick={handleBack}
                         disabled={passSaving}
                         className={`flex-1 py-2.5 font-medium text-[15px] rounded-sm border transition-colors ${isDark ? 'bg-transparent border-slate-700 text-slate-300 hover:bg-slate-800' : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'}`}
                     >

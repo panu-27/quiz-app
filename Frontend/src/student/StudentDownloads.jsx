@@ -1,15 +1,27 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Download, FileText, Video } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
+import useBackButton from "../hooks/useBackButton";
 
 const STATUS_BAR_H = 28.5;
 
 export default function StudentDownloads() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { theme } = useTheme();
     const isDark = theme === 'dark';
 
+    const handleBack = () => {
+        const parent = location.state?.from || '/student/profile';
+        if (window.history.state && window.history.state.idx > 0) {
+            navigate(-1);
+        } else {
+            navigate(parent, { replace: true });
+        }
+        return true;
+    };
 
+    useBackButton(handleBack);
 
     return (
         <div className={`min-h-screen flex flex-col font-sans ${isDark ? 'bg-[#0A0F1A] text-white' : 'bg-white text-slate-900'}`}>
@@ -18,7 +30,7 @@ export default function StudentDownloads() {
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <button
-                            onClick={() => navigate(-1)}
+                            onClick={handleBack}
                             className={`w-10 h-10 -ml-2 flex items-center justify-center transition-colors ${isDark ? 'text-white' : 'text-slate-800'}`}
                         >
                             <ArrowLeft size={24} />

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, BarChart2, CheckCircle2, AlertTriangle, X, Search, Calendar, ChevronRight, ChevronUp, ChevronDown } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -21,6 +21,7 @@ const REPORT_REASONS = [
 
 export default function PYQBookmarks() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { theme } = useTheme();
     const { user } = useAuth();
     const isDark = theme === 'dark';
@@ -62,9 +63,7 @@ export default function PYQBookmarks() {
     const [topicOpenQId, setTopicOpenQId] = useState(null);
     const [reportTarget, setReportTarget] = useState(null);
     const [reportDone, setReportDone] = useState(false);
-    const [selectedReason, setSelectedReason] = useState(null);
-
-    useBackButton(() => {
+    const handleBack = () => {
         if (yearPickerOpen) {
             setYearPickerOpen(false);
             return true;
@@ -74,8 +73,26 @@ export default function PYQBookmarks() {
             setSelectedReason(null);
             return true;
         }
-        return false;
-    }, yearPickerOpen || !!reportTarget);
+        if (activeChapter) {
+            setActiveChapter(null);
+            return true;
+        }
+        const savedFrom = (() => {
+            try { return sessionStorage.getItem('pyq_feature_from'); } catch(e) { return null; }
+        })();
+        const target = (location.state?.from && !location.state.from.includes('/bookmarks') && !location.state.from.includes('/progress'))
+            ? location.state.from
+            : (savedFrom || '/student/pyq');
+
+        if (window.history.state && typeof window.history.state.idx === 'number' && window.history.state.idx > 0) {
+            navigate(-1);
+        } else {
+            navigate(target, { replace: true });
+        }
+        return true;
+    };
+
+    useBackButton(handleBack);
 
     useEffect(() => {
         if (!user) return;
@@ -157,17 +174,17 @@ export default function PYQBookmarks() {
                         <div className="flex items-center justify-between">
                             {/* Left: back button + title */}
                             <div className="flex items-center gap-2">
-                                <button onClick={() => navigate(-1)} className={`w-10 h-10 -ml-2 flex items-center justify-center transition-colors ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                                <button onClick={handleBack} className={`w-10 h-10 -ml-2 flex items-center justify-center transition-colors ${isDark ? 'text-white' : 'text-slate-800'}`}>
                                     <ArrowLeft size={24} />
                                 </button>
                                 <h1 className={`text-[17px] font-bold truncate leading-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>Bookmarks</h1>
                             </div>
                             {/* Right: bookmark & progress icons */}
                             <div className="flex items-center gap-2">
-                                <button onClick={() => navigate('/student/pyq/bookmarks')} className={`w-9 h-9 flex items-center justify-center rounded-[10px] border active:scale-95 transition-all ${isDark ? 'border-[#2A3441] bg-[#161C26] text-white' : 'border-slate-200 bg-white text-slate-700'}`}>
+                                <button onClick={() => navigate('/student/pyq/bookmarks', { replace: true, state: { from: location.state?.from || sessionStorage.getItem('pyq_feature_from') || '/student/pyq' } })} className={`w-9 h-9 flex items-center justify-center rounded-[10px] border active:scale-95 transition-all ${isDark ? 'border-[#2A3441] bg-[#161C26] text-white' : 'border-slate-200 bg-white text-slate-700'}`}>
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
                                 </button>
-                                <button onClick={() => navigate('/student/pyq/progress')} className={`w-9 h-9 flex items-center justify-center rounded-[10px] border active:scale-95 transition-all ${isDark ? 'border-[#2A3441] bg-[#161C26] text-white' : 'border-slate-200 bg-white text-slate-700'}`}>
+                                <button onClick={() => navigate('/student/pyq/progress', { replace: true, state: { from: location.state?.from || sessionStorage.getItem('pyq_feature_from') || '/student/pyq' } })} className={`w-9 h-9 flex items-center justify-center rounded-[10px] border active:scale-95 transition-all ${isDark ? 'border-[#2A3441] bg-[#161C26] text-white' : 'border-slate-200 bg-white text-slate-700'}`}>
                                     <BarChart2 size={18} />
                                 </button>
                             </div>

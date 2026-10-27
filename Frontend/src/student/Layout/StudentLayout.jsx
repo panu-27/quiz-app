@@ -6,6 +6,7 @@ import { Capacitor } from "@capacitor/core";
 import { App } from "@capacitor/app";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
+import EnquiryBottomBar from "../../components/EnquiryBottomBar";
 
 const STATUS_BAR_H = 28.5;
 
@@ -82,7 +83,7 @@ export default function StudentLayout() {
   const isTestPage = location.pathname.includes("/test/");
   const isAnalysisPage = location.pathname.includes("/analytics");
   const isQuizTest = location.pathname === "/student/quiztest";
-  const isQuizPage = location.pathname === "/student/quiz";
+  const isQuizPage = location.pathname.startsWith("/student/quiz");
   const isPYQPage = location.pathname.startsWith('/student/pyq');
   const isProfilePage = location.pathname.startsWith('/student/profile');
   const isFeedbackPage = location.pathname === '/student/feedback';
@@ -140,32 +141,32 @@ export default function StudentLayout() {
     StatusBar.setStyle({ style: isDark ? Style.Dark : Style.Light }).catch(() => { });
   }, [isDark]);
 
-  // ── Android Back Button Handler ──
-  // Capacitor passes { canGoBack } which reflects the WebView's actual history stack
-  useEffect(() => {
-    if (!Capacitor.isNativePlatform()) return;
-
-    let handlerRef = null;
-
-    App.addListener('backButton', ({ canGoBack }) => {
-      if (canGoBack) {
-        // Navigate back through React Router / WebView history
-        window.history.back();
-      } else {
-        // No history left — exit the app
-        App.exitApp();
-      }
-    }).then(h => { handlerRef = h; });
-
-    return () => {
-      handlerRef?.remove();
-    };
-  }, []);
 
   const selectedGoal = localStorage.getItem("selectedGoal");
   if (!selectedGoal && location.pathname !== "/student" && location.pathname !== "/student/" && location.pathname !== "/student/goal-selection") {
     return <Navigate to="/student" replace />;
   }
+
+  const handleTabClick = (path) => {
+    if (location.pathname === path) return;
+    if (path === '/student') {
+      navigate('/student');
+      return;
+    }
+    const secondaryTabs = [
+      '/student/library',
+      '/student/prime',
+      '/student/history',
+      '/student/notices',
+      '/student/qbank'
+    ];
+    const isAlreadyOnSecondaryTab = secondaryTabs.some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
+    if (isAlreadyOnSecondaryTab) {
+      navigate(path, { replace: true });
+    } else {
+      navigate(path);
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F8FAFF]">
@@ -183,45 +184,32 @@ export default function StudentLayout() {
           <div className={`lg:hidden fixed bottom-0 left-0 right-0 z-[4000] transition-colors duration-300 ${isDarkPage ? 'bg-[#0B121C]' : 'bg-white'}`}
             style={{ borderTop: isDarkPage ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.07)' }}
           >
-            {user?.approved === false && (
-              <div className="absolute bottom-full left-0 right-0 bg-gradient-to-r from-[#1EBA9B] to-[#25D3A4] text-white px-5 py-2.5 flex items-center justify-between shadow-[0_-4px_15px_rgba(30,186,155,0.2)]">
-                <div className="flex flex-col">
-                  <span className="font-bold text-[13px] leading-tight">Get access to all batches</span>
-                  <span className="text-[13px] text-white/90 mt-0.5">Please fill out this form</span>
-                </div>
-                <button
-                  onClick={() => window.open('https://forms.gle/oHKY3wtTYrpGGDp76', '_blank')}
-                  className="bg-white text-[#1EBA9B] px-5 py-2 rounded-lg font-bold text-[13px] active:scale-95 transition-transform shadow-sm whitespace-nowrap"
-                >
-                  Enquiry Form
-                </button>
-              </div>
-            )}
+            <EnquiryBottomBar className="absolute bottom-full left-0 right-0" />
             <nav className="flex items-center justify-around px-1 pt-3 pb-6">
               <NavTabBtn
                 Icon={Home} label="Home"
                 isActive={location.pathname === '/student' || location.pathname === '/student/'}
-                isDark={isDarkPage} onClick={() => navigate('/student', { replace: true })} activeColor="#1EBA9B"
+                isDark={isDarkPage} onClick={() => handleTabClick('/student')} activeColor="#1EBA9B"
               />
               <NavTabBtn
                 Icon={Zap} label="Prime"
                 isActive={location.pathname === '/student/prime'}
-                isDark={isDarkPage} onClick={() => navigate('/student/prime', { replace: true })} activeColor="#A855F7"
+                isDark={isDarkPage} onClick={() => handleTabClick('/student/prime')} activeColor="#A855F7"
               />
               <NavTabBtn
                 Icon={Book} label="QBank"
                 isActive={location.pathname.startsWith('/student/qbank') || location.pathname.startsWith('/student/library') || location.pathname.startsWith('/student/pyq')}
-                isDark={isDarkPage} onClick={() => navigate('/student/library', { replace: true })} activeColor="#6366F1"
+                isDark={isDarkPage} onClick={() => handleTabClick('/student/library')} activeColor="#6366F1"
               />
               <NavTabBtn
                 Icon={ScrollText} label="Tests"
                 isActive={location.pathname === '/student/history'}
-                isDark={isDarkPage} onClick={() => navigate('/student/history', { replace: true })} activeColor="#3B82F6"
+                isDark={isDarkPage} onClick={() => handleTabClick('/student/history')} activeColor="#3B82F6"
               />
               <NavTabBtn
                 Icon={Bell} label="Updates"
                 isActive={location.pathname === '/student/notices'}
-                isDark={isDarkPage} onClick={() => navigate('/student/notices', { replace: true })} activeColor="#F59E0B"
+                isDark={isDarkPage} onClick={() => handleTabClick('/student/notices')} activeColor="#F59E0B"
               />
             </nav>
           </div>

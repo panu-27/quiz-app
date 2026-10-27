@@ -1,15 +1,40 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, ChevronDown, ChevronUp } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
+import useBackButton from "../hooks/useBackButton";
 
 const STATUS_BAR_H = 28.5;
 
 export default function StudentFAQs() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { theme } = useTheme();
     const isDark = theme === 'dark';
     const [openIndex, setOpenIndex] = useState(null);
+
+    useEffect(() => {
+        const from = location.state?.from;
+        if (from && from !== '/student/faqs') {
+            try { sessionStorage.setItem('student_faqs_parent', from); } catch(e) {}
+        }
+    }, [location.state?.from]);
+
+    const handleBack = () => {
+        let parent = location.state?.from;
+        if (!parent) {
+            try { parent = sessionStorage.getItem('student_faqs_parent'); } catch(e) {}
+        }
+        if (!parent) parent = '/student/profile';
+        if (window.history.state && window.history.state.idx > 0) {
+            navigate(-1);
+        } else {
+            navigate(parent, { replace: true });
+        }
+        return true;
+    };
+
+    useBackButton(handleBack);
 
     const dummyData = [
         { question: 'How do I access my downloaded content?', answer: 'You can access all your downloaded content from the "Downloads" section in the profile page even when offline.' },
@@ -29,7 +54,7 @@ export default function StudentFAQs() {
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <button
-                            onClick={() => navigate(-1)}
+                            onClick={handleBack}
                             className={`w-10 h-10 -ml-2 flex items-center justify-center transition-colors ${isDark ? 'text-white' : 'text-slate-800'}`}
                         >
                             <ArrowLeft size={24} />

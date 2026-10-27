@@ -2,10 +2,18 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Check, PlayCircle, FileText, Smartphone, Users, PhoneCall, GraduationCap, Calendar, ClipboardList, X, Trophy } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
+import useBackButton from "../hooks/useBackButton";
 
 export default function StudentSubscription() {
   const navigate = useNavigate();
   const { theme } = useTheme();
+
+  const handleBack = () => {
+    navigate('/student', { replace: true });
+    return true;
+  };
+
+  useBackButton(handleBack);
 
   // Scroll to top on mount
   useEffect(() => {
@@ -33,7 +41,7 @@ export default function StudentSubscription() {
         {/* Top bar with back button */}
         <div className="fixed top-8 left-0 right-0 z-50 flex items-center p-4 pointer-events-none">
           <button 
-            onClick={() => navigate(-1)}
+            onClick={handleBack}
             className="w-10 h-10 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-md text-white border border-white/10 transition-colors hover:bg-white/20 shadow-lg pointer-events-auto"
           >
             <X size={20} />

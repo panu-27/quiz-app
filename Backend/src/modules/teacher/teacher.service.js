@@ -437,35 +437,35 @@ const SUBJECT_MAP = {
 export const deployMaterial = async (teacher, metadata, file) => {
   const teacherId = teacher._id || teacher.id;
   const { subjectId, chapterId, category, batchIds, isFree } = metadata;
- 
+
   // Validate required fields
   if (!subjectId) throw new Error("subjectId is required");
   if (!chapterId) throw new Error("chapterId is required");
-  if (!category)  throw new Error("category is required");
+  if (!category) throw new Error("category is required");
   if (!batchIds || !batchIds.length) throw new Error("At least one batch required");
- 
+
   // Save file to disk
   const uploadDir = path.join(process.cwd(), "uploads", "vault");
   if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
- 
+
   const uniqueName = `${Date.now()}-${file.originalname.replace(/\s+/g, "_")}`;
-  const filePath   = path.join(uploadDir, uniqueName);
+  const filePath = path.join(uploadDir, uniqueName);
   fs.writeFileSync(filePath, file.buffer);
- 
+
   // Create Resource document
   const newResource = await Resource.create({
-    title:      file.originalname,
+    title: file.originalname,
     subjectId,                                    // "phy"
     chapterId,                                    // "phy-01"
     category,                                     // "notes"
-    subject:    SUBJECT_MAP[subjectId] || subjectId, // legacy display name
-    fileUrl:    `/uploads/vault/${uniqueName}`,
-    fileSize:   (file.size / 1024 / 1024).toFixed(2) + " MB",
+    subject: SUBJECT_MAP[subjectId] || subjectId, // legacy display name
+    fileUrl: `/uploads/vault/${uniqueName}`,
+    fileSize: (file.size / 1024 / 1024).toFixed(2) + " MB",
     batchIds,
     uploadedBy: teacherId,
-    isFree:     isFree || false,
+    isFree: isFree || false,
   });
- 
+
   return { success: true, resource: newResource };
 };
 
@@ -474,14 +474,14 @@ export const deployMaterial = async (teacher, metadata, file) => {
 export const toggleFreeStatus = async (teacher, resourceId) => {
   const teacherId = teacher._id || teacher.id;
   const resource = await Resource.findOne({ _id: resourceId, uploadedBy: teacherId });
-  
+
   if (!resource) {
     throw new Error("Resource not found or unauthorized");
   }
 
   resource.isFree = !resource.isFree;
   await resource.save();
-  
+
   return { success: true, resource };
 };
 

@@ -1,10 +1,19 @@
 import React from 'react';
 import { ChevronRight } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import useBackButton from '../hooks/useBackButton';
 
 export default function CounsellorModal({ isOpen, onClose, title = "Need help with your preparation?" }) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+
+  useBackButton(() => {
+    if (isOpen) {
+      onClose();
+      return true;
+    }
+    return false;
+  }, isOpen);
 
   if (!isOpen) return null;
 
@@ -13,9 +22,16 @@ export default function CounsellorModal({ isOpen, onClose, title = "Need help wi
       className="fixed inset-0 z-[9999] flex items-end justify-center"
       onClick={onClose}
     >
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&display=swap');
+        .counsellor-modal-container, .counsellor-modal-container * {
+          font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif !important;
+          box-sizing: border-box;
+        }
+      `}</style>
       <div className="absolute inset-0 bg-black/65 transition-opacity" style={{ backdropFilter: 'blur(3px)' }} />
       <div
-        className={`relative w-full max-w-md overflow-hidden transition-transform animate-in slide-in-from-bottom-full duration-300 ${isDark ? 'bg-[#111827]' : 'bg-white'}`}
+        className={`counsellor-modal-container relative w-full max-w-md overflow-hidden transition-transform animate-in slide-in-from-bottom-full duration-300 ${isDark ? 'bg-[#111827]' : 'bg-white'}`}
         style={{ borderRadius: '12px 12px 0 0' }}
         onClick={e => e.stopPropagation()}
       >
@@ -66,3 +82,4 @@ export default function CounsellorModal({ isOpen, onClose, title = "Need help wi
     </div>
   );
 }
+

@@ -1,7 +1,8 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Trophy } from "lucide-react";
 import api from "../api/axios";
+import useBackButton from "../hooks/useBackButton";
 
 /* ── YouTube Style Loading Components ── */
 const ShimmerCSS = () => (
@@ -60,8 +61,15 @@ const LeaderboardSkeleton = () => (
 export default function LeaderboardPage() {
     const { testId } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    const handleBack = () => {
+        const parent = location.state?.from || "/student";
+        navigate(parent, { replace: true });
+        return true;
+    };
 
     useEffect(() => {
         const fetchLeaderboard = async () => {
@@ -90,7 +98,7 @@ export default function LeaderboardPage() {
             {/* Header */}
             <div className="sticky top-0 z-50 bg-white border-b border-slate-50 px-6 py-4 flex justify-center items-center">
                 <button
-                    onClick={() => navigate(-1)}
+                    onClick={handleBack}
                     className="absolute left-5 p-2 hover:bg-slate-100 rounded-full transition"
                 >
                     <ArrowLeft size={20} />

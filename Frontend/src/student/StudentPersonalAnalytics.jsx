@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Trophy, WifiOff, Users, Zap, Star, ChevronDown } from "lucide-react";
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import api from "../api/axios";
+import useBackButton from "../hooks/useBackButton";
 
 const FALLBACK_ALL_TIME = [
   { rank: 1, name: "Mushafir", points: "8.6,684,187,627,438,1e+,242", level: 33, percentile: 100, avatar: null },
@@ -82,9 +83,33 @@ function Avatar({ src, name, size = 42, level = 1, className = "", isCurrentUser
 
 export default function StudentPersonalAnalytics() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+
+  useEffect(() => {
+    const from = location.state?.from;
+    if (from && from !== '/student/personal') {
+      try { sessionStorage.setItem('student_leaderboard_parent', from); } catch(e) {}
+    }
+  }, [location.state?.from]);
+
+  const handleBack = () => {
+    let parent = location.state?.from;
+    if (!parent) {
+      try { parent = sessionStorage.getItem('student_leaderboard_parent'); } catch(e) {}
+    }
+    if (!parent) parent = '/student';
+    if (window.history.state && window.history.state.idx > 0) {
+      navigate(-1);
+    } else {
+      navigate(parent, { replace: true });
+    }
+    return true;
+  };
+
+  useBackButton(handleBack);
 
   const [timeframe, setTimeframe] = useState('last7'); // 'last7' | 'all'
   const [allRanks, setAllRanks] = useState([]);
@@ -159,10 +184,6 @@ export default function StudentPersonalAnalytics() {
   }, []);
 
   const currentUser = allRanks.find(u => u.current) || { rank: 12, name: user?.name || "Pranav Zinjad", points: "0", level: 1, percentile: 0, current: true };
-
-  const handleBack = () => {
-    navigate('/student');
-  };
 
   const resolveMediaUrl = url => {
     if (!url) return null;

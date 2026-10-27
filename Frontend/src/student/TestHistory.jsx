@@ -9,11 +9,13 @@ import {
 import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
 import CounsellorModal from "../components/CounsellorModal";
+import StudentAvatar from "../components/StudentAvatar";
+import CurrentGoalSelector from "../components/CurrentGoalSelector";
 import useBackButton from "../hooks/useBackButton";
 
 const STATUS_BAR_H = 28.5;
 
-export default function TestHistory() {
+export default function TestHistory({ initialCounsellor = false }) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const { user } = useAuth();
@@ -26,8 +28,38 @@ export default function TestHistory() {
   const [quizzesData, setQuizzesData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCounsellorModal, setShowCounsellorModal] = useState(false);
+  const isCounsellorRoute = location.pathname === "/student/history/counsellor";
+  const isCounsellorOpen = isCounsellorRoute || (initialCounsellor && location.pathname.endsWith("/counsellor")) || showCounsellorModal;
+
+  const handleOpenCounsellor = () => {
+    setShowCounsellorModal(false);
+    navigate('/student/history/counsellor', { state: { from: '/student/history' } });
+  };
+
+  const handleCloseCounsellor = () => {
+    setShowCounsellorModal(false);
+    const targetParent = location.state?.from || '/student/history';
+    navigate(targetParent, { replace: true });
+  };
+
+  useEffect(() => {
+    if (!location.pathname.endsWith("/counsellor")) {
+      setShowCounsellorModal(false);
+    }
+  }, [location.pathname]);
+
   const [editingQuizId, setEditingQuizId] = useState(null);
   const [editingQuizTitle, setEditingQuizTitle] = useState("");
+
+  const handleBack = () => {
+    if (editingQuizId) {
+      setEditingQuizId(null);
+      return true;
+    }
+    const targetParent = location.state?.from || '/student';
+    navigate(targetParent, { replace: true });
+    return true;
+  };
 
   const handlePinToggle = async (test) => {
     if (!test.isGeneratedQuiz) return;
@@ -55,7 +87,7 @@ export default function TestHistory() {
   };
 
   useEffect(() => {
-    if (showCounsellorModal) {
+    if (isCounsellorOpen) {
       document.body.setAttribute('data-hide-nav', 'true');
     } else {
       document.body.removeAttribute('data-hide-nav');
@@ -63,12 +95,15 @@ export default function TestHistory() {
     return () => {
       document.body.removeAttribute('data-hide-nav');
     };
-  }, [showCounsellorModal]);
+  }, [isCounsellorOpen]);
 
   useBackButton(() => {
-    setShowCounsellorModal(false);
-    return true;
-  }, showCounsellorModal);
+    if (editingQuizId) {
+      setEditingQuizId(null);
+      return true;
+    }
+    return false;
+  }, !!editingQuizId);
 
   const resolveMediaUrl = (url) => {
     if (!url) return null;
@@ -86,70 +121,70 @@ export default function TestHistory() {
       setLoading(true);
       try {
         const [testsRes, quizzesRes] = await Promise.all([
-            api.get("/student/all-tests-with-attempts").catch(e => { console.error("Test fetch err:", e); return { data: [] }; }),
-            api.get("/quiz/attempts?limit=100").catch(e => { console.error("Quiz fetch err:", e); return { data: { success: false } }; })
+          api.get("/student/all-tests-with-attempts").catch(e => { console.error("Test fetch err:", e); return { data: [] }; }),
+          api.get("/quiz/attempts?limit=100").catch(e => { console.error("Quiz fetch err:", e); return { data: { success: false } }; })
         ]);
         setTestsData(Array.isArray(testsRes.data) ? testsRes.data : []);
         console.log("FETCHED TESTS:", testsRes.data);
         console.log("FETCHED QUIZZES RESPONSE:", quizzesRes.data);
 
         if (quizzesRes.data?.success && quizzesRes.data?.data) {
-            // ONLY keep actual practice/custom quizzes. The backend now returns attemptType and testId.
-            const practiceAttempts = quizzesRes.data.data.filter(attempt => attempt.attemptType === 'practice' || !attempt.testId);
-            
-            const groupedQuizzes = {};
-            practiceAttempts.forEach(attempt => {
-                const groupId = attempt.parentAttemptId || attempt._id;
-                if (!groupedQuizzes[groupId]) {
-                    groupedQuizzes[groupId] = { parent: null, attempts: [] };
-                }
-                groupedQuizzes[groupId].attempts.push(attempt);
-                if (!attempt.parentAttemptId || attempt._id === attempt.parentAttemptId) {
-                    groupedQuizzes[groupId].parent = attempt;
-                }
-            });
+          // ONLY keep actual practice/custom quizzes. The backend now returns attemptType and testId.
+          const practiceAttempts = quizzesRes.data.data.filter(attempt => attempt.attemptType === 'practice' || !attempt.testId);
 
-            const mappedQuizzes = Object.keys(groupedQuizzes).map(groupId => {
-                const group = groupedQuizzes[groupId];
-                group.attempts.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-                const representative = group.parent || group.attempts[0];
-                const totalQs = (representative.totalCorrect || 0) + (representative.totalWrong || 0) + (representative.totalUnattempted || 0);
-                
-                const subjects = new Set();
-                let chosenDuration = 0;
-                
-                if (representative.blocks && Array.isArray(representative.blocks)) {
-                    representative.blocks.forEach(block => {
-                        chosenDuration += (block.duration || 0);
-                        if (block.sections && Array.isArray(block.sections)) {
-                            block.sections.forEach(section => {
-                                if (section.subjectName) subjects.add(section.subjectName);
-                            });
-                        }
-                    });
+          const groupedQuizzes = {};
+          practiceAttempts.forEach(attempt => {
+            const groupId = attempt.parentAttemptId || attempt._id;
+            if (!groupedQuizzes[groupId]) {
+              groupedQuizzes[groupId] = { parent: null, attempts: [] };
+            }
+            groupedQuizzes[groupId].attempts.push(attempt);
+            if (!attempt.parentAttemptId || attempt._id === attempt.parentAttemptId) {
+              groupedQuizzes[groupId].parent = attempt;
+            }
+          });
+
+          const mappedQuizzes = Object.keys(groupedQuizzes).map(groupId => {
+            const group = groupedQuizzes[groupId];
+            group.attempts.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+            const representative = group.parent || group.attempts[0];
+            const totalQs = (representative.totalCorrect || 0) + (representative.totalWrong || 0) + (representative.totalUnattempted || 0);
+
+            const subjects = new Set();
+            let chosenDuration = 0;
+
+            if (representative.blocks && Array.isArray(representative.blocks)) {
+              representative.blocks.forEach(block => {
+                chosenDuration += (block.duration || 0);
+                if (block.sections && Array.isArray(block.sections)) {
+                  block.sections.forEach(section => {
+                    if (section.subjectName) subjects.add(section.subjectName);
+                  });
                 }
-                const subjectDetails = subjects.size > 0 ? Array.from(subjects).join(", ") : "Mixed Subjects";
-                
-                return {
-                    _id: groupId,
-                    title: representative.customTitle || "Practice Quiz",
-                    examType: "Quiz",
-                    teacherName: subjectDetails,
-                    totalQuestions: totalQs,
-                    duration: chosenDuration > 0 ? chosenDuration : (Math.round((representative.timeTaken || 0) / 60) || 0),
-                    status: representative.status,
-                    isGeneratedQuiz: true,
-                    isPinned: representative.isPinned || false,
-                    attempts: group.attempts,
-                    startTime: representative.createdAt,
-                    endTime: representative.createdAt,
-                    representative
-                };
-            });
-            mappedQuizzes.sort((a, b) => (b.isPinned === a.isPinned ? 0 : b.isPinned ? 1 : -1));
-            setQuizzesData(mappedQuizzes);
+              });
+            }
+            const subjectDetails = subjects.size > 0 ? Array.from(subjects).join(", ") : "Mixed Subjects";
+
+            return {
+              _id: groupId,
+              title: representative.customTitle || "Practice Quiz",
+              examType: "Quiz",
+              teacherName: subjectDetails,
+              totalQuestions: totalQs,
+              duration: chosenDuration > 0 ? chosenDuration : (Math.round((representative.timeTaken || 0) / 60) || 0),
+              status: representative.status,
+              isGeneratedQuiz: true,
+              isPinned: representative.isPinned || false,
+              attempts: group.attempts,
+              startTime: representative.createdAt,
+              endTime: representative.createdAt,
+              representative
+            };
+          });
+          mappedQuizzes.sort((a, b) => (b.isPinned === a.isPinned ? 0 : b.isPinned ? 1 : -1));
+          setQuizzesData(mappedQuizzes);
         } else {
-            console.warn("Quiz fetch failed or no data:", quizzesRes.data);
+          console.warn("Quiz fetch failed or no data:", quizzesRes.data);
         }
       } catch (err) {
         console.error("Fetch tests error", err);
@@ -207,9 +242,9 @@ export default function TestHistory() {
           </span>
           <div className="flex items-center gap-2">
             {test.isGeneratedQuiz && (
-                <button onClick={(e) => { e.stopPropagation(); handlePinToggle(test); }} className={`p-1.5 rounded-full transition-colors ${test.isPinned ? 'bg-amber-100 text-amber-600' : isDark ? 'bg-white/5 text-slate-500 hover:text-slate-300' : 'bg-slate-100 text-slate-400 hover:text-slate-600'}`}>
-                    <Pin size={14} fill={test.isPinned ? "currentColor" : "none"} />
-                </button>
+              <button onClick={(e) => { e.stopPropagation(); handlePinToggle(test); }} className={`p-1.5 rounded-full transition-colors ${test.isPinned ? 'bg-amber-100 text-amber-600' : isDark ? 'bg-white/5 text-slate-500 hover:text-slate-300' : 'bg-slate-100 text-slate-400 hover:text-slate-600'}`}>
+                <Pin size={14} fill={test.isPinned ? "currentColor" : "none"} />
+              </button>
             )}
             <ChevronRight size={16} className={isDark ? 'text-slate-500' : 'text-slate-400'} />
           </div>
@@ -217,17 +252,17 @@ export default function TestHistory() {
 
         {editingQuizId === test._id ? (
           <div className="flex items-center gap-2 mb-1">
-            <input 
+            <input
               autoFocus
-              value={editingQuizTitle} 
+              value={editingQuizTitle}
               onChange={(e) => setEditingQuizTitle(e.target.value)}
               className={`flex-1 px-3 py-1.5 rounded-lg text-[15px] font-bold border ${isDark ? 'bg-[#0B121C] border-slate-700 text-white' : 'bg-white border-slate-300 text-slate-900'} outline-none`}
             />
             <button onClick={() => handleRenameSubmit(test._id)} className="p-1.5 bg-green-500 text-white rounded-lg">
-                <Check size={16} />
+              <Check size={16} />
             </button>
             <button onClick={() => setEditingQuizId(null)} className="p-1.5 bg-red-500 text-white rounded-lg">
-                <X size={16} />
+              <X size={16} />
             </button>
           </div>
         ) : (
@@ -236,9 +271,9 @@ export default function TestHistory() {
               {test.title}
             </h3>
             {test.isGeneratedQuiz && (
-                <button onClick={() => { setEditingQuizId(test._id); setEditingQuizTitle(test.title); }} className={isDark ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}>
-                    <Edit2 size={14} />
-                </button>
+              <button onClick={() => { setEditingQuizId(test._id); setEditingQuizTitle(test.title); }} className={isDark ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}>
+                <Edit2 size={14} />
+              </button>
             )}
           </div>
         )}
@@ -261,9 +296,9 @@ export default function TestHistory() {
             <button
               onClick={() => {
                 if (test.isGeneratedQuiz) {
-                  navigate(`/student/listedattempts/quiz/${test._id}`, { state: { test } });
+                  navigate(`/student/listedattempts/quiz/${test._id}`, { state: { test, from: location.pathname } });
                 } else {
-                  navigate(`/student/listedattempts/${test._id}`, { state: { test } });
+                  navigate(`/student/listedattempts/${test._id}`, { state: { test, from: location.pathname } });
                 }
               }}
               className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg border font-bold text-xs bg-blue-500 text-white border-blue-500 hover:bg-blue-600 shadow-sm transition-colors`}
@@ -284,10 +319,10 @@ export default function TestHistory() {
   };
 
   return (
-    <div className={`min-h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-[#0B121C]' : 'bg-[#F4F7FC]'}`}>
+    <div className={`test-history-root min-h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-[#0B121C]' : 'bg-[#F4F7FC]'}`}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap');
-        * { font-family: 'DM Sans', sans-serif; }
+        .test-history-root, .test-history-root * { font-family: 'DM Sans', sans-serif; }
         .font-display { font-family: 'Sora', sans-serif; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -297,34 +332,29 @@ export default function TestHistory() {
       <div
         className="fixed top-0 left-0 lg:left-[280px] right-0 z-50"
         style={{
-          paddingTop: STATUS_BAR_H,
+          paddingTop: STATUS_BAR_H + 16,
           background: 'radial-gradient(ellipse 60% 100% at 70% 20%, rgba(255,255,255,0.12) 0%, #2D5588 40%, #2D5588 100%)',
           backgroundColor: '#2D5588'
         }}
       >
         {/* Top Header Row */}
-        <div className="flex items-center justify-between px-5 py-2 mt-2 mb-4">
-          <div onClick={() => { if (!user?.approved) navigate('/student/goal-selection'); }}>
-            <p className="text-[10px] font-medium leading-tight mb-0.5 text-slate-300">Current goal</p>
-            <div className={`flex items-center gap-1 ${!user?.approved ? 'cursor-pointer' : ''}`}>
-              <span className="font-bold text-[17px] font-display tracking-tight text-white">
-                {localStorage.getItem("selectedGoal") || "Select Goal"}
-              </span>
-              {!user?.approved && <ChevronDown size={18} className="text-white" strokeWidth={2.5} />}
-            </div>
-          </div>
+        <div className="flex items-center justify-between px-5 gap-2 min-w-0">
+          <CurrentGoalSelector
+            isDarkText={false}
+            labelColor="text-slate-300"
+            titleColor="text-white"
+            chevronColor="text-white"
+          />
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-shrink-0">
             <button
-              onClick={() => setShowCounsellorModal(true)}
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full transition-colors bg-[#ffffff1a] text-white hover:bg-white/20"
+              onClick={handleOpenCounsellor}
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full transition-colors bg-[#ffffff1a] text-white hover:bg-white/20 border border-white/20"
             >
-              <Phone size={14} fill="white" strokeWidth={0} />
+              <Phone size={14} className="fill-white text-white" strokeWidth={0} />
               <span className="text-xs font-bold tracking-wide">Talk to counsellor</span>
             </button>
-            <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-transparent">
-              <img src={avatar} alt="avatar" className="w-full h-full object-cover" />
-            </div>
+            <StudentAvatar user={user} />
           </div>
         </div>
 
@@ -445,7 +475,7 @@ export default function TestHistory() {
         </div>
 
         {/* List Content */}
-        <div className="flex-1 px-4 py-4 space-y-4 pb-24">
+        <div className={`flex-1 px-4 py-4 space-y-4 ${user?.approved === false ? 'pb-36' : 'pb-24'}`}>
           {loading ? (
             <div className="flex justify-center py-10"><Loader2 className="animate-spin text-blue-500" /></div>
           ) : displayedTests.length === 0 ? (
@@ -460,8 +490,8 @@ export default function TestHistory() {
 
       {/* ── COUNSELLOR MODAL ── */}
       <CounsellorModal
-        isOpen={showCounsellorModal}
-        onClose={() => setShowCounsellorModal(false)}
+        isOpen={isCounsellorOpen}
+        onClose={handleCloseCounsellor}
         title="Need help with your subscription?"
       />
     </div>

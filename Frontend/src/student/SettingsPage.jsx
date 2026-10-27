@@ -1,8 +1,8 @@
 import { useRef, useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
-import { ArrowLeft, Check, Upload, User, Mail, AlertCircle, Eye, EyeOff, Lock, LogOut, Phone, MessageCircle, Star, Users, Shield, HelpCircle, FileText, Cookie, Receipt } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { ArrowLeft, Check, Upload, User, Mail, AlertCircle, Eye, EyeOff, Lock, LogOut, Phone, MessageCircle, Star, Users, Shield, HelpCircle, FileText, Cookie, Receipt, Award } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
 import api from "../api/axios";
 import useBackButton from "../hooks/useBackButton";
 
@@ -55,11 +55,50 @@ function ListItem({ sectionTitle, icon, subtitle, title, onClick, isDark, danger
   );
 }
 
-export default function SettingsPage() {
+export default function SettingsPage({ initialLogout = false }) {
   const navigate = useNavigate();
   const { user, updateAvatar } = useAuth();
   const { theme } = useTheme();
   const isDark = theme === "dark";
+
+  const location = useLocation();
+  const isLogoutRoute = initialLogout || location.pathname === '/student/settings/logout';
+
+  const [showLogoutModal, setShowLogoutModal] = useState(isLogoutRoute);
+
+  useEffect(() => {
+    setShowLogoutModal(isLogoutRoute);
+  }, [isLogoutRoute]);
+
+  const closeLogoutModal = () => {
+    setShowLogoutModal(false);
+    if (location.pathname === '/student/settings/logout') {
+      if (window.history.state && window.history.state.idx > 0) {
+        navigate(-1);
+      } else {
+        navigate('/student/settings', { replace: true });
+      }
+    }
+  };
+
+  const handleBack = () => {
+    if (showLogoutModal || location.pathname === '/student/settings/logout') {
+      closeLogoutModal();
+      return true;
+    }
+    let parent = location.state?.from;
+    if (!parent) {
+      try { parent = sessionStorage.getItem('student_settings_parent'); } catch(e) {}
+    }
+    if (!parent) parent = '/student/profile';
+    if (window.history.state && window.history.state.idx > 0) {
+      navigate(-1);
+    } else {
+      navigate(parent, { replace: true });
+    }
+    return true;
+  };
+
   const fileRef = useRef();
 
   const [profile, setProfile] = useState(null);
@@ -70,15 +109,20 @@ export default function SettingsPage() {
 
   const [toast, setToast] = useState(null);
 
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
-
   useBackButton(() => {
-    if (showLogoutModal) {
-      setShowLogoutModal(false);
+    if (showLogoutModal || location.pathname === '/student/settings/logout') {
+      closeLogoutModal();
       return true;
     }
     return false;
-  }, showLogoutModal);
+  }, showLogoutModal || location.pathname === '/student/settings/logout');
+
+  useEffect(() => {
+    const from = location.state?.from;
+    if (from && from !== '/student/settings' && from !== '/student/settings/logout') {
+      try { sessionStorage.setItem('student_settings_parent', from); } catch(e) {}
+    }
+  }, [location.state?.from]);
 
   useEffect(() => {
     let cancelled = false;
@@ -151,7 +195,7 @@ export default function SettingsPage() {
 
           {/* Header Bar */}
           <div className="absolute top-0 left-0 right-0 px-5 flex items-center gap-4" style={{ paddingTop: STATUS_BAR_H + 12 }}>
-            <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-white hover:bg-white/10 rounded-sm transition-colors">
+            <button onClick={handleBack} className="p-2 -ml-2 text-white hover:bg-white/10 rounded-sm transition-colors">
               <ArrowLeft size={24} />
             </button>
             <h1 className="text-white text-[17px] font-bold">Settings</h1>
@@ -193,7 +237,11 @@ export default function SettingsPage() {
           icon={<Users size={22} strokeWidth={1.5} />}
           subtitle={!profile?.approved ? "Tap to change class" : null}
           title={profile?.batchId?.className ? `${profile.batchId.className} (${profile.batchId.name})` : (profile?.batchId?.name || "Pending")}
-          onClick={!profile?.approved ? () => navigate('/student/goal-selection') : undefined}
+          onClick={!profile?.approved ? () => {
+            const fromPath = (location.pathname + location.search) || '/student';
+            try { sessionStorage.setItem('student_goal_parent', fromPath); } catch(e) {}
+            navigate('/student/goal-selection', { state: { from: fromPath } });
+          } : undefined}
           isDark={isDark}
         />
 
@@ -201,7 +249,7 @@ export default function SettingsPage() {
           sectionTitle="Security"
           icon={<Shield size={22} strokeWidth={1.5} />}
           title="Change Password"
-          onClick={() => navigate('/student/change-password')}
+          onClick={() => navigate('/student/change-password', { state: { from: '/student/settings' } })}
           isDark={isDark}
         />
 
@@ -209,28 +257,41 @@ export default function SettingsPage() {
           sectionTitle="Help & Policies"
           icon={<HelpCircle size={22} strokeWidth={1.5} />}
           title="FAQs"
-          onClick={() => navigate('/student/faqs')}
+          onClick={() => {
+            try { sessionStorage.setItem('student_faqs_parent', '/student/settings'); } catch(e) {}
+            navigate('/student/faqs', { state: { from: '/student/settings' } });
+          }}
+          isDark={isDark}
+        />
+
+        <ListItem
+          icon={<Award size={22} strokeWidth={1.5} />}
+          title="Leaderboard"
+          onClick={() => {
+            try { sessionStorage.setItem('student_leaderboard_parent', '/student/settings'); } catch(e) {}
+            navigate('/student/personal', { state: { from: '/student/settings' } });
+          }}
           isDark={isDark}
         />
 
         <ListItem
           icon={<FileText size={22} strokeWidth={1.5} />}
           title="Privacy Policy"
-          onClick={() => navigate('/student/privacy-policy')}
+          onClick={() => navigate('/student/privacy-policy', { state: { from: '/student/settings' } })}
           isDark={isDark}
         />
 
         <ListItem
           icon={<Cookie size={22} strokeWidth={1.5} />}
           title="Cookies Policy"
-          onClick={() => navigate('/student/cookie-policy')}
+          onClick={() => navigate('/student/cookie-policy', { state: { from: '/student/settings' } })}
           isDark={isDark}
         />
 
         <ListItem
           icon={<Receipt size={22} strokeWidth={1.5} />}
           title="Refund Policy"
-          onClick={() => navigate('/student/refund-policy')}
+          onClick={() => navigate('/student/refund-policy', { state: { from: '/student/settings' } })}
           isDark={isDark}
         />
 
@@ -238,7 +299,7 @@ export default function SettingsPage() {
           sectionTitle="Account"
           icon={<AlertCircle size={22} strokeWidth={1.5} />}
           title="Delete Account"
-          onClick={() => navigate('/student/delete-account')}
+          onClick={() => navigate('/student/delete-account', { state: { from: '/student/settings' } })}
           isDark={isDark}
           danger
         />
@@ -246,7 +307,7 @@ export default function SettingsPage() {
         <ListItem
           icon={<LogOut size={22} strokeWidth={1.5} />}
           title="Sign Out"
-          onClick={() => setShowLogoutModal(true)}
+          onClick={() => navigate('/student/settings/logout', { state: { from: '/student/settings' } })}
           isDark={isDark}
           danger
         />
@@ -256,14 +317,14 @@ export default function SettingsPage() {
       {/* Logout Bottom Modal */}
       {showLogoutModal && (
         <div className="fixed inset-0 z-[100] flex items-end justify-center">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowLogoutModal(false)} />
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={closeLogoutModal} />
           <div className={`relative w-full max-w-md ${isDark ? 'bg-[#151E2E] border-t border-slate-800' : 'bg-white'} rounded-t-lg p-6 pb-10 animate-in slide-in-from-bottom-full duration-300 shadow-2xl`}>
             <div className="text-left mb-6 mt-2">
               <h3 className={`text-xl font-bold mb-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>Log Out?</h3>
               <p className={`text-[15px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Are you sure you want to log out?</p>
             </div>
             <div className="flex gap-3">
-              <button onClick={() => setShowLogoutModal(false)} className={`flex-1 py-2.5 font-bold text-[15px] rounded-sm border ${isDark ? 'bg-transparent border-slate-700 text-slate-300 hover:bg-slate-800' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'} active:scale-[0.98] transition-all`}>
+              <button onClick={closeLogoutModal} className={`flex-1 py-2.5 font-bold text-[15px] rounded-sm border ${isDark ? 'bg-transparent border-slate-700 text-slate-300 hover:bg-slate-800' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'} active:scale-[0.98] transition-all`}>
                 No, Cancel
               </button>
               <button onClick={handleLogout} className="flex-1 py-2.5 bg-[#DE4242] hover:bg-[#c93b3b] text-white font-bold text-[15px] rounded-sm active:scale-[0.98] transition-all">

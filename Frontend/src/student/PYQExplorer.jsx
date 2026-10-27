@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
     ArrowLeft, ChevronDown, ChevronUp, Search,
     AlertTriangle, CheckCircle2, Loader2,
@@ -476,13 +476,16 @@ const TopicSection = ({ topic, topicIdx, accent, filterYear, allQuestions, isExp
 // MAIN COMPONENT
 // ════════════════════════════════════════════════════════════════════
 export default function PYQExplorer() {
-    const { subjectId } = useParams();
+    const { subjectId, chapterId } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const { theme } = useTheme();
     const isDark = theme === 'dark';
-    const [activeSubjectId, setActiveSubjectId] = useState(subjectId || null);
-    const activeSub = activeSubjectId || subjectId;
 
+    const isSubRoute = subjectId && !['papers', 'progress', 'bookmarks'].includes(subjectId);
+    const [activeSubjectId, setActiveSubjectId] = useState(isSubRoute ? subjectId : null);
+    const isPracticeRoute = location.pathname.endsWith('/practice');
+    const activeSub = activeSubjectId || (isSubRoute ? subjectId : null);
 
     const { user } = useAuth();
     const isApproved = !!user?.isApproved;
@@ -499,14 +502,13 @@ export default function PYQExplorer() {
     const [isScrollingDown, setIsScrollingDown] = useState(false);
     const lastScrollY = useRef(0);
 
-
     const [activeChapter, setActiveChapter] = useState(null);
     const [viewMode, setViewMode] = useState('all');
     const [chapters, setChapters] = useState([]);
     const [chaptersLoading, setChaptersLoading] = useState(true);
     const [chaptersMap, setChaptersMap] = useState({});
     const [subjects, setSubjects] = useState([]);
-    const [expandedSubject, setExpandedSubject] = useState(subjectId || null);
+    const [expandedSubject, setExpandedSubject] = useState(isSubRoute ? subjectId : null);
 
     // We fetch subjects from DB, so we look it up from the state instead of static dummy data
     const subject = subjects?.find?.(s => String(s._id) === String(activeSub));
@@ -533,6 +535,15 @@ export default function PYQExplorer() {
     const [showPracticeConfirm, setShowPracticeConfirm] = useState(false);
     const [practiceData, setPracticeData] = useState([]);
 
+    // Keep activeSubjectId in sync with subjectId URL param
+    useEffect(() => {
+        if (isSubRoute) {
+            setActiveSubjectId(subjectId);
+        } else if (!chapterId) {
+            setActiveSubjectId(null);
+        }
+    }, [subjectId, isSubRoute, chapterId]);
+
     useBackButton(() => {
         if (showCounsellorPopup) {
             setShowCounsellorPopup(false);
@@ -551,16 +562,8 @@ export default function PYQExplorer() {
             setSelectedReason(null);
             return true;
         }
-        // If practiceMode is true, we want back button to pop practice mode?
-        // PracticeModeOverlay might handle it, or we can handle it here:
-        if (practiceMode) {
-            // Actually PracticeModeOverlay has its own close, but let's just let it handle or we handle here:
-            // Since PracticeMode is an overlay/fullscreen:
-            setPracticeMode(false);
-            return true;
-        }
         return false;
-    }, showCounsellorPopup || showPracticeConfirm || yearPickerOpen || !!reportTarget || practiceMode);
+    });
 
     const handleStartPractice = (mistakesOnly = false) => {
         let chapterQs = allQuestions.filter(q => {
@@ -732,8 +735,8 @@ export default function PYQExplorer() {
         finally { setQLoading(false); setTopicsLoading(false); }
     }, [subjectId, activeSubjectId]);
 
-    const enterChapter = (chap, subId) => {
-        setActiveSubjectId(subId);
+    const enterChapter = useCallback((chap, subId) => {
+        setActiveSubjectId(subId || chap.subjectId);
         setActiveChapter(chap);
         setViewMode('all');
         setFilterYear('All');
@@ -742,8 +745,63 @@ export default function PYQExplorer() {
         setTopicOpenQId(null);
         setExpandedTopicId(null);
         setSearchQ('');
-        loadChapterData(chap, subId);
-    };
+        loadChapterData(chap, subId || chap.subjectId);
+    }, [loadChapterData]);
+
+    // Synchronize activeChapter and practiceMode with URL params
+    useEffect(() => {
+        if (!chapterId) {
+            if (activeChapter) setActiveChapter(null);
+            if (practiceMode) setPracticeMode(false);
+            return;
+        }
+
+        // If chapter is already active and matches chapterId
+        if (activeChapter && String(activeChapter._id) === String(chapterId)) {
+            if (isPracticeRoute && !practiceMode && allQuestions.length > 0) {
+                setPracticeData(allQuestions);
+                setPracticeMode(true);
+            } else if (!isPracticeRoute && practiceMode) {
+                setPracticeMode(false);
+            }
+            return;
+        }
+
+        // Search for chapter in chaptersMap
+        let foundChapter = null;
+        const subId = isSubRoute ? subjectId : activeSubjectId;
+        if (subId && chaptersMap[subId]) {
+            foundChapter = chaptersMap[subId].find(c => String(c._id) === String(chapterId));
+        }
+        if (!foundChapter) {
+            for (const chaps of Object.values(chaptersMap)) {
+                const match = chaps.find(c => String(c._id) === String(chapterId));
+                if (match) {
+                    foundChapter = match;
+                    break;
+                }
+            }
+        }
+
+        if (foundChapter) {
+            enterChapter(foundChapter, foundChapter.subjectId || subId);
+        } else if (!chaptersLoading && Object.keys(chaptersMap).length > 0) {
+            api.get(`/quiz/chapters/${chapterId}`).then(res => {
+                const chap = res.data?.data || res.data;
+                if (chap) {
+                    enterChapter(chap, chap.subjectId || subId);
+                }
+            }).catch(() => {});
+        }
+    }, [chapterId, isPracticeRoute, chaptersMap, chaptersLoading, activeChapter, allQuestions, isSubRoute, subjectId, activeSubjectId, enterChapter, practiceMode]);
+
+    // Auto-launch practice mode once questions finish loading if on practice route
+    useEffect(() => {
+        if (isPracticeRoute && activeChapter && allQuestions.length > 0 && !practiceMode) {
+            setPracticeData(allQuestions);
+            setPracticeMode(true);
+        }
+    }, [isPracticeRoute, activeChapter, allQuestions, practiceMode]);
 
     const getChapterStats = useCallback((chap) => {
         const totalQs = chap?.questionCount || 0;
@@ -874,7 +932,10 @@ export default function PYQExplorer() {
                             {/* Left: back + subject heading */}
                             <div className="flex items-center gap-2">
                                 <button
-                                    onClick={() => { setActiveSubjectId(null); setSearchSubject(''); }}
+                                    onClick={() => {
+                                        setSearchSubject('');
+                                        navigate('/student/pyq', { replace: true });
+                                    }}
                                     className={`w-10 h-10 -ml-2 flex items-center justify-center transition-colors ${isDark ? 'text-white' : 'text-slate-800'}`}
                                 >
                                     <ArrowLeft size={24} />
@@ -888,7 +949,10 @@ export default function PYQExplorer() {
                             <div className="flex items-center gap-2">
                                 {/* Bookmark icon */}
                                 <button
-                                    onClick={() => navigate('/student/pyq/bookmarks')}
+                                    onClick={() => {
+                                        try { sessionStorage.setItem('pyq_feature_from', location.pathname); } catch(e) {}
+                                        navigate('/student/pyq/bookmarks', { state: { from: location.pathname } });
+                                    }}
                                     className={`w-9 h-9 flex items-center justify-center rounded-[10px] border active:scale-95 transition-all ${isDark
                                         ? 'border-[#2A3441] bg-[#161C26] text-white'
                                         : 'border-slate-200 bg-white text-slate-700'
@@ -901,7 +965,10 @@ export default function PYQExplorer() {
 
                                 {/* Progress icon */}
                                 <button
-                                    onClick={() => navigate('/student/pyq/progress')}
+                                    onClick={() => {
+                                        try { sessionStorage.setItem('pyq_feature_from', location.pathname); } catch(e) {}
+                                        navigate('/student/pyq/progress', { state: { from: location.pathname } });
+                                    }}
                                     className={`w-9 h-9 flex items-center justify-center rounded-[10px] border active:scale-95 transition-all ${isDark
                                         ? 'border-[#2A3441] bg-[#161C26] text-white'
                                         : 'border-slate-200 bg-white text-slate-700'
@@ -972,7 +1039,7 @@ export default function PYQExplorer() {
                                 return (
                                     <div
                                         key={chap._id}
-                                        onClick={() => enterChapter(chap, activeSubjectId)}
+                                        onClick={() => navigate(`/student/pyq/subject/${activeSubjectId || chap.subjectId}/chapter/${chap._id}`)}
                                         className={`flex items-center px-4 py-4 rounded-[16px] cursor-pointer active:scale-[0.99] transition-all ${isDark ? 'bg-[#161C26]' : 'bg-white shadow-none'
                                             }`}
                                     >
@@ -1023,7 +1090,10 @@ export default function PYQExplorer() {
                         {/* Left: back button + title */}
                         <div className="flex items-center gap-2">
                             <button
-                                onClick={() => navigate('/student')}
+                                onClick={() => {
+                                    const targetParent = (location.state?.from && !location.state.from.startsWith('/student/pyq')) ? location.state.from : '/student/library';
+                                    navigate(targetParent, { replace: true });
+                                }}
                                 className={`w-10 h-10 -ml-2 flex items-center justify-center transition-colors ${isDark ? 'text-white' : 'text-slate-800'}`}
                             >
                                 <ArrowLeft size={24} />
@@ -1037,7 +1107,10 @@ export default function PYQExplorer() {
                         <div className="flex items-center gap-2">
                             {/* Bookmark icon */}
                             <button
-                                onClick={() => navigate('/student/pyq/bookmarks')}
+                                onClick={() => {
+                                    try { sessionStorage.setItem('pyq_feature_from', location.pathname); } catch(e) {}
+                                    navigate('/student/pyq/bookmarks', { state: { from: location.pathname } });
+                                }}
                                 className={`w-9 h-9 flex items-center justify-center rounded-[10px] border active:scale-95 transition-all ${isDark
                                     ? 'border-[#2A3441] bg-[#161C26] text-white'
                                     : 'border-slate-200 bg-white text-slate-700'
@@ -1050,7 +1123,10 @@ export default function PYQExplorer() {
 
                             {/* Progress icon */}
                             <button
-                                onClick={() => navigate('/student/pyq/progress')}
+                                onClick={() => {
+                                    try { sessionStorage.setItem('pyq_feature_from', location.pathname); } catch(e) {}
+                                    navigate('/student/pyq/progress', { state: { from: location.pathname } });
+                                }}
                                 className={`w-9 h-9 flex items-center justify-center rounded-[10px] border active:scale-95 transition-all ${isDark
                                     ? 'border-[#2A3441] bg-[#161C26] text-white'
                                     : 'border-slate-200 bg-white text-slate-700'
@@ -1099,7 +1175,7 @@ export default function PYQExplorer() {
                             return (
                                 <div
                                     key={sub._id}
-                                    onClick={() => { setActiveSubjectId(sub._id); setSearchSubject(''); setChapterTab('all'); }}
+                                    onClick={() => { setSearchSubject(''); setChapterTab('all'); navigate(`/student/pyq/subject/${sub._id}`); }}
                                     className={`flex items-center px-4 py-4 rounded-[16px] cursor-pointer active:scale-[0.99] transition-all ${isDark ? 'bg-[#161C26]' : 'bg-white shadow-none'
                                         }`}
                                 >
@@ -1161,7 +1237,14 @@ export default function PYQExplorer() {
                     {/* Left side: back button + text */}
                     <div className="flex items-center gap-2 min-w-0 flex-1">
                         <button
-                            onClick={() => setActiveChapter(null)}
+                            onClick={() => {
+                                const subId = activeSubjectId || subject?._id || activeChapter?.subjectId;
+                                if (subId) {
+                                    navigate(`/student/pyq/subject/${subId}`, { replace: true });
+                                } else {
+                                    navigate('/student/pyq', { replace: true });
+                                }
+                            }}
                             className={`w-10 h-10 -ml-2 flex items-center justify-center rounded-[10px] active:scale-95 transition-all flex-shrink-0 ${isDark ? 'text-white' : 'text-slate-800'
                                 }`}
                         >
@@ -1559,7 +1642,12 @@ export default function PYQExplorer() {
                             <button onClick={() => setShowPracticeConfirm(false)} className={`flex-1 py-3 rounded-xl font-bold text-sm ${isDark ? 'bg-[#1F2937] text-slate-300' : 'bg-slate-100 text-slate-600'}`}>
                                 Cancel
                             </button>
-                            <button onClick={() => { setShowPracticeConfirm(false); setPracticeMode(true); }} className="flex-1 py-3 rounded-xl font-bold text-sm bg-[#2563EB] text-white">
+                            <button onClick={() => {
+                                setShowPracticeConfirm(false);
+                                const subId = activeSubjectId || subject?._id || activeChapter?.subjectId;
+                                const cId = activeChapter?._id;
+                                navigate(`/student/pyq/subject/${subId}/chapter/${cId}/practice`);
+                            }} className="flex-1 py-3 rounded-xl font-bold text-sm bg-[#2563EB] text-white">
                                 Start Now
                             </button>
                         </div>
@@ -1575,7 +1663,18 @@ export default function PYQExplorer() {
                     chapterName={activeChapter?.name || 'Practice'}
                     isDark={isDark}
                     theme={theme}
-                    onClose={() => setPracticeMode(false)}
+                    onClose={() => {
+                        setPracticeMode(false);
+                        const subId = activeSubjectId || subject?._id || activeChapter?.subjectId;
+                        const cId = activeChapter?._id;
+                        if (subId && cId) {
+                            navigate(`/student/pyq/subject/${subId}/chapter/${cId}`, { replace: true });
+                        } else if (subId) {
+                            navigate(`/student/pyq/subject/${subId}`, { replace: true });
+                        } else {
+                            navigate('/student/pyq', { replace: true });
+                        }
+                    }}
                     bookmarks={bookmarks}
                     onToggleBookmark={handleToggleBookmark}
                 />

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, ChevronRight, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api from '../api/axios.js';
+import useBackButton from '../hooks/useBackButton';
 
 const injectGlobalStyles = (() => {
   let done = false;
@@ -195,6 +196,15 @@ export default function PracticeModeOverlay({
     const [timer, setTimer] = useState(0);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showConfirmQuit, setShowConfirmQuit] = useState(false);
+
+    useBackButton(() => {
+        if (showConfirmQuit) {
+            setShowConfirmQuit(false);
+            return true;
+        }
+        setShowConfirmQuit(true);
+        return true;
+    });
 
     const batchEnd = Math.min(batchStart + 5, questions.length);
     const batchLength = batchEnd - batchStart;

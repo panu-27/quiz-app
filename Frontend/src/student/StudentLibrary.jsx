@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import {
   MagnifyingGlassIcon, XMarkIcon,
   ArrowDownTrayIcon, ChevronRightIcon,
@@ -17,7 +17,10 @@ import { useTheme } from '../context/ThemeContext';
 import api from '../api/axios';
 
 import CounsellorModal from '../components/CounsellorModal';
+import StudentAvatar from '../components/StudentAvatar';
+import CurrentGoalSelector from '../components/CurrentGoalSelector';
 import { PYQ_SUBJECTS } from './pyqData';
+import { SUBJECTS, CHAPTERS } from './libraryConfig';
 import useBackButton from '../hooks/useBackButton';
 
 const STATUS_BAR_H = 28.5;
@@ -286,86 +289,6 @@ function DecryptOverlay() {
   );
 }
 
-/* ══════════════════════════════════════════════════════════
-   PDF VIEWER (full-screen)
-══════════════════════════════════════════════════════════ */
-function PdfViewer({ file, onClose, resolveFileUrl }) {
-  const { theme } = useTheme();
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    import('@capacitor/status-bar').then(({ StatusBar }) => {
-      StatusBar.hide().catch(() => { });
-    }).catch(() => { });
-
-    return () => {
-      import('@capacitor/status-bar').then(({ StatusBar }) => {
-        StatusBar.show().catch(() => { });
-      }).catch(() => { });
-    };
-  }, []);
-  return (
-    <div
-      className={`fixed inset-0 z-[8000] flex flex-col transition-colors ${theme === 'light' ? 'bg-[#F4F7FC]' : 'bg-[#0B101A]'
-        }`}
-      style={{ animation: "slideInRight 0.28s cubic-bezier(.16,1,.3,1) both" }}
-    >
-      {/* Toolbar */}
-      <div className={`h-14 flex items-center justify-between px-2 border-b flex-shrink-0 ${theme === 'light' ? 'bg-white border-slate-200' : 'bg-[#0B101A] border-[#1e293b]'
-        }`}>
-        <div className="flex items-center gap-2 min-w-0 flex-1 pr-4">
-          <button
-            onClick={onClose}
-            className={`p-2 flex items-center justify-center flex-shrink-0 bg-transparent outline-none ${theme === 'light' ? 'text-slate-800' : 'text-slate-300'
-              }`}
-          >
-            <ArrowLeft size={20} />
-          </button>
-          <div className="min-w-0 flex-1">
-            <p className={`text-[14px] font-bold truncate ${theme === 'light' ? 'text-slate-900' : 'text-white'
-              }`}>{file.title}</p>
-          </div>
-        </div>
-
-        <button
-          onClick={() => {
-            if (file.fileUrl) window.open(resolveFileUrl(file.fileUrl), '_blank');
-          }}
-          className={`flex items-center justify-center gap-1.5 px-3 py-1.5 mr-2 rounded border shadow-none flex-shrink-0 ${theme === 'light' ? 'border-slate-300 text-slate-700 active:bg-slate-50' : 'border-slate-700 text-slate-200 active:bg-white/5'
-            }`}
-        >
-          <ArrowDownTrayIcon className="w-[15px] h-[15px]" strokeWidth={2} />
-          <span className="text-[12px] font-bold">Download</span>
-        </button>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 relative overflow-hidden">
-        {!ready && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Loader2 size={36} className="text-[#7A41F7] animate-spin" />
-          </div>
-        )}
-        {file.fileUrl ? (
-          <iframe
-            src={`https://docs.google.com/viewer?url=${encodeURIComponent(
-              resolveFileUrl(file.fileUrl)
-            )}&embedded=true`}
-            className="w-full h-full border-none"
-            style={{ opacity: ready ? 1 : 0, transition: "opacity 0.4s" }}
-            title="Document"
-            onLoad={() => setReady(true)}
-          />
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full">
-            <FileText size={48} className="text-slate-700 mb-4" />
-            <p className="text-slate-500 text-sm font-bold">Document not found</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 /* ══════════════════════════════════════════════════════════
    TOPIC FULL-SCREEN VIEW
@@ -376,7 +299,7 @@ function TopicFullScreen({ topic, isApproved, onBack, resolveFileUrl }) {
   const [loading, setLoading] = useState(true);
   const [openingId, setOpeningId] = useState(null);
   const [decrypting, setDecrypting] = useState(false);
-  const [viewerFile, setViewerFile] = useState(null);
+
   const [activeCategory, setActiveCategory] = useState("All");
 
   useEffect(() => {
@@ -386,23 +309,41 @@ function TopicFullScreen({ topic, isApproved, onBack, resolveFileUrl }) {
     };
   }, []);
 
+  useBackButton(() => {
+    if (onBack) {
+      onBack();
+      return true;
+    }
+    return false;
+  }, !!onBack);
+
   useEffect(() => {
     setLoading(true);
+    const params = {
+      chapterId: topic.id || topic.name,
+    };
+    if (topic.subjId) {
+      params.subjectId = topic.subjId;
+    }
     api
-      .get("/student/my-library", {
-        params: { subjectId: topic.subjId, chapterId: topic.id },
-      })
+      .get("/student/my-library", { params })
       .then(({ data }) => {
         let list = Array.isArray(data) ? data : Object.values(data).flat();
         setItems(list);
       })
       .catch(() => setItems([]))
       .finally(() => setLoading(false));
-  }, [topic.id, topic.subjId]);
+  }, [topic.id, topic.subjId, topic.name]);
 
   const handleOpen = (item) => {
     if (item.fileUrl) {
-      window.open(resolveFileUrl(item.fileUrl), '_blank');
+      navigate('/student/library/pdf', {
+        state: {
+          pdfUrl: resolveFileUrl(item.fileUrl),
+          title: item.title || 'Document',
+          from: location.pathname,
+        },
+      });
     }
   };
 
@@ -548,6 +489,8 @@ function TopicFullScreen({ topic, isApproved, onBack, resolveFileUrl }) {
       {/* Decrypting Overlay */}
       {decrypting && <DecryptOverlay />}
 
+
+
       {/* Join Prime Banner sitting at a height from the bottom (Full Width) */}
       {!isApproved && (
         <div
@@ -630,8 +573,9 @@ function TopicRow({ topic, onPress, resources = [] }) {
 /* ══════════════════════════════════════════════════════════════════
    MAIN EXPORT
 ══════════════════════════════════════════════════════════════════ */
-export default function StudentLibrary() {
+export default function StudentLibrary({ initialCounsellor = false }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
@@ -645,12 +589,37 @@ export default function StudentLibrary() {
 
   useEffect(() => {
     const fetchSyllabus = async () => {
+      const applyFallback = () => {
+        const topics = [];
+        const tabs = ["All", ...SUBJECTS.map(s => s.label)];
+        const idMap = {};
+        SUBJECTS.forEach(s => { idMap[s.label] = s.id; });
+
+        SUBJECTS.forEach(sub => {
+          (CHAPTERS[sub.id] || []).forEach(ch => {
+            topics.push({
+              id: ch.id,
+              name: ch.label,
+              subjId: sub.id,
+              subjLabel: sub.label.toUpperCase(),
+              subjColor: sub.color,
+              subjIcon: <BookOpen size={13} />,
+              chaptersCount: (CHAPTERS[sub.id] || []).length,
+            });
+          });
+        });
+
+        setAllTopics(topics);
+        setFilterTabs(tabs);
+        setSubjIdMap(idMap);
+      };
+
       try {
         const res = await api.get('/student/my-syllabus');
         const data = res.data;
-        if (data && data.subjects) {
+        if (data && Array.isArray(data.subjects) && data.subjects.length > 0) {
           setSyllabus(data);
-          
+
           const topics = [];
           const tabs = ["All"];
           const idMap = {};
@@ -658,18 +627,20 @@ export default function StudentLibrary() {
           data.subjects.forEach(sub => {
             tabs.push(sub.name);
             idMap[sub.name] = sub.name; // ID is the name itself
-            
+
             const meta = fallbackSubjMeta(sub.name);
 
-            sub.chapters.forEach(ch => {
+            (sub.chapters || []).forEach(ch => {
+              const chName = typeof ch === 'string' ? ch : (ch?.name || '');
+              if (!chName) return;
               topics.push({
-                id: ch.name,
-                name: ch.name,
+                id: chName,
+                name: chName,
                 subjId: sub.name,
                 subjLabel: meta.label,
-                subjColor: meta.color,
+                subjColor: sub.color || meta.color,
                 subjIcon: meta.icon,
-                chaptersCount: sub.chapters.length,
+                chaptersCount: (sub.chapters || []).length,
               });
             });
           });
@@ -677,15 +648,38 @@ export default function StudentLibrary() {
           setAllTopics(topics);
           setFilterTabs(tabs);
           setSubjIdMap(idMap);
+        } else {
+          applyFallback();
         }
       } catch (err) {
         console.error("Failed to fetch syllabus:", err);
+        applyFallback();
       }
     };
     fetchSyllabus();
   }, []);
 
-  const selectedTopic = chapterId ? allTopics.find(t => t.id === chapterId) : null;
+  const decodedChapterId = chapterId ? decodeURIComponent(chapterId) : null;
+  const matchedTopic = decodedChapterId
+    ? allTopics.find(
+      (t) =>
+        t.id === decodedChapterId ||
+        t.id?.toLowerCase() === decodedChapterId.toLowerCase() ||
+        t.name?.toLowerCase() === decodedChapterId.toLowerCase()
+    )
+    : null;
+
+  const selectedTopic = decodedChapterId
+    ? (matchedTopic || {
+      id: decodedChapterId,
+      name: decodedChapterId,
+      subjId: "",
+      subjLabel: "CHAPTER",
+      subjColor: "#3B82F6",
+      subjIcon: <BookOpen size={13} />,
+      chaptersCount: 1,
+    })
+    : null;
 
   /* ── Stage navigation ── */
   const [selectedSubject, setSelectedSubject] = useState(null);
@@ -695,6 +689,31 @@ export default function StudentLibrary() {
   /* ── QBank Mobile States ── */
   const [search, setSearch] = useState("");
   const [activeSubj, setActiveSubj] = useState("All");
+  const [headerStuck, setHeaderStuck] = useState(false);
+  const qbankSectionRef = useRef(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!qbankSectionRef.current) return;
+      const rect = qbankSectionRef.current.getBoundingClientRect();
+      setHeaderStuck(rect.top <= STATUS_BAR_H + 4);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    const mainEl = document.querySelector("main");
+    if (mainEl) {
+      mainEl.addEventListener("scroll", handleScroll, { passive: true });
+    }
+
+    handleScroll();
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (mainEl) {
+        mainEl.removeEventListener("scroll", handleScroll);
+      }
+    };
+  }, []);
 
   /* ── Desktop state ── */
   const [searchQuery, setSearchQuery] = useState('');
@@ -703,10 +722,8 @@ export default function StudentLibrary() {
   const [activeTab, setActiveTab] = useState('resources');
   const [resources, setResources] = useState([]);
   const [resourcesLoading, setResourcesLoading] = useState(true);
-  const [deskOpenFile, setDeskOpenFile] = useState(null);
-  const [deskDecrypting, setDeskDecrypting] = useState(false);
   const scrollRef = useRef(null);
-  
+
   const searchRef = useRef(null);
   const [searchFocused, setSearchFocused] = useState(false);
 
@@ -721,7 +738,26 @@ export default function StudentLibrary() {
   }, []);
 
   // Counsellor Modal
+  const isCounsellorRoute = location.pathname === "/student/library/counsellor";
   const [showCounsellorModal, setShowCounsellorModal] = useState(false);
+  const isCounsellorOpen = isCounsellorRoute || (initialCounsellor && location.pathname.endsWith("/counsellor")) || showCounsellorModal;
+
+  const handleOpenCounsellor = () => {
+    setShowCounsellorModal(false);
+    navigate('/student/library/counsellor', { state: { from: '/student/library' } });
+  };
+
+  const handleCloseCounsellor = () => {
+    setShowCounsellorModal(false);
+    const targetParent = location.state?.from || '/student/library';
+    navigate(targetParent, { replace: true });
+  };
+
+  useEffect(() => {
+    if (!location.pathname.endsWith("/counsellor")) {
+      setShowCounsellorModal(false);
+    }
+  }, [location.pathname]);
 
   useBackButton(() => {
     setSearchFocused(false);
@@ -729,13 +765,9 @@ export default function StudentLibrary() {
   }, searchFocused);
 
   useBackButton(() => {
-    setShowCounsellorModal(false);
-    return true;
-  }, showCounsellorModal);
-
-  useBackButton(() => {
-    if (deskOpenFile) {
-      setDeskOpenFile(null);
+    if (selectedTopic) {
+      const targetParent = location.state?.from || '/student/library';
+      navigate(targetParent, { replace: true });
       return true;
     }
     if (selectedCategory) {
@@ -751,10 +783,10 @@ export default function StudentLibrary() {
       return true;
     }
     return false;
-  }, deskOpenFile || selectedCategory || selectedChapter || selectedSubject);
+  });
 
   useEffect(() => {
-    if (showCounsellorModal) {
+    if (isCounsellorOpen) {
       document.body.setAttribute('data-hide-nav', 'true');
     } else {
       document.body.removeAttribute('data-hide-nav');
@@ -762,7 +794,7 @@ export default function StudentLibrary() {
     return () => {
       document.body.removeAttribute('data-hide-nav');
     };
-  }, [showCounsellorModal]);
+  }, [isCounsellorOpen]);
 
   const isApproved = !!user?.isApproved;
 
@@ -786,8 +818,11 @@ export default function StudentLibrary() {
 
   const resolveFileUrl = fileUrl => {
     if (!fileUrl) return '';
-    const base = window.__API_URL__ || (import.meta.env.VITE_API_BASE_URL || '');
-    return `${base.replace(/\/$/, '')}${fileUrl}`;
+    if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) return fileUrl;
+    const base = window.__API_URL__ || (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api');
+    const cleanBase = base.replace(/\/$/, '');
+    const cleanPath = fileUrl.startsWith('/') ? fileUrl : `/${fileUrl}`;
+    return `${cleanBase}${cleanPath}`;
   };
 
   const handleLogout = () => { localStorage.clear(); window.location.href = '/'; };
@@ -872,16 +907,16 @@ export default function StudentLibrary() {
               <button onClick={() => navigate('/student')} className="p-2.5 bg-white rounded-xl border border-slate-100 text-slate-500 hover:text-[#7A41F7] hover:border-purple-200 transition-all flex-shrink-0"><ArrowLeftIcon className="w-5 h-5" /></button>
               <div className="relative flex-1" ref={searchRef}>
                 <MagnifyingGlassIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 w-4 h-4" />
-                <input 
-                  type="text" 
-                  placeholder="Search resources…" 
-                  value={searchQuery} 
-                  onChange={e => setSearchQuery(e.target.value)} 
+                <input
+                  type="text"
+                  placeholder="Search resources…"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
                   onFocus={() => setSearchFocused(true)}
-                  className="w-full bg-white border border-slate-100 rounded-2xl py-3 pl-11 pr-4 text-sm font-medium text-slate-700 placeholder:text-slate-300 focus:border-[#7A41F7] focus:ring-2 focus:ring-purple-100 transition-all outline-none" 
+                  className="w-full bg-white border border-slate-100 rounded-2xl py-3 pl-11 pr-4 text-sm font-medium text-slate-700 placeholder:text-slate-300 focus:border-[#7A41F7] focus:ring-2 focus:ring-purple-100 transition-all outline-none"
                 />
                 {searchQuery && <button onClick={() => setSearchQuery('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"><XMarkIcon className="w-4 h-4" /></button>}
-                
+
                 {/* Search Dropdown */}
                 {searchFocused && (
                   <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-[100] max-h-96 flex flex-col">
@@ -899,11 +934,11 @@ export default function StudentLibrary() {
                           const subColor = SUBJECT_COLORS[item.subject] || { bg: 'bg-slate-50', text: 'text-slate-600' };
                           const locked = !isApproved && !item.isFree;
                           return (
-                            <div 
-                              key={item._id} 
+                            <div
+                              key={item._id}
                               onClick={() => {
                                 if (!locked) {
-                                  window.open(resolveFileUrl(item.fileUrl), '_blank');
+                                  setDeskOpenFile(item);
                                   setSearchFocused(false);
                                 }
                               }}
@@ -948,7 +983,16 @@ export default function StudentLibrary() {
                       const subColor = SUBJECT_COLORS[item.subject] || { bg: 'bg-slate-50', text: 'text-slate-600', dot: 'bg-slate-300' };
                       const locked = !isApproved && !item.isFree;
                       return (
-                        <div key={item._id} className="desk-res-card" onClick={() => !locked && window.open(resolveFileUrl(item.fileUrl), '_blank')} style={{ opacity: locked ? 0.6 : 1, cursor: locked ? 'not-allowed' : 'pointer' }}>
+                        <div key={item._id} className="desk-res-card" onClick={() => {
+                          if (!locked && item.fileUrl) {
+                            navigate('/student/library/pdf', {
+                              state: {
+                                pdfUrl: resolveFileUrl(item.fileUrl),
+                                title: item.title || 'Document',
+                              },
+                            });
+                          }
+                        }} style={{ opacity: locked ? 0.6 : 1, cursor: locked ? 'not-allowed' : 'pointer' }}>
                           <div className={`w-12 h-12 ${subColor.bg} rounded-xl flex items-center justify-center shrink-0`}><img src={categoryIcons[item.category] || categoryIcons.Default} alt={item.category} className="w-7 h-7 object-contain" onError={e => { e.target.src = categoryIcons.Default; }} /></div>
                           <div className="flex-1 min-w-0"><h4 className="text-[14px] font-bold text-slate-800 truncate">{item.title}</h4><div className="flex items-center gap-2 mt-1"><span className={`text-[10px] font-black ${subColor.text} uppercase`}>{item.subject}</span><span className="w-1 h-1 bg-slate-200 rounded-full" /><span className="text-[10px] font-semibold text-slate-400 uppercase">{item.category}</span></div></div>
                           <div className="w-8 h-8 rounded-xl bg-[#F3EBFF] text-[#7A41F7] flex items-center justify-center">
@@ -968,8 +1012,6 @@ export default function StudentLibrary() {
         </div>
       </div>
 
-      {/* Desktop modals removed as we now route to PdfViewerPage */}
-
       {/* ═══════════════════════════════════════════════════
           MOBILE
       ═══════════════════════════════════════════════════ */}
@@ -984,52 +1026,75 @@ export default function StudentLibrary() {
           }}
         />
 
+        {/* ── FIXED STUCK HEADER (Target Coaching Material + Filters pinned at top on scroll) ── */}
+        <div
+          className={`fixed top-0 left-0 right-0 z-50 transition-all duration-200 ${
+            theme === 'light' ? 'bg-[#F4F7FC]' : 'bg-[#0B101A]'
+          } ${
+            headerStuck
+              ? 'opacity-100 pointer-events-auto translate-y-0 shadow-sm border-b'
+              : 'opacity-0 pointer-events-none -translate-y-2'
+          } ${theme === 'light' ? 'border-slate-200' : 'border-[#1e293b]'}`}
+          style={{ paddingTop: STATUS_BAR_H }}
+        >
+          {/* Section title */}
+          <div className="px-5 pt-3 pb-1">
+            <h2 className={`text-[18px] font-black tracking-tight ${
+              theme === 'light' ? 'text-slate-800' : 'text-white'
+            }`}>
+              Target Coachings Study Material
+            </h2>
+          </div>
+
+          {/* Filter tabs */}
+          <div className="flex px-5 gap-2 pt-2 pb-3 overflow-x-auto no-scrollbar">
+            {filterTabs.map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveSubj(tab)}
+                className={`flex-shrink-0 px-4 py-1 text-[13px] font-bold transition-all ${
+                  activeSubj === tab
+                    ? "text-[#7A41F7] border-b-2 border-[#7A41F7]"
+                    : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* ── MAIN SCROLL AREA ── */}
         <div
           className="no-scrollbar"
           style={{
             minHeight: "100vh",
-            paddingTop: STATUS_BAR_H,
-            paddingBottom: BOTTOM_NAV_H + (isApproved ? 0 : 64),
+            paddingTop: STATUS_BAR_H + 16,
+            paddingBottom: BOTTOM_NAV_H + (isApproved ? 16 : 56),
             background: theme === 'dark' ? '#0B101A' : '#F4F7FC',
           }}
         >
           {/* ── HERO SECTION ────────────────────────────────────── */}
-          <div className="px-4 pt-2">
+          <div>
             {/* Top Header Row */}
-            <div className="flex items-center justify-between px-1 py-2 mb-2">
-              <div onClick={() => { if (!user?.approved) navigate('/student/goal-selection'); }}>
-                <p className="text-[10px] font-medium leading-tight mb-0.5 text-slate-500">Current goal</p>
-                <div className={`flex items-center gap-1 ${!user?.approved ? 'cursor-pointer' : ''}`}>
-                  <span className={`font-bold text-[17px] font-display tracking-tight ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>
-                    {localStorage.getItem("selectedGoal") || "Select Goal"}
-                  </span>
-                  {!user?.approved && <ChevronDown size={18} className={theme === 'light' ? 'text-slate-900' : 'text-white'} strokeWidth={2.5} />}
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between px-5 gap-2 min-w-0">
+              <CurrentGoalSelector isDark={theme === 'dark'} />
+
+              <div className="flex items-center gap-3 flex-shrink-0">
                 <button
-                  onClick={() => setShowCounsellorModal(true)}
+                  onClick={handleOpenCounsellor}
                   className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full transition-colors border ${theme === 'light' ? 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50' : 'bg-[#1A1F2E] border-slate-800 text-white hover:bg-white/10'}`}
                 >
                   <Phone size={14} className={theme === 'light' ? 'fill-slate-700 text-slate-700' : 'fill-white text-white'} strokeWidth={0} />
                   <span className="text-xs font-bold tracking-wide">Talk to counsellor</span>
                 </button>
-                <button onClick={() => navigate('/student/profile')} className={`w-8 h-8 rounded-full overflow-hidden border-2 flex-shrink-0 ${theme === 'light' ? 'border-transparent' : 'border-transparent'}`}>
-                  {user?.profilePic ? (
-                    <img src={resolveMediaUrl(user.profilePic)} className="w-full h-full object-cover" alt="me" />
-                  ) : (
-                    <div className="w-full h-full bg-orange-500 flex items-center justify-center text-white font-bold text-xs">
-                      {user?.name?.charAt(0)?.toUpperCase() || "S"}
-                    </div>
-                  )}
-                </button>
+                <StudentAvatar user={user} />
               </div>
             </div>
 
             {/* Search & Icons Row */}
-            <div className="py-3 flex items-center gap-3 mb-2 -mt-1 px-1">
-              <div className={`flex-1 flex items-center gap-2 px-4 -mx-2 py-2.5 rounded-full border ${theme === 'dark' ? 'bg-[#151E2E] border-slate-800' : 'bg-white border-slate-200'}`}>
+            <div className="py-3 flex items-center gap-3 mb-2 px-4">
+              <div className={`flex-1 flex items-center gap-2 px-4 py-2.5 rounded-full border ${theme === 'dark' ? 'bg-[#151E2E] border-slate-800' : 'bg-white border-slate-200'}`}>
                 <Search size={18} className="text-slate-400" />
                 <input
                   type="text"
@@ -1040,7 +1105,10 @@ export default function StudentLibrary() {
                 />
               </div>
               <button
-                onClick={() => navigate("/student/personal")}
+                onClick={() => {
+                  try { sessionStorage.setItem('student_leaderboard_parent', '/student/library'); } catch(e) {}
+                  navigate("/student/personal", { state: { from: '/student/library' } });
+                }}
                 className={`w-[42px] h-[42px] rounded-full flex items-center justify-center active:scale-95 transition-all shrink-0 border
                 ${theme === 'light' ? 'bg-white text-slate-500 border-slate-200' : 'bg-[#151E2E] text-slate-300 border-slate-800'}`}
               >
@@ -1048,103 +1116,118 @@ export default function StudentLibrary() {
               </button>
             </div>
 
-            {/* ── 2-card hero ── */}
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              {/* PYQ Book */}
-              <div
-                className={`rounded-2xl p-4 relative overflow-hidden cursor-pointer active:scale-[0.98] transition-all border min-h-[120px] ${theme === 'light'
-                  ? 'bg-[#EBF3FF] border-[#D1E5FF]'
-                  : 'bg-[#0D1C3A] border-[#162545]'
-                  }`}
-                onClick={() => navigate("/student/pyq")}
-              >
-                <div className="absolute -right-6 -bottom-6 w-28 h-28 rounded-full bg-blue-500/10" />
-                <div className="absolute right-2 bottom-0">
-                  <div className="text-[40px] opacity-20">🏆</div>
+            {/* ── 3 Boxes Area (2-card hero & PYQ Banner) ── */}
+            <div className="px-4">
+              {/* ── 2-card hero ── */}
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                {/* PYQ Book */}
+                <div
+                  className={`rounded-2xl p-4 relative overflow-hidden cursor-pointer active:scale-[0.98] transition-all border min-h-[120px] ${theme === 'light'
+                    ? 'bg-[#EBF3FF] border-[#D1E5FF]'
+                    : 'bg-[#0D1C3A] border-[#162545]'
+                    }`}
+                  onClick={() => navigate("/student/pyq", { state: { from: location.pathname } })}
+                >
+                  <div className="absolute -right-6 -bottom-6 w-28 h-28 rounded-full bg-blue-500/10" />
+                  <div className="absolute right-2 bottom-0">
+                    <div className="text-[40px] opacity-20">🏆</div>
+                  </div>
+                  <Trophy size={18} className="text-blue-500 dark:text-blue-400 mb-2 relative z-10" />
+                  <p className={`font-bold text-[14px] leading-tight relative z-10 ${theme === 'light' ? 'text-blue-900' : 'text-white'
+                    }`}>PYQ Book</p>
+                  <p className={`text-[11px] mt-1 leading-relaxed relative z-10 ${theme === 'light' ? 'text-blue-800/80' : 'text-slate-400'
+                    }`}>
+                    Practice previous year questions!
+                  </p>
                 </div>
-                <Trophy size={18} className="text-blue-500 dark:text-blue-400 mb-2 relative z-10" />
-                <p className={`font-bold text-[14px] leading-tight relative z-10 ${theme === 'light' ? 'text-blue-900' : 'text-white'
-                  }`}>PYQ Book</p>
-                <p className={`text-[11px] mt-1 leading-relaxed relative z-10 ${theme === 'light' ? 'text-blue-800/80' : 'text-slate-400'
-                  }`}>
-                  Practice previous year questions!
-                </p>
+
+                {/* Give Quiz */}
+                <div
+                  className={`rounded-2xl p-4 relative overflow-hidden cursor-pointer active:scale-[0.98] transition-all border min-h-[120px] ${theme === 'light'
+                    ? 'bg-[#EBFDEB] border-[#D6F7D6]'
+                    : 'bg-[#0A1C16] border-[#12302A]'
+                    }`}
+                  onClick={() => navigate("/student/quiz", { state: { from: '/student/library' } })}
+                >
+                  <div className="absolute -right-6 -bottom-6 w-28 h-28 rounded-full bg-emerald-500/10" />
+                  <div className="absolute right-2 bottom-0">
+                    <div className="text-[40px] opacity-20">🤓</div>
+                  </div>
+                  <MessageCircle size={18} className="text-emerald-500 dark:text-emerald-400 mb-2 relative z-10" />
+                  <p className={`font-bold text-[14px] leading-tight relative z-10 ${theme === 'light' ? 'text-emerald-950' : 'text-white'
+                    }`}>Give Quiz</p>
+                  <p className={`text-[11px] mt-1 leading-relaxed relative z-10 ${theme === 'light' ? 'text-emerald-800/80' : 'text-slate-400'
+                    }`}>
+                    Test your speed and accuracy!
+                  </p>
+                </div>
               </div>
 
-              {/* Give Quiz */}
+              {/* ── PYQ Banner ── */}
               <div
-                className={`rounded-2xl p-4 relative overflow-hidden cursor-pointer active:scale-[0.98] transition-all border min-h-[120px] ${theme === 'light'
-                  ? 'bg-[#EBFDEB] border-[#D6F7D6]'
-                  : 'bg-[#0A1C16] border-[#12302A]'
+                className={`rounded-2xl p-4 relative overflow-hidden cursor-pointer active:scale-[0.98] transition-all mb-5 border ${theme === 'light' ? 'border-transparent' : 'border-[#1e293b]'
                   }`}
-                onClick={() => navigate("/student/quiz")}
+                style={{
+                  background: theme === 'light'
+                    ? 'linear-gradient(135deg, #7A41F7 0%, #9B6AF9 100%)'
+                    : 'linear-gradient(135deg, #1a1f3a 0%, #232a4a 100%)'
+                }}
+                onClick={() => navigate("/student/pyq/papers")}
               >
-                <div className="absolute -right-6 -bottom-6 w-28 h-28 rounded-full bg-emerald-500/10" />
-                <div className="absolute right-2 bottom-0">
-                  <div className="text-[40px] opacity-20">🤓</div>
+                {/* Big book icon */}
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 opacity-20">
+                  <BookOpen size={80} className="text-blue-300" />
                 </div>
-                <MessageCircle size={18} className="text-emerald-500 dark:text-emerald-400 mb-2 relative z-10" />
-                <p className={`font-bold text-[14px] leading-tight relative z-10 ${theme === 'light' ? 'text-emerald-950' : 'text-white'
-                  }`}>Give Quiz</p>
-                <p className={`text-[11px] mt-1 leading-relaxed relative z-10 ${theme === 'light' ? 'text-emerald-800/80' : 'text-slate-400'
-                  }`}>
-                  Test your speed and accuracy!
+                <p className="text-[17px] font-black text-white mb-3 relative z-10">
+                  Previous Year Question Papers
+                  <span className="text-blue-400 ml-1">✦</span>
                 </p>
-              </div>
-            </div>
-
-            {/* ── PYQ Banner ── */}
-            <div
-              className={`rounded-2xl p-4 relative overflow-hidden cursor-pointer active:scale-[0.98] transition-all mb-5 border ${theme === 'light' ? 'border-transparent' : 'border-[#1e293b]'
-                }`}
-              style={{
-                background: theme === 'light'
-                  ? 'linear-gradient(135deg, #7A41F7 0%, #9B6AF9 100%)'
-                  : 'linear-gradient(135deg, #1a1f3a 0%, #232a4a 100%)'
-              }}
-              onClick={() => navigate("/student/pyq/papers")}
-            >
-              {/* Big book icon */}
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 opacity-20">
-                <BookOpen size={80} className="text-blue-300" />
-              </div>
-              <p className="text-[17px] font-black text-white mb-3 relative z-10">
-                Previous Year Question Papers
-                <span className="text-blue-400 ml-1">✦</span>
-              </p>
-              <div className="flex items-center gap-2 relative z-10">
-                <span className="px-3 py-1.5 rounded-full bg-white/10 text-white/80 text-[12px] font-semibold border border-white/10">
-                  956+ questions
-                </span>
-                <span className="px-3 py-1.5 rounded-full bg-white/10 text-white/80 text-[12px] font-semibold border border-white/10">
-                  1979 - 2024
-                </span>
-                <span className="text-blue-300 text-[18px]">✦</span>
+                <div className="flex items-center gap-2 relative z-10">
+                  <span className="px-3 py-1.5 rounded-full bg-white/10 text-white/80 text-[12px] font-semibold border border-white/10">
+                    956+ questions
+                  </span>
+                  <span className="px-3 py-1.5 rounded-full bg-white/10 text-white/80 text-[12px] font-semibold border border-white/10">
+                    1979 - 2024
+                  </span>
+                  <span className="text-blue-300 text-[18px]">✦</span>
+                </div>
               </div>
             </div>
           </div>
 
           {/* ── TOPIC WISE QBANKS SECTION ──────────────────────── */}
-          <div>
-            {/* Sticky Wrapper for Title, Search & Filters */}
-            <div className={`sticky top-[28.5px] z-30 px-4 pt-2 pb-3.5 flex flex-col gap-3 transition-colors duration-300 ${theme === 'light' ? 'bg-[#F4F7FC]' : 'bg-[#0B101A]'
-              }`}>
+          <div ref={qbankSectionRef} className="min-h-screen">
+            {/* Sticky Wrapper for Title & Filters */}
+            <div
+              className={`sticky z-30 transition-colors duration-200 ${
+                theme === 'light' ? 'bg-[#F4F7FC]' : 'bg-[#0B101A]'
+              }`}
+              style={{ top: `${STATUS_BAR_H}px` }}
+            >
               {/* Section title */}
-              <h2 className={`text-[18px] font-black ${theme === 'light' ? 'text-slate-800' : 'white'
+              <div className="px-5 pt-3 pb-1">
+                <h2 className={`text-[18px] font-black tracking-tight ${
+                  theme === 'light' ? 'text-slate-800' : 'text-white'
                 }`}>
-                Target Coachings Study Material
-              </h2>
+                  Target Coachings Study Material
+                </h2>
+              </div>
 
               {/* Filter tabs */}
-              <div className={`flex px-4 gap-2 py-4 border-b overflow-x-auto no-scrollbar ${theme === 'light' ? 'border-slate-200' : 'border-[#1e293b]'}`}>
+              <div className={`flex px-5 gap-2 pt-2 pb-3 border-b overflow-x-auto no-scrollbar ${
+                theme === 'light'
+                  ? 'border-slate-200/80 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.05)]'
+                  : 'border-[#1e293b] shadow-[0_4px_12px_-4px_rgba(0,0,0,0.3)]'
+              }`}>
                 {filterTabs.map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveSubj(tab)}
-                    className={`flex-shrink-0 px-4 py-1 text-[13px] font-bold transition-all ${activeSubj === tab
-                      ? "text-[#7A41F7] border-b-2 border-[#7A41F7]"
-                      : "text-slate-500"
-                      }`}
+                    className={`flex-shrink-0 px-4 py-1 text-[13px] font-bold transition-all ${
+                      activeSubj === tab
+                        ? "text-[#7A41F7] border-b-2 border-[#7A41F7]"
+                        : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                    }`}
                   >
                     {tab}
                   </button>
@@ -1162,49 +1245,34 @@ export default function StudentLibrary() {
                 </div>
               ) : (
                 filteredTopics.map((topic) => (
-                  <TopicRow key={topic.id} topic={topic} onPress={() => navigate(`/student/library/chapter/${topic.id}`)} resources={resources} />
+                  <TopicRow key={topic.id} topic={topic} onPress={() => navigate(`/student/library/chapter/${topic.id}`, { state: { from: location.pathname } })} resources={resources} />
                 ))
               )}
             </div>
           </div>
         </div>
 
-        {/* ── BOTTOM CTA (unapproved only) ───────────────────────
-        {!isApproved && (
-          <div
-            className="fixed left-0 right-0 z-[400] px-3"
-            style={{ bottom: BOTTOM_NAV_H + 8 }}
-          >
-            <div className="rounded-2xl bg-gradient-to-r from-[#7A41F7] to-[#6330E3] flex items-center justify-between px-4 py-3.5 border border-purple-600/30">
-              <div>
-                <p className="text-white font-bold text-[13px]">5 free questions available</p>
-                <p className="text-white/60 text-[11px]">Get unlimited access with Prime.</p>
-              </div>
-              <button className="bg-white text-[#7A41F7] font-bold text-[12px] px-4 py-2 rounded-xl flex-shrink-0">
-                Join Prime
-              </button>
-            </div>
-          </div>
-        )} */}
-
-        {/* ── TOPIC FULL-SCREEN VIEW ── */}
-        {selectedTopic && (
-          <TopicFullScreen
-            topic={selectedTopic}
-            isApproved={isApproved}
-            onBack={() => navigate('/student/library')}
-            resolveFileUrl={resolveFileUrl}
-          />
-        )}
-
         {/* Counsellor Bottom Sheet Modal */}
         <CounsellorModal
-          isOpen={showCounsellorModal}
-          onClose={() => setShowCounsellorModal(false)}
+          isOpen={isCounsellorOpen}
+          onClose={handleCloseCounsellor}
           title="Need help with your subscription?"
         />
 
       </div>
+
+      {/* ── TOPIC FULL-SCREEN VIEW (rendered for both desktop & mobile on direct chapter route) ── */}
+      {selectedTopic && (
+        <TopicFullScreen
+          topic={selectedTopic}
+          isApproved={isApproved}
+          onBack={() => {
+            const targetParent = location.state?.from || '/student/library';
+            navigate(targetParent, { replace: true });
+          }}
+          resolveFileUrl={resolveFileUrl}
+        />
+      )}
     </div>
   );
 }

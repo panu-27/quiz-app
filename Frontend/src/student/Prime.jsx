@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ChevronDown, Flame, Search, ChevronRight, ListVideo, Lock, Phone } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { ChevronDown, Flame, Search, ChevronRight, ListVideo, Lock, Phone, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import CounsellorModal from '../components/CounsellorModal';
+import useBackButton from '../hooks/useBackButton';
+import StudentAvatar from '../components/StudentAvatar';
+import CurrentGoalSelector from '../components/CurrentGoalSelector';
 
 const STATUS_BAR_H = 28.5;
 
@@ -193,14 +196,43 @@ const VideoCard = ({ title, count, subject, author, bgColor, teacherImg, id, onC
   </div>
 );
 
-export default function Prime() {
+export default function Prime({ initialCounsellor = false }) {
   const { theme } = useTheme();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const isDark = theme === 'dark';
 
   const [activeFilter, setActiveFilter] = useState('Class 11th - JEE');
   const [showCounsellorModal, setShowCounsellorModal] = useState(false);
+  const isCounsellorRoute = location.pathname === "/student/prime/counsellor";
+  const isCounsellorOpen = isCounsellorRoute || (initialCounsellor && location.pathname.endsWith("/counsellor")) || showCounsellorModal;
+
+  const handleOpenCounsellor = () => {
+    setShowCounsellorModal(false);
+    navigate('/student/prime/counsellor', { state: { from: '/student/prime' } });
+  };
+
+  const handleCloseCounsellor = () => {
+    setShowCounsellorModal(false);
+    const targetParent = location.state?.from || '/student/prime';
+    navigate(targetParent, { replace: true });
+  };
+
+  useBackButton(() => {
+    if (isCounsellorOpen) {
+      handleCloseCounsellor();
+      return true;
+    }
+    return false;
+  }, isCounsellorOpen);
+
+  useEffect(() => {
+    if (!location.pathname.endsWith("/counsellor")) {
+      setShowCounsellorModal(false);
+    }
+  }, [location.pathname]);
+
   const [showFilters, setShowFilters] = useState(true);
   const filters = ['Class 11th - JEE', 'Class 12th - JEE', 'Dropper - JEE'];
 
@@ -235,7 +267,7 @@ export default function Prime() {
   }, []);
 
   useEffect(() => {
-    if (showCounsellorModal) {
+    if (isCounsellorOpen) {
       document.body.setAttribute('data-hide-nav', 'true');
     } else {
       document.body.removeAttribute('data-hide-nav');
@@ -243,7 +275,17 @@ export default function Prime() {
     return () => {
       document.body.removeAttribute('data-hide-nav');
     };
-  }, [showCounsellorModal]);
+  }, [isCounsellorOpen]);
+
+  const handleBack = () => {
+    if (isCounsellorOpen) {
+      handleCloseCounsellor();
+      return true;
+    }
+    return false;
+  };
+
+  useBackButton(handleBack);
 
   const resolveMediaUrl = (url) => {
     if (!url) return null;
@@ -261,10 +303,10 @@ export default function Prime() {
   const bgClass = isDark ? 'bg-[#0B101A]' : 'bg-white';
 
   return (
-    <div className={`min-h-screen ${user?.approved === false ? 'pb-38' : 'pb-22'} transition-colors duration-300 ${bgClass} font-sans`}>
+    <div className={`prime-root min-h-screen ${user?.approved === false ? 'pb-36' : 'pb-24'} transition-colors duration-300 ${bgClass} font-sans`}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap');
-        * { font-family: 'DM Sans', sans-serif; }
+        .prime-root, .prime-root * { font-family: 'DM Sans', sans-serif; }
         .font-display { font-family: 'Sora', sans-serif; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -273,31 +315,22 @@ export default function Prime() {
       {/* ══ FIXED HEADER AREA ══ */}
       <div
         className={`fixed top-0 left-0 right-0 z-50 transition-colors duration-300 ${isDark ? 'bg-[#0B101A]' : 'bg-white'}`}
-        style={{ paddingTop: STATUS_BAR_H }}
+        style={{ paddingTop: STATUS_BAR_H + 16 }}
       >
 
         {/* Top Header Row */}
-        <div className="flex items-center justify-between px-5 py-2 mt-2">
-          <div onClick={() => { if (!user?.approved) navigate('/student/goal-selection'); }}>
-            <p className="text-[10px] font-medium leading-tight mb-0.5 text-slate-500">Current goal</p>
-            <div className={`flex items-center gap-1 ${!user?.approved ? 'cursor-pointer' : ''}`}>
-              <span className={`font-bold text-[17px] font-display tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                {localStorage.getItem("selectedGoal") || "Select Goal"}
-              </span>
-              {!user?.approved && <ChevronDown size={18} className={isDark ? 'text-white' : 'text-slate-900'} strokeWidth={2.5} />}
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between px-5 gap-2 min-w-0">
+          <CurrentGoalSelector isDark={isDark} />
+
+          <div className="flex items-center gap-3 flex-shrink-0">
             <button
-              onClick={() => setShowCounsellorModal(true)}
+              onClick={handleOpenCounsellor}
               className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full transition-colors border ${isDark ? 'bg-[#1A1F2E] border-slate-800 text-white hover:bg-white/10' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}
             >
               <Phone size={14} className={isDark ? 'fill-white text-white' : 'fill-slate-700 text-slate-700'} strokeWidth={0} />
               <span className="text-xs font-bold tracking-wide">Talk to counsellor</span>
             </button>
-            <div className={`w-8 h-8 rounded-full overflow-hidden border-2 ${isDark ? 'border-transparent' : 'border-transparent'}`}>
-              <img src={resolvedAvatar} alt="avatar" className="w-full h-full object-cover" />
-            </div>
+            <StudentAvatar user={user} />
           </div>
         </div>
 
@@ -360,7 +393,7 @@ export default function Prime() {
             <ChevronRight size={18} className="text-[#C084FC]" />
           </div>
           <div className="flex gap-4 overflow-x-auto overflow-y-hidden hide-scrollbar pb-6 pt-2 -mx-4 px-4">
-            {SYLLABUS_VIDEOS.map(video => <VideoCard key={video.id} {...video} isLocked={user?.approved === false} onClick={() => navigate(`/student/prime/course/${video.id}`)} />)}
+            {SYLLABUS_VIDEOS.map(video => <VideoCard key={video.id} {...video} isLocked={user?.approved === false} onClick={() => navigate(`/student/prime/course/${video.id}`, { state: { from: location.pathname } })} />)}
           </div>
         </div>
 
@@ -373,29 +406,16 @@ export default function Prime() {
             <ChevronRight size={18} className="text-[#C084FC]" />
           </div>
           <div className="flex gap-4 overflow-x-auto overflow-y-hidden hide-scrollbar pb-6 pt-2 -mx-4 px-4">
-            {PYQ_VIDEOS.map(video => <VideoCard key={video.id} {...video} isLocked={user?.approved === false} onClick={() => navigate(`/student/prime/course/${video.id}`)} />)}
+            {PYQ_VIDEOS.map(video => <VideoCard key={video.id} {...video} isLocked={user?.approved === false} onClick={() => navigate(`/student/prime/course/${video.id}`, { state: { from: location.pathname } })} />)}
           </div>
         </div>
 
       </div>
 
-      {/* ══ FLOATING BOTTOM BANNER ══ */}
-      {user?.approved === false && (
-        <div className="fixed bottom-[60px] left-0 right-0 bg-gradient-to-r from-[#8B5CF6] to-[#A78BFA] px-4 py-3.5 flex items-center justify-between z-40 shadow-[0_-4px_20px_rgba(139,92,246,0.2)]">
-          <div>
-            <p className="text-white font-bold text-[14px]">2 videos left for today</p>
-            <p className="text-white/80 text-[12px] font-medium mt-0.5">Get unlimited videos with Prime.</p>
-          </div>
-          <button className="bg-white text-[#7B46F6] px-4 py-2.5 rounded-lg text-[13px] font-bold shadow-sm active:scale-95 transition-transform flex-shrink-0 ml-4">
-            Join Prime
-          </button>
-        </div>
-      )}
-
       {/* ══ COUNSELLOR MODAL ══ */}
       <CounsellorModal
-        isOpen={showCounsellorModal}
-        onClose={() => setShowCounsellorModal(false)}
+        isOpen={isCounsellorOpen}
+        onClose={handleCloseCounsellor}
         title="Need help with your subscription?"
       />
 

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { ChevronLeft, ChevronDown, Lock, PlayCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import useBackButton from '../hooks/useBackButton';
 
 const MOCK_VIDEOS = [
   { id: 101, title: "Fundamental of Mathematics", duration: "1h 21 min", bgStart: "#5c2a2a", bgEnd: "#2a0808" },
@@ -17,12 +18,19 @@ const STATUS_BAR_H = 28.5;
 
 export default function PrimeCourse() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { courseId } = useParams();
   const { theme } = useTheme();
   const { user } = useAuth();
   const isDark = theme === 'dark';
 
   const isApproved = !!user?.approved;
+
+  const handleBack = () => {
+    const targetParent = location.state?.from || '/student/prime';
+    navigate(targetParent, { replace: true });
+    return true;
+  };
 
   useEffect(() => {
     document.body.setAttribute('data-hide-nav', 'true');
@@ -36,7 +44,7 @@ export default function PrimeCourse() {
       // Logic for locked videos for unapproved users
       return;
     }
-    navigate(`/student/prime/video/${videoId}`);
+    navigate(`/student/prime/video/${videoId}`, { state: { from: location.pathname } });
   };
 
   return (
@@ -53,7 +61,7 @@ export default function PrimeCourse() {
         style={{ paddingTop: STATUS_BAR_H + 12 }}
       >
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate(-1)} className={`p-1 -ml-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+          <button onClick={handleBack} className={`p-1 -ml-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>
             <ChevronLeft size={24} />
           </button>
           <h1 className={`text-[17px] font-semibold font-display line-clamp-3 whitespace-normal ${isDark ? 'text-white' : 'text-slate-900'}`}>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { Loader2 } from 'lucide-react';
 
@@ -12,6 +12,7 @@ export { default as TestAttempt } from './quiz/TestAttempt';
 
 export default function StudentQuizFlow() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [step, setStep] = useState('create-practice');
   const [questions, setQuestions] = useState(null);
   const [subjects, setSubjects] = useState([]);
@@ -91,7 +92,12 @@ export default function StudentQuizFlow() {
         )}
         <CreatePractice
           onStartPractice={handleStartPractice}
-          onBackToApp={() => navigate('/student')}
+          onBackToApp={() => {
+            const target = (location.state?.from && !location.state.from.startsWith('/student/quiz'))
+              ? location.state.from
+              : '/student/library';
+            navigate(target, { replace: true });
+          }}
         />
       </>
     );

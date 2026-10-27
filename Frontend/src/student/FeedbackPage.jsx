@@ -1,11 +1,18 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
 import { Trophy } from "lucide-react";
 
 export default function FeedbackPage() {
   const { theme } = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleBack = () => {
+    const target = location.state?.from || '/student';
+    navigate(target, { replace: true });
+    return true;
+  };
 
   return (
     <div className={`fixed inset-0 z-[99999] flex flex-col justify-between p-6 animate-fade-in ${theme === 'dark' ? 'bg-[#000000] text-white' : 'bg-[#FFFFFF] text-[#0F172A]'
@@ -13,7 +20,7 @@ export default function FeedbackPage() {
       {/* Header Close Row */}
       <div className="flex mt-4 justify-between items-center w-full relative z-10">
         <button
-          onClick={() => navigate("/student")}
+          onClick={handleBack}
           className={`p-3 -ml-3 rounded-full transition-colors ${theme === 'dark' ? 'hover:bg-white/10 text-white' : 'hover:bg-slate-100 text-slate-800'
             }`}
         >

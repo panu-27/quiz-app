@@ -30,7 +30,11 @@ export default function StudentHeader() {
       "
     >
       {/* ===== LEFT : LOGO ===== */}
-      <a href="/student" className="flex items-center">
+      <button
+        onClick={() => navigate("/student", { replace: true })}
+        className="flex items-center bg-transparent border-none p-0 cursor-pointer"
+        aria-label="Nexus Home"
+      >
         {/* Desktop / Tablet */}
         <img
           src="./icon-512.png"
@@ -44,7 +48,7 @@ export default function StudentHeader() {
           alt="Nexus"
           className="block sm:hidden h-12 w-auto object-contain"
         />
-      </a>
+      </button>
 
       {/* ===== MOBILE RIGHT : PROFILE ONLY ===== */}
       <div className="flex sm:hidden items-center gap-3">
@@ -63,7 +67,11 @@ export default function StudentHeader() {
 
         {/* Profile circle */}
         <button
-          onClick={() => navigate("/student/profile")}
+          onClick={() => {
+            const fromPath = (location.pathname + location.search) || '/student';
+            try { sessionStorage.setItem('student_profile_parent', fromPath); } catch (e) {}
+            navigate(`/student/profile?from=${encodeURIComponent(fromPath)}`, { state: { from: fromPath } });
+          }}
           className="
             w-9 h-9 rounded-full
             bg-slate-900 text-white
@@ -84,7 +92,11 @@ export default function StudentHeader() {
         <div className="relative">
           <button
             onClick={() => {
-              if (!user?.approved) navigate('/student/goal-selection');
+              if (!user?.approved) {
+                const fromPath = (location.pathname + location.search) || '/student';
+                try { sessionStorage.setItem('student_goal_parent', fromPath); } catch (e) {}
+                navigate(`/student/goal-selection?from=${encodeURIComponent(fromPath)}`, { state: { from: fromPath } });
+              }
             }}
             className={`
               flex items-center gap-2
@@ -109,7 +121,23 @@ export default function StudentHeader() {
             return (
               <button
                 key={item.path}
-                onClick={() => navigate(item.path)}
+                onClick={() => {
+                  if (item.path === '/student/profile') {
+                    const fromPath = (location.pathname + location.search) || '/student';
+                    try { sessionStorage.setItem('student_profile_parent', fromPath); } catch (e) {}
+                    navigate(`/student/profile?from=${encodeURIComponent(fromPath)}`, { state: { from: fromPath } });
+                  } else if (item.path === '/student') {
+                    navigate('/student');
+                  } else {
+                    const secondaryTabs = ['/student/library', '/student/personal'];
+                    const isAlreadyOnSecondary = secondaryTabs.some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
+                    if (isAlreadyOnSecondary) {
+                      navigate(item.path, { replace: true });
+                    } else {
+                      navigate(item.path);
+                    }
+                  }
+                }}
                 className={`
                   relative
                   text-[13px] md:text-[14px] lg:text-[15px]

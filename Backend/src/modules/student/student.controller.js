@@ -23,9 +23,10 @@ export const getProfile = async (req, res) => {
 
 export const changeClass = async (req, res) => {
   try {
-    const student = await service.changeClass(req.user.id, req.body.className);
-    res.json({ message: "Class updated successfully", student });
+    const result = await service.changeClass(req.user.id, req.body.className);
+    res.json({ message: "Class updated successfully", ...result });
   } catch (err) {
+    console.error("changeClass controller error:", err.message);
     res.status(400).json({ message: err.message });
   }
 };
@@ -216,7 +217,8 @@ export const getMySyllabus = async (req, res) => {
     const syllabus = await service.getMySyllabus(req.user);
     res.json(syllabus || null);
   } catch (err) {
-    res.status(400).json({ message: err.message });
+    console.error("Error in getMySyllabus:", err);
+    res.status(500).json({ message: "Server Error", error: err.message });
   }
 };
 

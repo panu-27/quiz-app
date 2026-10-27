@@ -1,15 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { ChevronLeft, ChevronUp, FileText } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import useBackButton from '../hooks/useBackButton';
 
 export default function PrimeVideo() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { videoId } = useParams();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
   const [activeTab, setActiveTab] = useState('Assignments');
+
+  const handleBack = () => {
+    const targetParent = location.state?.from || '/student/prime';
+    navigate(targetParent, { replace: true });
+    return true;
+  };
 
   useEffect(() => {
     document.body.setAttribute('data-hide-nav', 'true');
@@ -32,7 +40,7 @@ export default function PrimeVideo() {
       {/* Video Player Container */}
       <div className="w-full relative bg-black aspect-video">
         <button 
-          onClick={() => navigate(-1)} 
+          onClick={handleBack} 
           className="absolute top-4 left-4 z-10 w-8 h-8 rounded-full bg-black/50 flex items-center justify-center text-white active:scale-95 transition-transform"
         >
           <ChevronLeft size={20} />

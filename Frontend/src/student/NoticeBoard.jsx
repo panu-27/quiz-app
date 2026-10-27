@@ -4,18 +4,36 @@ import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { initSocket } from "../api/socket";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import useBackButton from "../hooks/useBackButton";
 
 const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 const STATUS_BAR_H = 28.5;
 
 export default function NoticeBoard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const [notices, setNotices] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const handleBack = () => {
+    let parent = location.state?.from;
+    if (!parent) {
+      try { parent = sessionStorage.getItem('student_notices_parent'); } catch(e) {}
+    }
+    if (!parent) parent = '/student';
+    if (window.history.state && window.history.state.idx > 0) {
+      navigate(-1);
+    } else {
+      navigate(parent, { replace: true });
+    }
+    return true;
+  };
+
+  useBackButton(handleBack);
   
   // Initialize lastViewed synchronously
   const [lastViewed, setLastViewed] = useState(() => {
@@ -104,10 +122,10 @@ export default function NoticeBoard() {
   };
 
   return (
-    <div className={`min-h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-[#0A0F1A] text-white' : 'bg-[#F4F7FC] text-slate-900'}`}>
+    <div className={`noticeboard-root min-h-screen flex flex-col font-sans transition-colors duration-300 ${isDark ? 'bg-[#0A0F1A] text-white' : 'bg-[#F4F7FC] text-slate-900'}`}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap');
-        * { font-family: 'DM Sans', sans-serif; }
+        .noticeboard-root, .noticeboard-root * { font-family: 'DM Sans', sans-serif; }
         .font-display { font-family: 'Sora', sans-serif; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -118,7 +136,7 @@ export default function NoticeBoard() {
           <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                   <button
-                      onClick={() => navigate(-1)}
+                      onClick={handleBack}
                       className={`w-10 h-10 -ml-2 flex items-center justify-center transition-colors ${isDark ? 'text-white' : 'text-slate-800'}`}
                   >
                       <ArrowLeft size={24} />

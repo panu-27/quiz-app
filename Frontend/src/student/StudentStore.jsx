@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, ChevronDown, Search, ShoppingBag, Phone, ChevronRight } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -103,6 +103,8 @@ export default function StudentStore() {
   const { user } = useAuth();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const [search, setSearch] = useState('');
   const [sortOpen, setSortOpen] = useState(false);
@@ -113,6 +115,24 @@ export default function StudentStore() {
 
   // Counsellor Modal
   const [showCounsellorModal, setShowCounsellorModal] = useState(false);
+
+  const handleBack = () => {
+    if (showCounsellorModal) {
+      setShowCounsellorModal(false);
+      return true;
+    }
+    if (sortOpen) {
+      setSortOpen(false);
+      return true;
+    }
+    if (syllabusOpen) {
+      setSyllabusOpen(false);
+      return true;
+    }
+    const targetParent = location.state?.from || '/student';
+    navigate(targetParent, { replace: true });
+    return true;
+  };
 
   useBackButton(() => {
     if (showCounsellorModal) {
@@ -388,9 +408,18 @@ export default function StudentStore() {
             className="flex items-center justify-between px-4 pb-2 relative z-10"
             style={{ paddingTop: STATUS_BAR_H + 20 }}
           >
-            <span className="text-[22px] font-black tracking-tight text-white">
-              {goal === 'JEE' ? 'IIT JEE Store' : `${goal} Store`}
-            </span>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleBack}
+                aria-label="Back to Home"
+                className="w-9 h-9 rounded-full bg-white/10 active:bg-white/20 flex items-center justify-center text-white transition-colors"
+              >
+                <ArrowLeft size={18} />
+              </button>
+              <span className="text-[22px] font-black tracking-tight text-white">
+                {goal === 'JEE' ? 'IIT JEE Store' : `${goal} Store`}
+              </span>
+            </div>
           </div>
 
           {/* Dynamic Filter Chips Row */}

@@ -19,7 +19,7 @@ export default defineConfig({
     !isElectron && VitePWA({
       registerType: "autoUpdate",
       devOptions: {
-        enabled: true,
+        enabled: false,
       },
       manifest: {
         name: "Nexus Quiz",

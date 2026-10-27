@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Search, Lock, ChevronRight, BookOpen, X,
   Atom, FlaskConical, Calculator, Dna, Loader2,
@@ -11,6 +11,8 @@ import { useTheme } from "../context/ThemeContext";
 import api from "../api/axios";
 import { SUBJECTS, CHAPTERS } from "./libraryConfig";
 import CounsellorModal from "../components/CounsellorModal";
+import StudentAvatar from "../components/StudentAvatar";
+import useBackButton from "../hooks/useBackButton";
 
 /* ─── Constants ─────────────────────────────────────────── */
 const STATUS_BAR_H = 28.5;
@@ -205,6 +207,14 @@ function TopicFullScreen({ topic, isApproved, onBack, resolveFileUrl }) {
     }, 1100);
   };
 
+  useBackButton(() => {
+    if (viewerFile) {
+      setViewerFile(null);
+      return true;
+    }
+    return false;
+  }, !!viewerFile);
+
   return (
     <div
       className="fixed inset-0 z-[600] bg-[#0B1320] flex flex-col"
@@ -333,8 +343,9 @@ function TopicRow({ topic, onPress }) {
 /* ══════════════════════════════════════════════════════════
    MAIN QBANK PAGE
 ══════════════════════════════════════════════════════════ */
-export default function QBank() {
+export default function QBank({ initialCounsellor = false }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
 
   const [search, setSearch] = useState("");
@@ -342,9 +353,28 @@ export default function QBank() {
   const [selectedTopic, setSelectedTopic] = useState(null);
   const [headerStuck, setHeaderStuck] = useState(false);
   const [showCounsellorModal, setShowCounsellorModal] = useState(false);
+  const isCounsellorRoute = location.pathname === "/student/qbank/counsellor";
+  const isCounsellorOpen = isCounsellorRoute || (initialCounsellor && location.pathname.endsWith("/counsellor")) || showCounsellorModal;
+
+  const handleOpenCounsellor = () => {
+    setShowCounsellorModal(false);
+    navigate('/student/qbank/counsellor', { state: { from: '/student/qbank' } });
+  };
+
+  const handleCloseCounsellor = () => {
+    setShowCounsellorModal(false);
+    const targetParent = location.state?.from || '/student/qbank';
+    navigate(targetParent, { replace: true });
+  };
 
   useEffect(() => {
-    if (showCounsellorModal) {
+    if (!location.pathname.endsWith("/counsellor")) {
+      setShowCounsellorModal(false);
+    }
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (isCounsellorOpen) {
       document.body.setAttribute('data-hide-nav', 'true');
     } else {
       document.body.removeAttribute('data-hide-nav');
@@ -352,7 +382,15 @@ export default function QBank() {
     return () => {
       document.body.removeAttribute('data-hide-nav');
     };
-  }, [showCounsellorModal]);
+  }, [isCounsellorOpen]);
+
+  useBackButton(() => {
+    if (selectedTopic) {
+      setSelectedTopic(null);
+      return true;
+    }
+    return false;
+  }, !!selectedTopic);
 
   // Ref to the "Topic wise QBanks" title element
   const qbankSectionRef = useRef(null);
@@ -481,32 +519,42 @@ export default function QBank() {
         <div className="px-4 pt-4">
           {/* Goal + counsellor row */}
           <div className="flex items-center justify-between mb-4">
-            <div onClick={() => { if (!user?.approved) navigate('/student/goal-selection'); }}>
-              <p className="text-[10px] font-medium leading-tight mb-0.5 text-slate-500">Current goal</p>
-              <div className={`flex items-center gap-1 ${!user?.approved ? 'cursor-pointer' : ''}`}>
-                <span className="font-bold text-[17px] font-display tracking-tight text-white">
-                  {localStorage.getItem("selectedGoal") || "Select Goal"}
-                </span>
-                {!user?.approved && <ChevronDown size={18} className="text-white" strokeWidth={2.5} />}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => {
+                  if (selectedTopic) { setSelectedTopic(null); return; }
+                  navigate('/student', { replace: true });
+                }}
+                aria-label="Back to Home"
+                className="w-9 h-9 rounded-full flex items-center justify-center transition-colors active:scale-95 bg-white/10 hover:bg-white/15 text-white"
+              >
+                <ArrowLeft size={18} />
+              </button>
+              <div onClick={() => {
+                if (!user?.approved) {
+                  const fromPath = (location.pathname + location.search) || '/student';
+                  try { sessionStorage.setItem('student_goal_parent', fromPath); } catch(e) {}
+                  navigate('/student/goal-selection', { state: { from: fromPath } });
+                }
+              }}>
+                <p className="text-[10px] font-medium leading-tight mb-0.5 text-slate-500">Current goal</p>
+                <div className={`flex items-center gap-1 ${!user?.approved ? 'cursor-pointer' : ''}`}>
+                  <span className="font-bold text-[17px] font-display tracking-tight text-white">
+                    {localStorage.getItem("selectedGoal") || "Select Goal"}
+                  </span>
+                  {!user?.approved && <ChevronDown size={18} className="text-white" strokeWidth={2.5} />}
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setShowCounsellorModal(true)}
+                onClick={handleOpenCounsellor}
                 className="flex items-center gap-2 px-3.5 py-1.5 rounded-full transition-colors border bg-[#1A1F2E] border-slate-800 text-white hover:bg-white/10"
               >
                 <Phone size={14} className="fill-white text-white" strokeWidth={0} />
                 <span className="text-xs font-bold tracking-wide">Talk to counsellor</span>
               </button>
-              <button onClick={() => navigate('/student/profile')} className="w-8 h-8 rounded-full overflow-hidden border-2 border-transparent active:scale-95 transition-all outline-none">
-                {user?.profilePic ? (
-                  <img src={user.profilePic} className="w-full h-full object-cover" alt="me" />
-                ) : (
-                  <div className="w-full h-full bg-[#7A41F7] flex items-center justify-center text-white font-bold text-xs">
-                    {user?.name?.charAt(0)?.toUpperCase() || "S"}
-                  </div>
-                )}
-              </button>
+              <StudentAvatar user={user} />
             </div>
           </div>
 
@@ -665,8 +713,8 @@ export default function QBank() {
 
       {/* Counsellor Bottom Sheet Modal */}
       <CounsellorModal
-        isOpen={showCounsellorModal}
-        onClose={() => setShowCounsellorModal(false)}
+        isOpen={isCounsellorOpen}
+        onClose={handleCloseCounsellor}
         title="Need help with your subscription?"
       />
     </>

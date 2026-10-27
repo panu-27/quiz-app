@@ -8,6 +8,7 @@ import { ScreenOrientation } from "@capacitor/screen-orientation";
 import { Capacitor } from "@capacitor/core";
 import { App as CapApp } from "@capacitor/app";
 import { executeBackAction } from "./hooks/useBackButton";
+import { getParentRoute } from "./utils/navigationHierarchy";
 
 /* ── student ── */
 import StudentDashboard from "./student/Dashboard";
@@ -103,117 +104,202 @@ export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
   const locationRef = useRef(location);
+  const maxAllowedIdxRef = useRef(window.history.state?.idx ?? 0);
 
   useEffect(() => {
     locationRef.current = location;
+    const currentIdx = window.history.state?.idx;
+    if (typeof currentIdx === 'number' && currentIdx > maxAllowedIdxRef.current) {
+      maxAllowedIdxRef.current = currentIdx;
+    }
   }, [location]);
 
-let lastBackPressTime = 0;
-
-function showExitToast() {
-  const toast = document.createElement('div');
-  toast.innerText = "Press back again to exit";
-  toast.style.position = 'fixed';
-  toast.style.bottom = '100px';
-  toast.style.left = '50%';
-  toast.style.transform = 'translateX(-50%)';
-  toast.style.backgroundColor = 'rgba(0,0,0,0.8)';
-  toast.style.color = 'white';
-  toast.style.padding = '10px 20px';
-  toast.style.borderRadius = '20px';
-  toast.style.fontSize = '14px';
-  toast.style.fontWeight = '500';
-  toast.style.zIndex = '9999';
-  toast.style.opacity = '0';
-  toast.style.transition = 'opacity 0.3s ease-in-out';
-  toast.style.pointerEvents = 'none';
-  toast.style.fontFamily = 'system-ui, -apple-system, sans-serif';
-  document.body.appendChild(toast);
-  
-  // Fade in
-  requestAnimationFrame(() => {
-    toast.style.opacity = '1';
-  });
-  
-  // Fade out and remove
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    setTimeout(() => {
-      if (document.body.contains(toast)) {
-        document.body.removeChild(toast);
+  // If user directly lands on a child route with no prior history in the tab,
+  // prime the browser history so the browser Back button is enabled and takes them to the parent route.
+  useEffect(() => {
+    const fullCurrentUrl = window.location.pathname + window.location.search;
+    if (fullCurrentUrl.endsWith("/counsellor") || (fullCurrentUrl.startsWith("/student/quiz/settings") && window.location.search)) {
+      const parent = getParentRoute(fullCurrentUrl, window.history.state) || "/student";
+      const currentIdx = window.history.state?.idx;
+      if (currentIdx === undefined || currentIdx === 0) {
+        window.history.replaceState({ idx: 0 }, "", parent);
+        window.history.pushState({ idx: 1 }, "", window.location.href);
+        maxAllowedIdxRef.current = 1;
       }
-    }, 300);
-  }, 2000);
-}
+    }
+  }, []);
+
+  const lastBackPressTimeRef = useRef(0);
+
+  function showExitToast() {
+    const existing = document.getElementById('nexus-exit-toast');
+    if (existing) return;
+
+    const toast = document.createElement('div');
+    toast.id = 'nexus-exit-toast';
+    toast.innerText = "Press back again to exit";
+    toast.style.position = 'fixed';
+    toast.style.bottom = '100px';
+    toast.style.left = '50%';
+    toast.style.transform = 'translateX(-50%)';
+    toast.style.backgroundColor = 'rgba(0,0,0,0.85)';
+    toast.style.color = '#ffffff';
+    toast.style.padding = '10px 22px';
+    toast.style.borderRadius = '24px';
+    toast.style.fontSize = '14px';
+    toast.style.fontWeight = '600';
+    toast.style.zIndex = '99999';
+    toast.style.opacity = '0';
+    toast.style.transition = 'opacity 0.25s ease-in-out';
+    toast.style.pointerEvents = 'none';
+    toast.style.fontFamily = 'system-ui, -apple-system, sans-serif';
+    toast.style.boxShadow = '0 8px 32px rgba(0,0,0,0.35)';
+    document.body.appendChild(toast);
+    
+    requestAnimationFrame(() => {
+      toast.style.opacity = '1';
+    });
+    
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      setTimeout(() => {
+        if (document.body.contains(toast)) {
+          document.body.removeChild(toast);
+        }
+      }, 300);
+    }, 2000);
+  }
 
   useEffect(() => {
-    if (!Capacitor.isNativePlatform()) return;
-
-    const sub = CapApp.addListener("backButton", ({ canGoBack }) => {
-      // 0. Check if any component intercepts the back button (e.g., Modals, Search Overlays)
-      if (executeBackAction()) {
-        return;
-      }
-
+    const handleAppBack = () => {
       const currentPath = locationRef.current.pathname;
       const currentSearch = locationRef.current.search;
-      
+      const fullCurrentPath = currentPath + (currentSearch || "");
+      const currentState = locationRef.current.state;
+
+      // 0. If on a counsellor route, directly return to parent route
+      if (currentPath.endsWith("/counsellor")) {
+        const parentRoute = getParentRoute(fullCurrentPath, currentState) || "/student";
+        navigate(parentRoute, { replace: true });
+        return true;
+      }
+
+      // 0.1 Check if any component intercepts the back button (Modals, Overlays, Sheets)
+      if (executeBackAction()) {
+        return true;
+      }
+
       const rootPaths = ["/", "/login", "/student", "/admin", "/institute-admin", "/super"];
 
-      // 1. If we are exactly on a root page, ask for double press to exit
+      // 1. If we are on root without query params, ask for double press to exit
       if (rootPaths.includes(currentPath) && !currentSearch) {
-        if (Date.now() - lastBackPressTime < 2000) {
-          CapApp.exitApp();
+        const now = Date.now();
+        if (now - lastBackPressTimeRef.current < 2000) {
+          if (Capacitor.isNativePlatform()) {
+            CapApp.exitApp();
+          }
         } else {
-          lastBackPressTime = Date.now();
+          lastBackPressTimeRef.current = now;
           showExitToast();
         }
-        return;
+        return true;
       }
 
-      // 1.5. Hub-and-Spoke Navigation: If pressing back on secondary root tabs, go to Home hub
-      const secondaryRootTabs = [
-        "/student/library",
-        "/student/prime",
-        "/student/history",
-        "/student/notices",
-        "/student/profile",
-        "/student/pyq/bookmarks",
-        "/student/pyq/progress"
-      ];
-      if (secondaryRootTabs.includes(currentPath) && !currentSearch) {
-        navigate('/student', { replace: true });
-        return;
-      }
-
-      // 2. Try to go back in history if React Router has a history stack
-      const hasRouterHistory = window.history.state && window.history.state.idx > 0;
-      
-      if (hasRouterHistory) {
-        navigate(-1);
-      } else {
-        // 3. Smart Fallback for complex routes (IDs, skipped intermediate paths)
-        if (currentPath.includes('/analytics/')) {
-          navigate('/student/history');
-        } else if (currentPath.includes('/library/chapter/')) {
-          navigate('/student/library');
-        } else if (currentPath.includes('/test/') || currentPath.includes('/listedattempts/') || currentPath.includes('/leaderboard/')) {
-          navigate('/student'); 
-        } else if (currentPath.startsWith('/student/pyq/')) {
-          navigate('/student/pyq');
-        } else if (currentPath.startsWith('/student/')) {
-          navigate('/student');
-        } else if (currentPath.startsWith('/admin/')) {
-          navigate('/admin');
-        } else if (currentPath.startsWith('/super/') || currentPath.startsWith('/system/')) {
-          navigate('/super');
-        } else {
-          navigate('/');
+      // 2. Hierarchical Parent-Child resolution for student routes
+      if (currentPath.startsWith("/student")) {
+        const parentRoute = getParentRoute(fullCurrentPath, currentState);
+        if (parentRoute && parentRoute !== fullCurrentPath) {
+          navigate(parentRoute, { replace: true });
+          return true;
         }
       }
-    });
 
-    return () => { sub.then(h => h.remove()); };
+      // 3. Fallback for other roles (admin, super admin)
+      if (currentPath.startsWith("/admin/")) {
+        navigate("/admin", { replace: true });
+        return true;
+      }
+      if (currentPath.startsWith("/super/") || currentPath.startsWith("/system/")) {
+        navigate("/super", { replace: true });
+        return true;
+      }
+
+      navigate("/");
+      return true;
+    };
+
+    let sub = null;
+    if (Capacitor.isNativePlatform()) {
+      sub = CapApp.addListener("backButton", () => {
+        handleAppBack();
+      });
+    }
+
+    const handlePopState = () => {
+      // Forward blocker: when user has gone back, prevent browser forward arrow from going ahead
+      const currentIdx = window.history.state?.idx;
+      if (typeof currentIdx === 'number' && currentIdx > maxAllowedIdxRef.current) {
+        window.history.back();
+        return;
+      }
+
+      const previousPath = locationRef.current.pathname;
+      const previousSearch = locationRef.current.search;
+      const previousFullUrl = previousPath + (previousSearch || "");
+      const previousState = locationRef.current.state;
+      const newPath = window.location.pathname;
+      const newSearch = window.location.search;
+      const newFullUrl = newPath + (newSearch || "");
+
+      // Never allow browser forward navigation into bookmarks or progress modal views
+      if (newPath === '/student/pyq/bookmarks' || newPath === '/student/pyq/progress') {
+        const isForward = typeof currentIdx === 'number' && currentIdx >= maxAllowedIdxRef.current && (previousPath === '/student/pyq' || previousPath.startsWith('/student/pyq/subject/'));
+        if (isForward) {
+          window.history.back();
+          return;
+        }
+      }
+
+      if (typeof currentIdx === 'number') {
+        maxAllowedIdxRef.current = currentIdx;
+      }
+
+      // 0. For in-page (non-routed) overlays on the same page, allow component interceptor
+      if (!previousPath.endsWith("/counsellor") && previousFullUrl === newFullUrl) {
+        if (executeBackAction()) {
+          return;
+        }
+      }
+
+      const rootPaths = ["/", "/login", "/student", "/admin", "/institute-admin", "/super"];
+
+      // 1. If at root, do not intercept normal browser back navigation
+      if (rootPaths.includes(previousPath)) {
+        return;
+      }
+
+      // 2. Hierarchical back: ensure user always returns to designated parent
+      if (previousPath.startsWith("/student")) {
+        const parentRoute = getParentRoute(previousFullUrl, previousState);
+        const hasParentQuery = parentRoute && parentRoute.includes("?");
+        const isAlreadyAtParent = parentRoute && (
+          newFullUrl === parentRoute ||
+          (!hasParentQuery && newPath === parentRoute) ||
+          (parentRoute === '/student/quiz/settings' && newPath === '/student/quiz/settings' && (!newSearch || newSearch === '?step=0'))
+        );
+        if (parentRoute && parentRoute !== previousFullUrl && !isAlreadyAtParent) {
+          navigate(parentRoute, { replace: true });
+          return;
+        }
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      if (sub) sub.then(h => h.remove());
+      window.removeEventListener("popstate", handlePopState);
+    };
   }, [navigate]);
 
   useEffect(() => {
@@ -244,7 +330,9 @@ function showExitToast() {
             }
           >
             <Route index element={<StudentDashboard />} />
+            <Route path="counsellor" element={<StudentDashboard initialCounsellor={true} />} />
             <Route path="history" element={<TestHistory />} />
+            <Route path="history/counsellor" element={<TestHistory initialCounsellor={true} />} />
             <Route path="analytics/:testId/attempt/:attemptNumber" element={<AttemptAnalytics />} />
             <Route path="analytics/:testId/attempt/:attemptNumber/answers" element={<AnswerSheet />} />
             <Route path="analytics/quiz/:attemptId" element={<AttemptAnalytics />} />
@@ -252,27 +340,41 @@ function showExitToast() {
             <Route path="listedattempts/:testId" element={<ListedAttempts />} />
             <Route path="listedattempts/quiz/:testId" element={<ListedAttempts />} />
             <Route path="pdf/:source/:id" element={<PdfViewerPage />} />
+            <Route path="library/pdf" element={<PdfViewerPage />} />
             <Route path="leaderboard/:testId" element={<LeaderboardPage />} />
             <Route path="profile" element={<StudentProfile />} />
             <Route path="library" element={<StudentLibrary />} />
+            <Route path="library/counsellor" element={<StudentLibrary initialCounsellor={true} />} />
             <Route path="library/chapter/:chapterId" element={<StudentLibrary />} />
             <Route path="qbank" element={<QBank />} />
+            <Route path="qbank/counsellor" element={<QBank initialCounsellor={true} />} />
             <Route path="personal" element={<StudentPersonalAnalytics />} />
             <Route path="test/:testId" element={<TestAttempt />} />
+            <Route path="quiz" element={<StudentQuizFlow />} />
+            <Route path="quiz/settings" element={<StudentQuizFlow />} />
             <Route path="quiz/*" element={<StudentQuizFlow />} />
             <Route path="quiztest" element={<StudentQuizTest />} />
             <Route path="pyq" element={<PYQExplorer />} />
             <Route path="pyq/papers" element={<PYQPapers />} />
             <Route path="pyq/progress" element={<PYQProgress />} />
             <Route path="pyq/bookmarks" element={<PYQBookmarks />} />
+            <Route path="pyq/subject/:subjectId/chapter/:chapterId/practice" element={<PYQExplorer />} />
+            <Route path="pyq/subject/:subjectId/chapter/:chapterId" element={<PYQExplorer />} />
+            <Route path="pyq/subject/:subjectId" element={<PYQExplorer />} />
+            <Route path="pyq/chapter/:chapterId/practice" element={<PYQExplorer />} />
+            <Route path="pyq/chapter/:chapterId" element={<PYQExplorer />} />
+            <Route path="pyq/:subjectId/chapter/:chapterId/practice" element={<PYQExplorer />} />
+            <Route path="pyq/:subjectId/chapter/:chapterId" element={<PYQExplorer />} />
             <Route path="pyq/:subjectId" element={<PYQExplorer />} />
             <Route path="feedback" element={<FeedbackPage />} />
             <Route path="subscription" element={<StudentSubscription />} />
             <Route path="notices" element={<NoticeBoard />} />
             <Route path="prime" element={<Prime />} />
+            <Route path="prime/counsellor" element={<Prime initialCounsellor={true} />} />
             <Route path="prime/course/:courseId" element={<PrimeCourse />} />
             <Route path="prime/video/:videoId" element={<PrimeVideo />} />
             <Route path="settings" element={<SettingsPage />} />
+            <Route path="settings/logout" element={<SettingsPage initialLogout={true} />} />
             <Route path="downloads" element={<StudentDownloads />} />
 
             <Route path="faqs" element={<StudentFAQs />} />

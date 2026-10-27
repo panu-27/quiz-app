@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, ChevronDown, X, BarChart2 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios.js';
+import useBackButton from '../hooks/useBackButton';
 
 const STATUS_BAR_H = 28.5;
 
@@ -266,11 +267,29 @@ const Dropdown = ({ label, value, options, onChange, theme }) => {
 
 export default function PYQProgress() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { theme } = useTheme();
     const { user } = useAuth();
     const isApproved = !!user?.isApproved;
     const PRIME_BANNER_H = 60;
 
+    const handleBack = () => {
+        const savedFrom = (() => {
+            try { return sessionStorage.getItem('pyq_feature_from'); } catch(e) { return null; }
+        })();
+        const target = (location.state?.from && !location.state.from.includes('/bookmarks') && !location.state.from.includes('/progress'))
+            ? location.state.from
+            : (savedFrom || '/student/pyq');
+
+        if (window.history.state && typeof window.history.state.idx === 'number' && window.history.state.idx > 0) {
+            navigate(-1);
+        } else {
+            navigate(target, { replace: true });
+        }
+        return true;
+    };
+
+    useBackButton(handleBack);
 
     const [perfSubject, setPerfSubject] = useState('All');
     const [perfTimeline, setPerfTimeline] = useState('Weekly');
@@ -463,7 +482,7 @@ export default function PYQProgress() {
                     {/* Left: back + title */}
                     <div className="flex items-center gap-2">
                         <button
-                            onClick={() => navigate(-1)}
+                            onClick={handleBack}
                             className={`w-10 h-10 -ml-2 flex items-center justify-center transition-colors ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}
                         >
                             <ArrowLeft size={24} />
@@ -479,7 +498,7 @@ export default function PYQProgress() {
                     <div className="flex items-center gap-2">
                         {/* Bookmark icon */}
                         <button
-                            onClick={() => navigate('/student/pyq/bookmarks')}
+                            onClick={() => navigate('/student/pyq/bookmarks', { replace: true, state: { from: location.state?.from || sessionStorage.getItem('pyq_feature_from') || '/student/pyq' } })}
                             className={`w-9 h-9 flex items-center justify-center rounded-[10px] border active:scale-95 transition-all ${theme === 'dark'
                                 ? 'border-[#2A3441] bg-[#161C26] text-white'
                                 : 'border-slate-200 bg-white text-slate-700'
@@ -492,7 +511,7 @@ export default function PYQProgress() {
 
                         {/* Progress icon (highlighted active) */}
                         <button
-                            onClick={() => navigate('/student/pyq/progress')}
+                            onClick={() => navigate('/student/pyq/progress', { replace: true, state: { from: location.state?.from || sessionStorage.getItem('pyq_feature_from') || '/student/pyq' } })}
                             className={`w-9 h-9 flex items-center justify-center rounded-[10px] border active:scale-95 transition-all ${theme === 'dark'
                                 ? 'border-[#2563EB] bg-[#2563EB] text-white'
                                 : 'border-[#2563EB] bg-[#2563EB] text-white'

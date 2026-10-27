@@ -116,7 +116,13 @@ export default function MyLearning() {
       >
         {/* Top Header Row */}
         <div className="flex items-center justify-between px-5 py-2 mt-2 mb-4">
-          <div onClick={() => { if (!user?.approved) navigate('/student/goal-selection'); }}>
+          <div onClick={() => {
+            if (!user?.approved) {
+              const fromPath = (location.pathname + location.search) || '/student';
+              try { sessionStorage.setItem('student_goal_parent', fromPath); } catch(e) {}
+              navigate('/student/goal-selection', { state: { from: fromPath } });
+            }
+          }}>
             <p className="text-[10px] font-medium leading-tight mb-0.5 text-slate-300">Current goal</p>
             <div className={`flex items-center gap-1 ${!user?.approved ? 'cursor-pointer' : ''}`}>
               <span className="font-bold text-[17px] font-display tracking-tight text-white">

@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { ChevronLeft, ChevronRight, Search, Plus, Minus, ClipboardList, BookOpen, Calculator, FlaskConical, Goal, Lock } from 'lucide-react';
 import StudentHeader from './StudentHeader';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
+import useBackButton from '../hooks/useBackButton';
 
 const STATUS_BAR_H = 28.5;
 
@@ -13,8 +14,8 @@ const CATEGORIES = [
         id: 'boards',
         title: 'Maharashtra State Board',
         goals: [
-            { id: 'HSC', title: 'HSC (Class 12)', icon: <BookOpen size={18} strokeWidth={2.5} /> },
-            { id: 'SSC', title: 'SSC (Class 10)', icon: <BookOpen size={18} strokeWidth={2.5} /> }
+            { id: 'HSC', title: 'HSC (Class 12)', icon: <BookOpen size={18} strokeWidth={2.5} />, locked: true },
+            { id: 'SSC', title: 'SSC (Class 10)', icon: <BookOpen size={18} strokeWidth={2.5} />, locked: true }
         ]
     },
     {
@@ -22,7 +23,7 @@ const CATEGORIES = [
         title: 'IITJEE, NEET UG and Foundation',
         goals: [
             { id: 'IIT JEE', title: 'IIT JEE', icon: <Calculator size={18} strokeWidth={2.5} />, locked: true },
-            { id: 'MHT CET', title: 'MHT CET', icon: <ClipboardList size={18} strokeWidth={2.5} /> },
+            { id: 'MHT CET', title: 'MHT CET', icon: <ClipboardList size={18} strokeWidth={2.5} />, locked: true },
             { id: 'NEET', title: 'NEET UG', icon: <FlaskConical size={18} strokeWidth={2.5} />, locked: true },
         ]
     },
@@ -66,6 +67,7 @@ export default function GoalSelectionPage() {
     const { user } = useAuth();
     const isDark = theme === 'dark';
     const navigate = useNavigate();
+    const location = useLocation();
 
     const [searchQuery, setSearchQuery] = useState('');
     const [expandedCategory, setExpandedCategory] = useState('boards');
@@ -73,20 +75,45 @@ export default function GoalSelectionPage() {
     const [showConfirm, setShowConfirm] = useState(false);
     const [activeClasses, setActiveClasses] = useState([]);
 
+    const safeParent = useMemo(() => {
+        const queryFrom = new URLSearchParams(location.search).get('from');
+        const fromCandidate = location.state?.from || queryFrom;
+        if (fromCandidate && fromCandidate !== '/student/goal-selection' && fromCandidate.startsWith('/student')) {
+            try { sessionStorage.setItem('student_goal_parent', fromCandidate); } catch(e) {}
+            return fromCandidate;
+        }
+        try {
+            const saved = sessionStorage.getItem('student_goal_parent');
+            if (saved && saved !== '/student/goal-selection' && saved.startsWith('/student')) {
+                return saved;
+            }
+        } catch(e) {}
+        return '/student';
+    }, [location.state?.from, location.search]);
+
+    const handleBack = useCallback(() => {
+        if (showConfirm) {
+            setShowConfirm(false);
+            return true;
+        }
+        navigate(safeParent, { replace: true });
+        return true;
+    }, [showConfirm, navigate, safeParent]);
+
+    useBackButton(handleBack, true);
+
     // Ensure we start at top
     useEffect(() => {
         window.scrollTo(0, 0);
         if (user?.approved) {
-            navigate('/student', { replace: true });
+            navigate(safeParent, { replace: true });
         }
-    }, [user, navigate]);
+    }, [user, navigate, safeParent]);
 
     useEffect(() => {
-        if (user) {
-            api.get('/student/active-classes')
-                .then(res => setActiveClasses(res.data))
-                .catch(err => console.error("Failed to load active classes", err));
-        }
+        api.get('/student/active-classes')
+            .then(res => setActiveClasses(Array.isArray(res.data) ? res.data : []))
+            .catch(err => console.error("Failed to load active classes", err));
     }, [user]);
 
     const handleGoalClick = (goal) => {
@@ -103,19 +130,18 @@ export default function GoalSelectionPage() {
 
         if (selectedGoal) {
             localStorage.setItem('selectedGoal', selectedGoal.id);
-            if (user) {
+            if (user && !user.approved) {
                 try {
-                    await api.post("/student/change-class", { className: selectedGoal.id });
-                } catch(err) {
-                    console.error("Failed to update class in backend", err);
+                    const res = await api.post("/student/change-class", { className: selectedGoal.id });
+                    if (res.data?.className) {
+                        localStorage.setItem('selectedGoal', res.data.className);
+                    }
+                } catch (err) {
+                    console.error("Failed to update class in backend:", err?.response?.data?.message || err.message);
                 }
             }
             setShowConfirm(false);
-            // Full page navigation with cache-buster to avoid service worker
-            // serving stale JS bundles that cause duplicate React instances
-            setTimeout(() => {
-                window.location.href = `${window.location.origin}${window.location.pathname}?_r=${Date.now()}#/student`;
-            }, 150);
+            navigate(safeParent, { replace: true });
         }
     };
 
@@ -123,13 +149,62 @@ export default function GoalSelectionPage() {
         setExpandedCategory(expandedCategory === id ? null : id);
     };
 
-    const filteredCategories = CATEGORIES.map(cat => ({
-        ...cat,
-        goals: cat.goals.map(g => ({
-            ...g,
-            locked: activeClasses.includes(g.id) ? false : g.locked
-        })).filter(g => g.title.toLowerCase().includes(searchQuery.toLowerCase()))
-    })).filter(cat => cat.goals.length > 0 || cat.title.toLowerCase().includes(searchQuery.toLowerCase()));
+    const normalize = (str) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+    const isGoalActive = (goal) => {
+        if (!activeClasses || !Array.isArray(activeClasses) || activeClasses.length === 0) return false;
+        const normId = normalize(goal.id);
+        const normTitle = normalize(goal.title);
+        return activeClasses.some(ac => {
+            if (!ac) return false;
+            const normAc = normalize(ac);
+            return normAc === normId || normAc === normTitle;
+        });
+    };
+
+    const otherInstituteGoals = useMemo(() => {
+        if (!activeClasses || !Array.isArray(activeClasses)) return [];
+        return activeClasses.filter(ac => {
+            if (!ac) return false;
+            const norm = normalize(ac);
+            const matchesPredefined = CATEGORIES.some(cat => 
+                cat.goals.some(g => normalize(g.id) === norm || normalize(g.title) === norm)
+            );
+            return !matchesPredefined;
+        }).map(ac => ({
+            id: ac,
+            title: ac,
+            icon: <BookOpen size={18} strokeWidth={2.5} />,
+            locked: false
+        }));
+    }, [activeClasses]);
+
+    const allCategories = useMemo(() => {
+        const base = CATEGORIES.map(cat => ({
+            ...cat,
+            goals: cat.goals.map(g => ({
+                ...g,
+                locked: !isGoalActive(g)
+            }))
+        }));
+
+        if (otherInstituteGoals.length > 0) {
+            base.push({
+                id: 'other_active',
+                title: 'Other Active Batches',
+                goals: otherInstituteGoals
+            });
+        }
+        return base;
+    }, [activeClasses, otherInstituteGoals]);
+
+    const filteredCategories = useMemo(() => {
+        const q = searchQuery.toLowerCase().trim();
+        return allCategories.map(cat => ({
+            ...cat,
+            goals: cat.goals.filter(g => !q || g.title.toLowerCase().includes(q) || g.id.toLowerCase().includes(q))
+        })).filter(cat => cat.goals.length > 0 || (q && cat.title.toLowerCase().includes(q)));
+    }, [allCategories, searchQuery]);
 
     // Matching screenshot colors closely
     const bgMain = isDark ? 'bg-[#0b1016]' : 'bg-[#F4F7FC]';
@@ -147,10 +222,20 @@ export default function GoalSelectionPage() {
             <div className="flex-1 relative pb-10">
                 {/* BLUE HEADER BLOCK */}
                 <div
-                    className={`sticky top-0 z-50 ${headerBlue} rounded-b-xl pt-[50px] pb-6 px-5 text-center shadow-lg`}
+                    className={`sticky top-0 z-50 ${headerBlue} rounded-b-xl pt-[50px] pb-6 px-5 shadow-lg`}
                 >
+                    <div className="flex items-center gap-3 max-w-md mx-auto mb-3">
+                        <button
+                            onClick={handleBack}
+                            className="p-1 -ml-1 text-white hover:bg-white/10 rounded-full transition-colors"
+                        >
+                            <ChevronLeft size={24} />
+                        </button>
+                        <h1 className="text-white font-bold text-lg leading-tight">Choose Your Goal</h1>
+                    </div>
+
                     {/* SEARCH BAR inside header */}
-                    <div className=" mt-2 relative rounded-xl overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.12)] max-w-md mx-auto">
+                    <div className="relative rounded-xl overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.12)] max-w-md mx-auto">
                         <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400">
                             <Search size={20} strokeWidth={2.5} />
                         </div>

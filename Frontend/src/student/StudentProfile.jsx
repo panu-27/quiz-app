@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState, useMemo, useCallback } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import {
@@ -45,7 +45,7 @@ const GlobalStyles = () => (
     <style>{`
  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,700&display=swap');
 
- * { font-family: 'DM Sans', sans-serif; }
+ .profile-root, .profile-root * { font-family: 'DM Sans', sans-serif; }
 
  .font-display { font-family: 'Sora', sans-serif; }
  .font-body { font-family: 'DM Sans', sans-serif; }
@@ -516,7 +516,10 @@ function MobileSettingsPage({ onBack, name, email, avatarUrl, onAvatarChange, pr
                     <div className="relative">
                         <button
                             onClick={() => {
-                                if (!user?.approved) navigate('/student/goal-selection');
+                                if (!user?.approved) {
+                                    try { sessionStorage.setItem('student_goal_parent', '/student/profile'); } catch(e) {}
+                                    navigate('/student/goal-selection', { state: { from: '/student/profile' } });
+                                }
                             }}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${!user?.approved ? 'border' : ''} ${isDark ? (!user?.approved ? 'border-slate-800 bg-slate-800/50 hover:bg-slate-800' : 'bg-transparent') : (!user?.approved ? 'border-slate-200 bg-slate-50 hover:bg-slate-100' : 'bg-transparent')} transition-colors ${!user?.approved ? 'cursor-pointer px-3' : 'cursor-default px-1'}`}
                         >
@@ -587,12 +590,21 @@ function MobileSettingsPage({ onBack, name, email, avatarUrl, onAvatarChange, pr
                     <h3 className={`text-[17px] font-bold font-display mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>My library</h3>
                     <div className="grid grid-cols-2 gap-3">
                         {[
-                            { icon: <PlaySquare size={18} className="text-[#00E2B8]" />, label: "Enrollments" },
-                            { icon: <Download size={18} className="text-[#A855F7]" />, label: "Downloads" },
-                            { icon: <Bell size={18} className="text-[#00E2B8]" />, label: "Updates" },
-                            { icon: <Award size={18} className="text-amber-500" />, label: "Leaderboard", action: () => { window.location.href = '/student/personal'; } },
-                            { icon: <HelpCircle size={18} className="text-[#3B82F6]" />, label: "FAQs" },
-                            { icon: <Settings size={18} className={isDark ? 'text-slate-400' : 'text-slate-500'} />, label: "Settings", action: () => setShowFullSettings(true) }
+                            { icon: <PlaySquare size={18} className="text-[#00E2B8]" />, label: "Enrollments", action: () => navigate('/student') },
+                            { icon: <Download size={18} className="text-[#A855F7]" />, label: "Downloads", action: () => navigate('/student/downloads', { state: { from: '/student/profile' } }) },
+                            { icon: <Bell size={18} className="text-[#00E2B8]" />, label: "Updates", action: () => navigate('/student/notices', { state: { from: '/student/profile' } }) },
+                            { icon: <Award size={18} className="text-amber-500" />, label: "Leaderboard", action: () => {
+                                try { sessionStorage.setItem('student_leaderboard_parent', '/student/profile'); } catch(e) {}
+                                navigate('/student/personal', { state: { from: '/student/profile' } });
+                            }},
+                            { icon: <HelpCircle size={18} className="text-[#3B82F6]" />, label: "FAQs", action: () => {
+                                try { sessionStorage.setItem('student_faqs_parent', '/student/profile'); } catch(e) {}
+                                navigate('/student/faqs', { state: { from: '/student/profile' } });
+                            }},
+                            { icon: <Settings size={18} className={isDark ? 'text-slate-400' : 'text-slate-500'} />, label: "Settings", action: () => {
+                                try { sessionStorage.setItem('student_settings_parent', '/student/profile'); } catch(e) {}
+                                navigate('/student/settings', { state: { from: '/student/profile' } });
+                            }}
                         ].map((item, i) => (
                             <button key={i} onClick={item.action} className={`flex items-center gap-3 px-4 py-4 rounded-xl border bg-transparent text-left active:scale-95 transition-all ${isDark ? 'border-[#2A3649] hover:bg-slate-800/40' : 'border-slate-200 hover:bg-slate-50'}`}>
                                 {item.icon}
@@ -664,6 +676,7 @@ const DEFAULT_WEEKS = [
 
 export default function StudentProfile() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { user: authUser } = useAuth();
     const { theme } = useTheme();
     const isDark = theme === 'dark';
@@ -673,6 +686,58 @@ export default function StudentProfile() {
     const [mobileSettings, setMobileSettings] = useState(false);
     const [desktopPanel, setDesktopPanel] = useState(null);
     const [selectedGoal] = useState(localStorage.getItem("selectedGoal") || "IIT JEE");
+
+    const PROFILE_CHILD_ROUTES = useMemo(() => [
+        '/student/profile',
+        '/student/settings',
+        '/student/settings/logout',
+        '/student/faqs',
+        '/student/downloads',
+        '/student/notices',
+        '/student/personal',
+        '/student/goal-selection',
+        '/student/change-password',
+        '/student/delete-account',
+        '/student/privacy-policy',
+        '/student/cookie-policy',
+        '/student/refund-policy',
+    ], []);
+
+    const safeParent = useMemo(() => {
+        const queryFrom = new URLSearchParams(location.search).get('from');
+        const fromCandidate = location.state?.from || queryFrom;
+        const isChildRoute = fromCandidate && PROFILE_CHILD_ROUTES.some(r => fromCandidate === r || fromCandidate.startsWith(r + '/'));
+        if (fromCandidate && !isChildRoute && fromCandidate.startsWith('/student')) {
+            try { sessionStorage.setItem('student_profile_parent', fromCandidate); } catch(e) {}
+            return fromCandidate;
+        }
+        try {
+            const saved = sessionStorage.getItem('student_profile_parent');
+            if (saved && !PROFILE_CHILD_ROUTES.some(r => saved === r || saved.startsWith(r + '/')) && saved.startsWith('/student')) {
+                return saved;
+            }
+        } catch(e) {}
+        return '/student';
+    }, [location.state?.from, location.search, PROFILE_CHILD_ROUTES]);
+
+    const handleBack = useCallback(() => {
+        if (mobileSettings) {
+            setMobileSettings(false);
+            return true;
+        }
+        if (desktopPanel) {
+            setDesktopPanel(null);
+            return true;
+        }
+        if (window.history.state && window.history.state.idx > 0) {
+            navigate(-1);
+        } else {
+            navigate(safeParent, { replace: true });
+        }
+        return true;
+    }, [mobileSettings, desktopPanel, navigate, safeParent]);
+
+    useBackButton(handleBack, true);
 
     const FALLBACK_ALL_TIME = [
         { rank: 1, name: "Mushafir", points: 8684187, level: 33, percentile: 100, avatar: null },
@@ -825,7 +890,7 @@ DESKTOP (lg+)
                         <div className="absolute right-[5%] top-[45%] w-40 h-40 rounded-full bg-white/10 pointer-events-none" />
 
                         <div className="flex justify-between items-center px-6 pt-6 pb-2 relative z-10">
-                            <button onClick={() => navigate(-1)} className="p-0.5 bg-transparent border-none text-white active:scale-95 transition-all">
+                            <button onClick={handleBack} className="p-0.5 bg-transparent border-none text-white active:scale-95 transition-all">
                                 <ArrowLeft size={16} strokeWidth={2.5} />
                             </button>
                             <p className="text-[8px] font-semibold uppercase tracking-[0.3em] text-white/40 font-body">Class ID</p>
@@ -1029,7 +1094,7 @@ MOBILE (< lg) — Unacademy-style layout
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <button
-                                onClick={() => navigate(-1)}
+                                onClick={handleBack}
                                 className={`w-10 h-10 -ml-2 flex items-center justify-center transition-colors bg-transparent border-none p-0 ${isDark ? 'text-white hover:bg-slate-800/50' : 'text-slate-800 hover:bg-slate-200/50'} rounded-full`}
                             >
                                 <ArrowLeft size={24} />
@@ -1042,7 +1107,10 @@ MOBILE (< lg) — Unacademy-style layout
                         <div className="relative">
                             <button
                                 onClick={() => {
-                                    if (!authUser?.approved) navigate('/student/goal-selection');
+                                    if (!authUser?.approved) {
+                                        try { sessionStorage.setItem('student_goal_parent', '/student/profile'); } catch(e) {}
+                                        navigate('/student/goal-selection', { state: { from: '/student/profile' } });
+                                    }
                                 }}
                                 className={`
             group flex items-center gap-2
@@ -1172,12 +1240,21 @@ MOBILE (< lg) — Unacademy-style layout
                         <h3 className={`text-[17px] font-bold font-display mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>My library</h3>
                         <div className="grid grid-cols-2 gap-3">
                             {[
-                                { icon: <PlaySquare size={18} className="text-[#00E2B8]" />, label: 'Home', action: () => navigate('/student/learning') },
-                                { icon: <Download size={18} className="text-[#A855F7]" />, label: 'Downloads', action: () => navigate('/student/downloads') },
-                                { icon: <Bell size={18} className="text-[#00E2B8]" />, label: 'Updates', action: () => navigate('/student/notices') },
-                                { icon: <Award size={18} className="text-amber-500" />, label: 'Leaderboard', action: () => navigate('/student/personal') },
-                                { icon: <HelpCircle size={18} className="text-[#3B82F6]" />, label: 'FAQs', action: () => navigate('/student/faqs') },
-                                { icon: <Settings size={18} className={isDark ? 'text-slate-400' : 'text-slate-500'} />, label: 'Settings', action: () => navigate('/student/settings') },
+                                { icon: <PlaySquare size={18} className="text-[#00E2B8]" />, label: 'Home', action: () => navigate('/student') },
+                                { icon: <Download size={18} className="text-[#A855F7]" />, label: 'Downloads', action: () => navigate('/student/downloads', { state: { from: '/student/profile' } }) },
+                                { icon: <Bell size={18} className="text-[#00E2B8]" />, label: 'Updates', action: () => navigate('/student/notices', { state: { from: '/student/profile' } }) },
+                                { icon: <Award size={18} className="text-amber-500" />, label: 'Leaderboard', action: () => {
+                                    try { sessionStorage.setItem('student_leaderboard_parent', '/student/profile'); } catch(e) {}
+                                    navigate('/student/personal', { state: { from: '/student/profile' } });
+                                }},
+                                { icon: <HelpCircle size={18} className="text-[#3B82F6]" />, label: 'FAQs', action: () => {
+                                    try { sessionStorage.setItem('student_faqs_parent', '/student/profile'); } catch(e) {}
+                                    navigate('/student/faqs', { state: { from: '/student/profile' } });
+                                }},
+                                { icon: <Settings size={18} className={isDark ? 'text-slate-400' : 'text-slate-500'} />, label: 'Settings', action: () => {
+                                    try { sessionStorage.setItem('student_settings_parent', '/student/profile'); } catch(e) {}
+                                    navigate('/student/settings', { state: { from: '/student/profile' } });
+                                }},
                             ].map((item, i) => (
                                 <button
                                     key={i}

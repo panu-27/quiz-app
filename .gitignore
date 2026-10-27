@@ -68,3 +68,12 @@ Thumbs.db
 *.sln
 *.swp
 *.sw?
+
+# ===============================
+# Executables & Installer Binaries
+# ===============================
+*.exe
+*.msi
+*.dmg
+*.pkg
+*.iso

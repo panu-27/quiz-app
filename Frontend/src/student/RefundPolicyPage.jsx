@@ -1,6 +1,6 @@
 import { useTheme } from "../context/ThemeContext";
 import { ArrowLeft } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const STATUS_BAR_H = 28.5;
 
@@ -8,6 +8,17 @@ export default function RefundPolicyPage() {
     const { theme } = useTheme();
     const isDark = theme === "dark";
     const navigate = useNavigate();
+    const location = useLocation();
+
+    const handleBack = () => {
+        const parent = location.state?.from || '/student/settings';
+        if (window.history.state && window.history.state.idx > 0) {
+            navigate(-1);
+        } else {
+            navigate(parent, { replace: true });
+        }
+        return true;
+    };
 
     return (
         <div className={`min-h-screen flex flex-col ${isDark ? 'bg-[#000711]' : 'bg-white'}`}>
@@ -15,7 +26,7 @@ export default function RefundPolicyPage() {
             <div className={`flex-shrink-0 sticky top-0 z-40 px-5 pb-4 pt-4 ${isDark ? 'bg-[#000711]' : 'bg-white'}`} style={{ paddingTop: STATUS_BAR_H + 12 }}>
                 <div className="flex items-center gap-4">
                     <button
-                        onClick={() => navigate(-1)}
+                        onClick={handleBack}
                         className={`p-1 flex items-center justify-center transition-colors bg-transparent border-none ${isDark ? 'text-white' : 'text-slate-800'}`}
                     >
                         <ArrowLeft size={24} />

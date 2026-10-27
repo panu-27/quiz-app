@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate, useSearchParams, Navigate } from 'react-router-dom';
 import { Search, ChevronDown, ChevronUp, Check, ArrowLeft, Timer, ChevronRight, Minus } from 'lucide-react';
 import { fetchSubjects, fetchChapters } from './quizApi';
 // eslint-disable-next-line no-unused-vars
@@ -11,39 +12,67 @@ const STATUS_BAR_H = 28.5;
 export default function CreatePractice({ onStartPractice, onBackToApp }) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
-  const [step, setStep] = useState(1);
+  const isSettings = location.pathname.includes('/settings');
+  const step = isSettings ? 2 : 1;
+  const subStep = Math.max(0, parseInt(searchParams.get('step') || '0', 10));
+
   const [subjects, setSubjects] = useState([]);
   const [chaptersMap, setChaptersMap] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
 
-  const [selectedSubjects, setSelectedSubjects] = useState([]);
-  const [selectedChapters, setSelectedChapters] = useState([]);
-  const [expandedSubject, setExpandedSubject] = useState(null);
+  const [selectedSubjects, setSelectedSubjects] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('quiz_selected_subjects');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
 
+  const [selectedChapters, setSelectedChapters] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('quiz_selected_chapters');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  const [expandedSubject, setExpandedSubject] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // --- Step 2 Settings ---
   const [difficulty, setDifficulty] = useState('Medium');
   const [subjectQuestions, setSubjectQuestions] = useState({});
   const [subjectTimes, setSubjectTimes] = useState({});
-  const [subStep, setSubStep] = useState(0);
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('quiz_selected_subjects', JSON.stringify(selectedSubjects));
+      sessionStorage.setItem('quiz_selected_chapters', JSON.stringify(selectedChapters));
+    } catch (e) {}
+  }, [selectedSubjects, selectedChapters]);
 
   // Sync selected subjects' settings
-  const activeSubjects = subjects.filter(s => {
+  const activeSubjects = (subjects || []).filter(s => {
+    if (!s || !s._id) return false;
     const chaps = chaptersMap[s._id] || [];
-    return chaps.some(c => selectedChapters.includes(c._id));
+    return chaps.some(c => c && selectedChapters.includes(c._id));
   });
 
-  const isMathSelected = activeSubjects.some(s => s.name.toLowerCase().includes('math'));
-  const isBioSelected = activeSubjects.some(s => s.name.toLowerCase().includes('biol') || s.name.toLowerCase().includes('bio'));
+  const isMathSelected = activeSubjects.some(s => (s?.name || '').toLowerCase().includes('math'));
+  const isBioSelected = activeSubjects.some(s => (s?.name || '').toLowerCase().includes('biol') || (s?.name || '').toLowerCase().includes('bio'));
 
   useEffect(() => {
     setSubjectQuestions(prev => {
       const updated = { ...prev };
       let changed = false;
       activeSubjects.forEach(s => {
-        if (updated[s._id] === undefined) {
+        if (s?._id && updated[s._id] === undefined) {
           updated[s._id] = 25; // default to 25 questions
           changed = true;
         }
@@ -55,8 +84,8 @@ export default function CreatePractice({ onStartPractice, onBackToApp }) {
       const updated = { ...prev };
       let changed = false;
       activeSubjects.forEach(s => {
-        if (updated[s._id] === undefined) {
-          const isMathOrBio = s.name.toLowerCase().includes('math') || s.name.toLowerCase().includes('biol');
+        if (s?._id && updated[s._id] === undefined) {
+          const isMathOrBio = (s?.name || '').toLowerCase().includes('math') || (s?.name || '').toLowerCase().includes('biol');
           updated[s._id] = isMathOrBio ? 45 : 30; // default time
           changed = true;
         }
@@ -81,12 +110,15 @@ export default function CreatePractice({ onStartPractice, onBackToApp }) {
         );
         setChaptersMap(cmap);
 
-        // Auto-select Physics chapters by default
-        const physics = subjectsData.find(s => s.name.toLowerCase().includes('physics'));
-        if (physics && cmap[physics._id]?.length > 0) {
-          const physicsChapIds = cmap[physics._id].map(c => c._id);
-          setSelectedChapters(physicsChapIds);
-          setSelectedSubjects([physics._id]);
+        // Auto-select Physics chapters by default if nothing saved yet
+        const savedChaps = sessionStorage.getItem('quiz_selected_chapters');
+        if (!savedChaps) {
+          const physics = subjectsData.find(s => s.name.toLowerCase().includes('physics'));
+          if (physics && cmap[physics._id]?.length > 0) {
+            const physicsChapIds = cmap[physics._id].map(c => c._id);
+            setSelectedChapters(physicsChapIds);
+            setSelectedSubjects([physics._id]);
+          }
         }
       } catch (err) {
         console.error("Error loading subjects/chapters:", err);
@@ -97,21 +129,12 @@ export default function CreatePractice({ onStartPractice, onBackToApp }) {
     loadData();
   }, []);
 
-  useBackButton(() => {
-    if (step === 2) {
-      if (subStep > 0) {
-        setSubStep(subStep - 1);
-      } else {
-        setStep(1);
-      }
-      return true;
+  // Redirect to selection stage if visiting settings with empty chapters
+  useEffect(() => {
+    if (isSettings && !loading && selectedChapters.length === 0) {
+      navigate('/student/quiz', { replace: true });
     }
-    if (step === 1) {
-      onBackToApp();
-      return true;
-    }
-    return false;
-  }, true);
+  }, [isSettings, loading, selectedChapters, navigate]);
 
   const filteredSubjects = subjects.filter(s =>
     s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -165,8 +188,9 @@ export default function CreatePractice({ onStartPractice, onBackToApp }) {
     const subjectSettings = {};
     let computedTotalTime = 0;
     activeSubjects.forEach(s => {
+      if (!s?._id) return;
       const qCount = subjectQuestions[s._id] || 25;
-      const isMathOrBio = s.name.toLowerCase().includes('math') || s.name.toLowerCase().includes('biol');
+      const isMathOrBio = (s?.name || '').toLowerCase().includes('math') || (s?.name || '').toLowerCase().includes('biol');
       const sTime = subjectTimes[s._id] || (isMathOrBio ? 45 : 30);
 
       if (sTime === 'Unlimited') {
@@ -190,20 +214,53 @@ export default function CreatePractice({ onStartPractice, onBackToApp }) {
     });
   };
 
+  const handlePrev = () => {
+    if (subStep > 0) {
+      const prevStep = subStep - 1;
+      navigate(prevStep === 0 ? '/student/quiz/settings' : `/student/quiz/settings?step=${prevStep}`, { replace: true });
+    } else {
+      navigate('/student/quiz', { replace: true });
+    }
+  };
+
   const handleNextOrStart = () => {
     if (subStep < activeSubjects.length) {
-      setSubStep(subStep + 1);
+      navigate(`/student/quiz/settings?step=${subStep + 1}`);
     } else {
       handleStart();
     }
   };
+
+  useBackButton(() => {
+    if (isSettings) {
+      handlePrev();
+      return true;
+    }
+    if (step === 1) {
+      onBackToApp?.();
+      return true;
+    }
+    return false;
+  }, true);
 
   const ctaText = subStep < activeSubjects.length ? 'Next' : 'Start practice';
 
   // --- UI RENDERERS ---
 
   if (step === 2) {
-    const currentSubject = subStep > 0 ? activeSubjects[subStep - 1] : null;
+    if (loading) {
+      return (
+        <div className={`min-h-screen flex items-center justify-center ${isDark ? 'bg-[#0E131F]' : 'bg-[#F8FAFF]'}`}>
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      );
+    }
+
+    if (subStep > 0 && (!activeSubjects.length || !activeSubjects[subStep - 1])) {
+      return <Navigate to={activeSubjects.length > 0 ? '/student/quiz/settings' : '/student/quiz'} replace />;
+    }
+
+    const currentSubject = (subStep > 0 && activeSubjects.length >= subStep) ? activeSubjects[subStep - 1] : null;
 
     return (
       <div className={`min-h-screen flex flex-col font-sans ${isDark ? 'bg-[#0E131F] text-white' : 'bg-[#F8FAFF] text-[#1E293B]'}`}>
@@ -211,13 +268,7 @@ export default function CreatePractice({ onStartPractice, onBackToApp }) {
         <div className={`sticky top-0 z-40  px-5 flex flex-col gap-2 ${isDark ? 'bg-[#0E131F]' : 'bg-[#F8FAFF]'}`} style={{ paddingTop: STATUS_BAR_H + 10 }}>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => {
-                if (subStep > 0) {
-                  setSubStep(subStep - 1);
-                } else {
-                  setStep(1);
-                }
-              }}
+              onClick={handlePrev}
               className={`w-10 h-10 -ml-2  flex items-center justify-center transition-colors ${isDark ? 'text-white' : 'text-slate-850'}`}
             >
               <ArrowLeft size={24} />
@@ -260,7 +311,7 @@ export default function CreatePractice({ onStartPractice, onBackToApp }) {
               transition={{ duration: 0.25, ease: 'easeInOut' }}
               className="space-y-8"
             >
-              {subStep === 0 ? (
+              {subStep === 0 || !currentSubject ? (
                 /* Difficulty Section */
                 <div className={`rounded-[16px] p-5 space-y-4 ${isDark ? 'bg-[#161C26]' : 'bg-white'}`}>
                   <h3 className={`text-[17px] font-semibold mb-4 ${isDark ? 'text-white' : 'text-slate-800'}`}>Difficulty of questions</h3>
@@ -291,10 +342,10 @@ export default function CreatePractice({ onStartPractice, onBackToApp }) {
                   {/* Subject Heading inside content area only */}
                   <div>
                     <h3 className={`text-[17px] font-semibold mb-1 ${isDark ? 'text-white' : 'text-slate-800'}`}>
-                      {currentSubject.name}
+                      {currentSubject?.name || 'Subject'}
                     </h3>
                     <p className="text-[#8492A6]/60 text-[12px] font-medium">
-                      {(chaptersMap[currentSubject._id] || []).filter(c => selectedChapters.includes(c._id)).length} chapters selected
+                      {(chaptersMap[currentSubject?._id] || []).filter(c => selectedChapters.includes(c._id)).length} chapters selected
                     </p>
                   </div>
 
@@ -303,13 +354,13 @@ export default function CreatePractice({ onStartPractice, onBackToApp }) {
                     <h3 className={`text-[17px] font-semibold mb-4 ${isDark ? 'text-white' : 'text-slate-800'}`}>Number of questions</h3>
                     <div className="flex flex-wrap gap-3">
                       {(() => {
-                        const sName = currentSubject.name.toLowerCase();
+                        const sName = (currentSubject?.name || '').toLowerCase();
                         const isBio = sName.includes('biol') || sName.includes('bio');
                         let qOptions = isBio ? [25, 50, 75, 100] : [15, 25, 40, 50];
                         if (activeSubjects.length === 1) {
                           qOptions = [...qOptions, 'Unlimited'];
                         }
-                        const currentQ = subjectQuestions[currentSubject._id] || 25;
+                        const currentQ = (currentSubject?._id && subjectQuestions[currentSubject._id]) || 25;
                         return qOptions.map(num => {
                           const isSel = currentQ === num;
                           return (
@@ -317,6 +368,7 @@ export default function CreatePractice({ onStartPractice, onBackToApp }) {
                               key={num}
                               whileTap={{ scale: 0.97 }}
                               onClick={() => {
+                                if (!currentSubject?._id) return;
                                 setSubjectQuestions(prev => ({
                                   ...prev,
                                   [currentSubject._id]: num
@@ -342,12 +394,13 @@ export default function CreatePractice({ onStartPractice, onBackToApp }) {
                     <h3 className={`text-[17px] font-semibold mb-4 ${isDark ? 'text-white' : 'text-slate-800'}`}>Time limit</h3>
                     <div className="flex flex-wrap gap-3">
                       {(() => {
-                        const isMathOrBio = currentSubject.name.toLowerCase().includes('math') || currentSubject.name.toLowerCase().includes('biol');
+                        const sName = (currentSubject?.name || '').toLowerCase();
+                        const isMathOrBio = sName.includes('math') || sName.includes('biol');
                         let timeOptions = isMathOrBio ? [15, 30, 45, 60, 90] : [10, 20, 30, 45];
                         if (activeSubjects.length === 1) {
                           timeOptions = [...timeOptions, 'Unlimited'];
                         }
-                        const currentTime = subjectTimes[currentSubject._id] || (isMathOrBio ? 45 : 30);
+                        const currentTime = (currentSubject?._id && subjectTimes[currentSubject._id]) || (isMathOrBio ? 45 : 30);
                         return timeOptions.map(t => {
                           const isSel = currentTime === t;
                           return (
@@ -355,6 +408,7 @@ export default function CreatePractice({ onStartPractice, onBackToApp }) {
                               key={t}
                               whileTap={{ scale: 0.97 }}
                               onClick={() => {
+                                if (!currentSubject?._id) return;
                                 setSubjectTimes(prev => ({
                                   ...prev,
                                   [currentSubject._id]: t
@@ -383,13 +437,7 @@ export default function CreatePractice({ onStartPractice, onBackToApp }) {
         {/* Flat Bottom Navigation Bar */}
         <div className={`fixed bottom-0 left-0 right-0 p-5 z-50 flex gap-4 ${isDark ? 'bg-[#0E131F]' : 'bg-[#F8FAFF]'}`}>
           <button
-            onClick={() => {
-              if (subStep > 0) {
-                setSubStep(subStep - 1);
-              } else {
-                setStep(1);
-              }
-            }}
+            onClick={handlePrev}
             className={`flex-1 py-3 border rounded-[12px] font-semibold text-[16px] transition-all active:scale-[0.98] ${isDark
               ? 'border-[#2A3441]  text-white hover:bg-white/5'
               : 'border-transparent bg-[#E2E8F0] text-[#475569] shadow-none hover:bg-slate-200'
@@ -461,8 +509,8 @@ export default function CreatePractice({ onStartPractice, onBackToApp }) {
               searchQuery === '' || c.name.toLowerCase().includes(searchQuery.toLowerCase())
             );
 
-            const isMath = subj.name.toLowerCase().includes('math');
-            const isBio = subj.name.toLowerCase().includes('biol') || subj.name.toLowerCase().includes('bio');
+            const isMath = (subj?.name || '').toLowerCase().includes('math');
+            const isBio = (subj?.name || '').toLowerCase().includes('biol') || (subj?.name || '').toLowerCase().includes('bio');
             const isDisabled = (isMath && isBioSelected) || (isBio && isMathSelected);
 
             return (
@@ -488,7 +536,7 @@ export default function CreatePractice({ onStartPractice, onBackToApp }) {
                   </button>
 
                   <div className="flex-1">
-                    <h3 className={`text-[17px] font-semibold leading-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>{subj.name}</h3>
+                    <h3 className={`text-[17px] font-semibold leading-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>{subj?.name || 'Subject'}</h3>
                     <p className={`text-[13px] font-medium mt-0.5 ${isDark ? 'text-[#8492A6]' : 'text-slate-400'}`}>
                       {chaps.length} chapters • {selectedCount}/{chaps.length} selected
                     </p>
@@ -542,8 +590,7 @@ export default function CreatePractice({ onStartPractice, onBackToApp }) {
         )}
         <button
           onClick={() => {
-            setSubStep(0);
-            setStep(2);
+            navigate('/student/quiz/settings');
           }}
           className={`w-full py-3 rounded-[12px] font-semibold text-[16px] transition-all ${selectedChapters.length > 0
             ? 'bg-[#2563EB] text-white active:scale-[0.98]'

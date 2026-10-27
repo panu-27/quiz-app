@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
 import {
   ChevronRight,
@@ -40,11 +40,14 @@ import {
 import StudentHeader from "./StudentHeader";
 import DesktopHeader from "../auth/DesktopHeader";
 import CounsellorModal from "../components/CounsellorModal";
+import StudentAvatar from "../components/StudentAvatar";
+import CurrentGoalSelector from "../components/CurrentGoalSelector";
 import { FakeStatsBar } from "./StudentDashboardOverlays";
 import StudentDashboardOverlays from "./StudentDashboardOverlays";
 import { PYQ_SUBJECTS } from "./pyqData";
 import GoalModal from "./GoalModal";
 import LockScreen from "./LockScreen";
+import useBackButton from "../hooks/useBackButton";
 
 const STATUS_BAR_H = 28.5;
 
@@ -263,9 +266,10 @@ const MobileTestRowSkeleton = () => (
 /* ══════════════════════════════════════════════════════
    MAIN COMPONENT
    ══════════════════════════════════════════════════════ */
-export default function StudentDashboard() {
+export default function StudentDashboard({ initialCounsellor = false }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === "dark";
   const [selectedGoal, setSelectedGoal] = useState(
@@ -279,6 +283,34 @@ export default function StudentDashboard() {
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [activeReviewIdx, setActiveReviewIdx] = useState(0);
   const [expandedTestId, setExpandedTestId] = useState(null);
+
+  const isCounsellorRoute = location.pathname === "/student/counsellor";
+  const isCounsellorOpen = isCounsellorRoute || (initialCounsellor && location.pathname.endsWith("/counsellor")) || showCounsellorModal;
+
+  const handleOpenCounsellor = () => {
+    setShowCounsellorModal(false);
+    navigate('/student/counsellor', { state: { from: '/student' } });
+  };
+
+  const handleCloseCounsellor = () => {
+    setShowCounsellorModal(false);
+    const targetParent = location.state?.from || '/student';
+    navigate(targetParent, { replace: true });
+  };
+
+  useEffect(() => {
+    if (!location.pathname.endsWith("/counsellor")) {
+      setShowCounsellorModal(false);
+    }
+  }, [location.pathname]);
+
+  useBackButton(() => {
+    if (isGoalExpanded) {
+      setIsGoalExpanded(false);
+      return true;
+    }
+    return false;
+  }, isGoalExpanded);
 
   const reviews = [
     {
@@ -346,7 +378,7 @@ export default function StudentDashboard() {
   }, [selectedGoal]);
 
   useEffect(() => {
-    if (showCounsellorModal) {
+    if (isCounsellorOpen) {
       document.body.setAttribute("data-hide-nav", "true");
     } else {
       document.body.removeAttribute("data-hide-nav");
@@ -354,7 +386,7 @@ export default function StudentDashboard() {
     return () => {
       document.body.removeAttribute("data-hide-nav");
     };
-  }, [showCounsellorModal]);
+  }, [isCounsellorOpen]);
 
   const banners = [
     {
@@ -607,7 +639,7 @@ export default function StudentDashboard() {
 
   return (
     <div
-      className={`min-h-screen overflow-x-hidden bg-[#F0F4F9] dark:bg-[#0B101A] text-slate-900 dark:text-white transition-colors duration-300 ${user?.approved === false ? "pb-52" : "pb-32"
+      className={`min-h-screen overflow-x-hidden bg-[#F0F4F9] dark:bg-[#0B101A] text-slate-900 dark:text-white transition-colors duration-300 ${user?.approved === false ? "pb-36" : "pb-24"
         }`}
     >
       <ShimmerCSS />
@@ -649,9 +681,8 @@ export default function StudentDashboard() {
                     return (
                       <div
                         key={t._id}
-                        className={`rounded-xl p-7 border bg-white hover:shadow-md transition-all cursor-pointer ${
-                          isExpanded ? "border-[#1EBA9B]" : "border-slate-200"
-                        }`}
+                        className={`rounded-xl p-7 border bg-white hover:shadow-md transition-all cursor-pointer ${isExpanded ? "border-[#1EBA9B]" : "border-slate-200"
+                          }`}
                         onClick={() =>
                           setExpandedTestId(isExpanded ? null : t._id)
                         }
@@ -662,9 +693,8 @@ export default function StudentDashboard() {
                           </span>
                           <ChevronRight
                             size={16}
-                            className={`text-slate-400 transition-transform duration-300 ${
-                              isExpanded ? "rotate-90" : ""
-                            }`}
+                            className={`text-slate-400 transition-transform duration-300 ${isExpanded ? "rotate-90" : ""
+                              }`}
                           />
                         </div>
                         <h3 className="text-[15px] font-bold tracking-wide leading-tight text-slate-900 mb-1">
@@ -673,12 +703,11 @@ export default function StudentDashboard() {
                         <p className="text-sm text-slate-500 mb-4">
                           By {t.teacherName || "Educator"}
                         </p>
-                        
+
                         {/* Expanded Content: Instructions */}
                         <div
-                          className={`overflow-hidden transition-all duration-300 ${
-                            isExpanded ? "max-h-[500px] opacity-100 mb-4" : "max-h-0 opacity-0"
-                          }`}
+                          className={`overflow-hidden transition-all duration-300 ${isExpanded ? "max-h-[500px] opacity-100 mb-4" : "max-h-0 opacity-0"
+                            }`}
                         >
                           <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
                             <h4 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
@@ -873,33 +902,10 @@ export default function StudentDashboard() {
             style={{ paddingTop: STATUS_BAR_H + 16 }}
           >
             <div className="flex items-center justify-between px-1 gap-2 min-w-0">
-              <div
-                className="cursor-pointer min-w-0 flex-1 overflow-hidden"
-                onClick={() => navigate("/student/goal-selection")}
-              >
-                <p
-                  className={`text-[10px] font-medium leading-tight mb-0.5 transition-colors ${useDarkText ? "text-slate-500" : "text-white/70"
-                    }`}
-                >
-                  Current goal
-                </p>
-                <div
-                  className={`flex items-center gap-1 min-w-0 transition-colors ${useDarkText ? "text-slate-900" : "text-white"
-                    }`}
-                >
-                  <span className="font-bold text-[17px] font-display tracking-tight truncate min-w-0">
-                    {selectedGoal || "Select Goal"}
-                  </span>
-                  <ChevronDown
-                    size={18}
-                    className={`flex-shrink-0`}
-                    strokeWidth={2.5}
-                  />
-                </div>
-              </div>
+              <CurrentGoalSelector useDarkText={useDarkText} />
               <div className="flex items-center gap-3 flex-shrink-0">
                 <div
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all ${useDarkText
+                  className={` sm:flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all ${useDarkText
                     ? "bg-slate-100 border-slate-200 text-slate-800"
                     : "bg-black/20 border-white/10 text-white"
                     }`}
@@ -910,10 +916,10 @@ export default function StudentDashboard() {
                   </span>
                 </div>
                 <button
-                  onClick={() => setShowCounsellorModal(true)}
+                  onClick={handleOpenCounsellor}
                   className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center border transition-all active:scale-95 ${useDarkText
-                    ? "bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-50"
-                    : "bg-black/20 border-white/10 text-white hover:bg-white/10"
+                    ? "bg-slate-100 border-slate-200 text-slate-700"
+                    : "bg-black/20 border-white/10 text-white"
                     }`}
                 >
                   <Phone size={14} className="fill-current" strokeWidth={0} />
@@ -927,23 +933,7 @@ export default function StudentDashboard() {
                 >
                   {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
                 </button>
-                <button
-                  onClick={() => navigate("/student/profile")}
-                  className={`w-8 h-8 rounded-full flex-shrink-0 overflow-hidden border-2 transition-all active:scale-95 ${useDarkText ? "border-transparent" : "border-transparent"
-                    }`}
-                >
-                  {user?.profilePic ? (
-                    <img
-                      src={resolveMediaUrl(user?.profilePic)}
-                      alt="Profile"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-orange-500 flex items-center justify-center text-white font-bold text-xs">
-                      {user?.name?.charAt(0)?.toUpperCase() || "S"}
-                    </div>
-                  )}
-                </button>
+                <StudentAvatar user={user} />
               </div>
             </div>
 
@@ -1241,7 +1231,7 @@ export default function StudentDashboard() {
                             {/* Action Buttons */}
                             <div className="flex items-center gap-2 mt-2">
                               <button
-                                onClick={() => setShowCounsellorModal(true)}
+                                onClick={handleOpenCounsellor}
                                 className={`flex-1 py-3 border font-bold rounded-lg text-xs tracking-wider transition-colors active:scale-95 ${theme === "dark"
                                   ? "border-[#3B82F6] hover:bg-[#3B82F6]/10 text-[#3B82F6]"
                                   : "border-slate-200 hover:bg-slate-50 text-slate-700"
@@ -1263,7 +1253,7 @@ export default function StudentDashboard() {
                                 Have questions?
                               </span>
                               <button
-                                onClick={() => setShowCounsellorModal(true)}
+                                onClick={handleOpenCounsellor}
                                 className="text-[#3B82F6] hover:underline font-bold flex items-center gap-1"
                               >
                                 <Phone size={12} /> Talk to counsellor
@@ -1279,41 +1269,41 @@ export default function StudentDashboard() {
 
               {/* ── Results Carousel ── */}
               {resultsPosters.length > 0 && (
-              <div className="mt-4">
-                <h3 className="text-[17px] font-semibold text-slate-900 dark:text-white mb-3">
-                  Our Results
-                </h3>
-                <div
-                  ref={resultsScrollRef}
-                  className="flex overflow-x-auto gap-3.5 no-scrollbar snap-x snap-mandatory pb-1 -mx-4 px-4"
-                >
-                  {resultsPosters.map((src, index) => (
-                    <div
-                      key={index}
-                      className="w-[calc(100vw-24px)] xs:w-[calc(100vw-32px)] flex-shrink-0 snap-center flex flex-col gap-2"
-                    >
+                <div className="mt-4">
+                  <h3 className="text-[17px] font-semibold text-slate-900 dark:text-white mb-3">
+                    Our Results
+                  </h3>
+                  <div
+                    ref={resultsScrollRef}
+                    className="flex overflow-x-auto gap-3.5 no-scrollbar snap-x snap-mandatory pb-1 -mx-4 px-4"
+                  >
+                    {resultsPosters.map((src, index) => (
                       <div
-                        className="w-full rounded-[12px] overflow-hidden border border-slate-200 dark:border-slate-800 bg-[#E8F2FF] dark:bg-[#121A28] shadow-sm"
-                        style={{ aspectRatio: "16/10" }}
+                        key={index}
+                        className="w-[calc(100vw-24px)] xs:w-[calc(100vw-32px)] flex-shrink-0 snap-center flex flex-col gap-2"
                       >
-                        <img
-                          src={src}
-                          className="w-full h-full object-cover select-none"
-                          alt={`Result Poster ${index + 1}`}
-                        />
+                        <div
+                          className="w-full rounded-[12px] overflow-hidden border border-slate-200 dark:border-slate-800 bg-[#E8F2FF] dark:bg-[#121A28] shadow-sm"
+                          style={{ aspectRatio: "16/10" }}
+                        >
+                          <img
+                            src={src}
+                            className="w-full h-full object-cover select-none"
+                            alt={`Result Poster ${index + 1}`}
+                          />
+                        </div>
+                        <p className="text-[11.5px] font-semibold text-center text-slate-600 dark:text-slate-400">
+                          {index === 0 &&
+                            "Celebrating our top rankers in recent mock assessments"}
+                          {index === 1 &&
+                            "Phenomenal score improvement rates across batches"}
+                          {index === 2 &&
+                            "Our learners securing top percentiles this academic year"}
+                        </p>
                       </div>
-                      <p className="text-[11.5px] font-semibold text-center text-slate-600 dark:text-slate-400">
-                        {index === 0 &&
-                          "Celebrating our top rankers in recent mock assessments"}
-                        {index === 1 &&
-                          "Phenomenal score improvement rates across batches"}
-                        {index === 2 &&
-                          "Our learners securing top percentiles this academic year"}
-                      </p>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
               )}
 
               {/* ── What Our Learners Say ── */}
@@ -1549,8 +1539,8 @@ export default function StudentDashboard() {
 
       {/* Counsellor Bottom Sheet Modal */}
       <CounsellorModal
-        isOpen={showCounsellorModal}
-        onClose={() => setShowCounsellorModal(false)}
+        isOpen={isCounsellorOpen}
+        onClose={handleCloseCounsellor}
         title="Need help with your subscription?"
       />
 
@@ -1561,7 +1551,7 @@ export default function StudentDashboard() {
             document.documentElement.scrollTo({ top: 0, behavior: "smooth" });
             document.body.scrollTo({ top: 0, behavior: "smooth" });
           }}
-          className={`fixed right-5 z-[5000] w-11 h-11 rounded-full flex items-center justify-center shadow-[0_4px_20px_rgba(0,0,0,0.1)] active:scale-95 transition-all ${user?.approved === false ? "bottom-44" : "bottom-28"
+          className={`fixed right-5 z-[5000] w-11 h-11 rounded-full flex items-center justify-center shadow-[0_4px_20px_rgba(0,0,0,0.1)] active:scale-95 transition-all ${user?.approved === false ? "bottom-36" : "bottom-24"
             } ${isDark
               ? "bg-[#111A24] text-blue-400 border border-blue-400"
               : "bg-white text-[#25D3A4] border border-[#25D3A4]"

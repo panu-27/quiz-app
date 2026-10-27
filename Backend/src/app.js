@@ -17,8 +17,13 @@ import noticeRoutes from "./modules/notice/notice.routes.js";
 const app = express();
 
 const ALLOWED_ORIGINS = [
-  "http://localhost:",
+  // Capacitor Android
+  "http://localhost",
+  "https://localhost",
+
   "http://localhost:5173",   // Vite dev server
+  "http://localhost:5174",   // Vite dev server alternate
+  "http://localhost:5175",   // Vite dev server alternate
   "http://localhost:4173",   // Vite preview
   "http://localhost:3000",   // fallback dev
   "http://localhost:5000",   // ← Electron interceptor sets Origin to this (the backend URL itself)
@@ -36,6 +41,10 @@ app.use(cors({
   origin: (origin, callback) => {
     // No origin = Electron file:// or same-origin request → allow
     if (!origin || origin === "null") return callback(null, true);
+    // Allow any localhost port during development
+    if (origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:")) {
+      return callback(null, true);
+    }
     // Known origins → allow
     if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
     // Everything else → block
@@ -49,6 +58,7 @@ app.use(cors({
 // ✅ FIX HERE
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ limit: "1mb", extended: true }));
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 app.use('/api/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 app.get("/", (req, res) => res.send("API running 🚀"));
