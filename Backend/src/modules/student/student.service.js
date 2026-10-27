@@ -6,6 +6,7 @@ import Resource from "../teacher/Resource.js";   // ← moved to top (was mid-fi
 import mongoose from "mongoose";
 import Batch from "../batch/batch.model.js";
 import Syllabus from "../institute/syllabus.model.js";
+import Institute from "../institute/institute.model.js";
 
 
 /* ---------------- GET MY TESTS ---------------- */
@@ -546,8 +547,199 @@ export const getMySyllabus = async (jwtUser) => {
 };
 
 
+/* ---------------- STREAK & ACTIVITY HELPERS ---------------- */
+export const getStudentActivityData = async (student, referenceDateStr) => {
+    let today;
+    if (referenceDateStr && /^\d{4}-\d{2}-\d{2}$/.test(referenceDateStr)) {
+        const parts = referenceDateStr.split('-').map(Number);
+        today = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+    } else {
+        const istOffset = 5.5 * 60 * 60 * 1000;
+        const istDate = new Date(Date.now() + istOffset);
+        today = new Date(Date.UTC(istDate.getUTCFullYear(), istDate.getUTCMonth(), istDate.getUTCDate()));
+    }
+
+    const todayStr = today.toISOString().slice(0, 10);
+
+    const practicedDates = new Set(student.streak?.visitedDates || []);
+
+    try {
+        const attempts = await TestAttempt.find({ studentId: student._id })
+            .select("createdAt submittedAt")
+            .lean();
+        for (const att of attempts) {
+            const dt = att.submittedAt || att.createdAt;
+            if (dt) {
+                const istAtt = new Date(new Date(dt).getTime() + 5.5 * 60 * 60 * 1000);
+                practicedDates.add(istAtt.toISOString().slice(0, 10));
+            }
+        }
+    } catch (err) {
+        console.warn("Could not fetch test attempts for streak activity:", err);
+    }
+
+    let currentStreak = student.streak?.currentStreak || 0;
+    const longestStreak = student.streak?.longestStreak || 0;
+    const lastVisit = student.streak?.lastVisitDate;
+
+    if (lastVisit) {
+        const parts = lastVisit.split('-').map(Number);
+        const dLast = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+        const diffDays = Math.round((today - dLast) / (1000 * 60 * 60 * 24));
+        if (diffDays > 1) {
+            currentStreak = 0;
+        }
+    } else {
+        currentStreak = 0;
+    }
+
+    // Build 5 weeks: Week 1, Week 2, Week 3, Week 4, This week
+    // Sunday-first (0 = Sun, 6 = Sat)
+    const currentDayOfWeek = today.getUTCDay();
+    const currentWeekStart = new Date(today);
+    currentWeekStart.setUTCDate(today.getUTCDate() - currentDayOfWeek);
+
+    const weeks = [];
+    const weekLabels = ["Week 1", "Week 2", "Week 3", "Week 4", "This week"];
+
+    for (let w = 4; w >= 0; w--) {
+        const weekStart = new Date(currentWeekStart);
+        weekStart.setUTCDate(currentWeekStart.getUTCDate() - (w * 7));
+
+        const days = [];
+        for (let d = 0; d < 7; d++) {
+            const dayDate = new Date(weekStart);
+            dayDate.setUTCDate(weekStart.getUTCDate() + d);
+            const dayStr = dayDate.toISOString().slice(0, 10);
+            days.push(practicedDates.has(dayStr));
+        }
+
+        const isCurrentWeek = (w === 0);
+        const labelIndex = 4 - w;
+        weeks.push({
+            label: weekLabels[labelIndex],
+            bold: isCurrentWeek,
+            days
+        });
+    }
+
+    let questionsAttempted = 0;
+    try {
+        const attemptsWithAnswers = await TestAttempt.find({ studentId: student._id })
+            .select("answers submittedAt createdAt")
+            .lean();
+        for (const att of attemptsWithAnswers) {
+            const dt = att.submittedAt || att.createdAt;
+            if (dt) {
+                const istAtt = new Date(new Date(dt).getTime() + 5.5 * 60 * 60 * 1000);
+                if (istAtt.toISOString().slice(0, 10) === todayStr) {
+                    if (att.answers && typeof att.answers === "object") {
+                        questionsAttempted += Object.keys(att.answers).length;
+                    }
+                }
+            }
+        }
+    } catch (e) { }
+
+    return {
+        currentStreak,
+        longestStreak,
+        lastVisitDate: lastVisit,
+        questionsAttempted: questionsAttempted || currentStreak || 0,
+        weeks
+    };
+};
+
+/* ---------------- RECORD VISIT / SMART STREAK ---------------- */
+export const recordVisit = async (userId, clientDate) => {
+    const student = await User.findById(userId);
+    if (!student) throw new Error("Student not found");
+
+    let todayStr;
+    if (clientDate && /^\d{4}-\d{2}-\d{2}$/.test(clientDate)) {
+        todayStr = clientDate;
+    } else {
+        const istOffset = 5.5 * 60 * 60 * 1000;
+        const istDate = new Date(Date.now() + istOffset);
+        todayStr = istDate.toISOString().slice(0, 10);
+    }
+
+    if (!student.streak) {
+        student.streak = {
+            currentStreak: 0,
+            longestStreak: 0,
+            lastVisitDate: null,
+            visitedDates: []
+        };
+    }
+
+    if (!Array.isArray(student.streak.visitedDates)) {
+        student.streak.visitedDates = [];
+    }
+
+    const lastVisit = student.streak.lastVisitDate;
+    let currentStreak = student.streak.currentStreak || 0;
+    let longestStreak = student.streak.longestStreak || 0;
+
+    if (lastVisit === todayStr) {
+        if (currentStreak === 0) currentStreak = 1;
+        longestStreak = Math.max(longestStreak, currentStreak);
+        student.streak.currentStreak = currentStreak;
+        student.streak.longestStreak = longestStreak;
+        if (!student.streak.visitedDates.includes(todayStr)) {
+            student.streak.visitedDates.push(todayStr);
+        }
+        await student.save();
+        const activityData = await getStudentActivityData(student, todayStr);
+        return {
+            currentStreak,
+            longestStreak,
+            lastVisitDate: todayStr,
+            activityData
+        };
+    }
+
+    if (!lastVisit) {
+        currentStreak = 1;
+    } else {
+        const parseD = (s) => {
+            const parts = s.split('-').map(Number);
+            return new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+        };
+        const dToday = parseD(todayStr);
+        const dLast = parseD(lastVisit);
+        const diffDays = Math.round((dToday - dLast) / (1000 * 60 * 60 * 24));
+
+        if (diffDays === 1) {
+            currentStreak += 1;
+        } else if (diffDays > 1) {
+            currentStreak = 1;
+        } else {
+            if (currentStreak === 0) currentStreak = 1;
+        }
+    }
+
+    longestStreak = Math.max(longestStreak, currentStreak);
+
+    student.streak.currentStreak = currentStreak;
+    student.streak.longestStreak = longestStreak;
+    student.streak.lastVisitDate = todayStr;
+    if (!student.streak.visitedDates.includes(todayStr)) {
+        student.streak.visitedDates.push(todayStr);
+    }
+
+    await student.save();
+    const activityData = await getStudentActivityData(student, todayStr);
+    return {
+        currentStreak,
+        longestStreak,
+        lastVisitDate: todayStr,
+        activityData
+    };
+};
+
 /* ---------------- GET PROFILE ---------------- */
-export const getProfile = async (userId) => {
+export const getProfile = async (userId, clientDate) => {
     const user = await User.findById(userId)
         .select("-password")
         .populate({
@@ -558,7 +750,12 @@ export const getProfile = async (userId) => {
         .populate("instituteId", "name");
 
     if (!user) throw new Error("Record not found");
-    return user;
+
+    const activityData = await getStudentActivityData(user, clientDate);
+    const userObj = user.toObject();
+    userObj.activityData = activityData;
+
+    return userObj;
 };
 
 

@@ -26,6 +26,8 @@ router.post(
 
 
 router.get("/profile", auth, controller.getProfile);
+router.post("/record-visit", auth, role(["STUDENT"]), controller.recordVisit);
+router.post("/streak", auth, role(["STUDENT"]), controller.recordVisit);
 router.get("/active-classes", auth, role(["STUDENT"]), controller.getActiveClasses);
 
 router.post("/change-class", auth, role(["STUDENT"]), controller.changeClass);

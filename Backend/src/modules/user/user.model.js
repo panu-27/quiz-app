@@ -64,6 +64,13 @@ const userSchema = new Schema(
       percentile: { type: String, default: "0.00" },
       accuracy: { type: Number, default: 0 },
       progress: { type: Number, default: 0 }
+    },
+
+    streak: {
+      currentStreak: { type: Number, default: 0 },
+      longestStreak: { type: Number, default: 0 },
+      lastVisitDate: { type: String, default: null },
+      visitedDates: [{ type: String }]
     }
   },
   { timestamps: true }

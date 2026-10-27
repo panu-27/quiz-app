@@ -673,11 +673,11 @@ function DesktopLeftSkeleton() {
 }
 
 const DEFAULT_WEEKS = [
-    { label: "Week 1", bold: false, days: [true, false, true, true, false, true, true] },
-    { label: "Week 2", bold: false, days: [true, true, true, false, true, true, true] },
-    { label: "Week 3", bold: false, days: [false, true, true, true, true, false, true] },
-    { label: "Week 4", bold: false, days: [true, true, false, true, true, true, true] },
-    { label: "This Week", bold: true, days: [true, true, false, false, false, false, false] }
+    { label: "Week 1", bold: false, days: [false, false, false, false, false, false, false] },
+    { label: "Week 2", bold: false, days: [false, false, false, false, false, false, false] },
+    { label: "Week 3", bold: false, days: [false, false, false, false, false, false, false] },
+    { label: "Week 4", bold: false, days: [false, false, false, false, false, false, false] },
+    { label: "This Week", bold: true, days: [false, false, false, false, false, false, false] }
 ];
 
 export default function StudentProfile() {
@@ -760,16 +760,41 @@ export default function StudentProfile() {
         (async () => {
             setLoading(true);
             try {
-                const { data } = await api.get("/student/profile");
-                if (!cancelled) { setProfile(data); setAvatarUrl(data.profilePic || null); }
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const todayStr = `${year}-${month}-${day}`;
+                const { data } = await api.get(`/student/profile?clientDate=${todayStr}`);
+                if (!cancelled) {
+                    setProfile(data);
+                    setAvatarUrl(data.profilePic || null);
+                    if (data.activityData?.currentStreak !== undefined && authUser) {
+                        const sid = authUser._id || authUser.id;
+                        if (sid) {
+                            localStorage.setItem(`nexus_streak_count_${sid}`, String(data.activityData.currentStreak));
+                        }
+                    }
+                }
             } catch {
                 if (!cancelled) setProfile(null);
             } finally {
                 if (!cancelled) setLoading(false);
             }
         })();
-        return () => { cancelled = true; };
-    }, []);
+
+        const handleStreakUpdated = (e) => {
+            if (e.detail?.activityData && !cancelled) {
+                setProfile(prev => prev ? { ...prev, activityData: e.detail.activityData } : prev);
+            }
+        };
+        window.addEventListener("streak-updated", handleStreakUpdated);
+
+        return () => {
+            cancelled = true;
+            window.removeEventListener("streak-updated", handleStreakUpdated);
+        };
+    }, [authUser]);
 
     // Leaderboard logic removed
 
@@ -1057,7 +1082,7 @@ DESKTOP (lg+)
                                         )}
                                     </div>
 
-                                    <div className="mt-4 mb-24">
+                                    <div className="mt-4 mb-6">
                                         <button
                                             onClick={() => togglePanel("password")}
                                             className="w-full bg-transparent border border-slate-200 rounded-sm p-5 flex items-center gap-4 hover: hover:-translate-y-0.5 transition-all text-left group"
@@ -1082,6 +1107,70 @@ DESKTOP (lg+)
                                                 />
                                             </div>
                                         )}
+                                    </div>
+                                </div>
+
+                                <div className="h-px bg-slate-200" />
+
+                                {/* ── Desktop Streak & Activity Section ── */}
+                                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm mb-12">
+                                    <div className="flex justify-between items-center mb-5">
+                                        <div>
+                                            <h3 className="text-lg font-bold text-slate-900 font-display flex items-center gap-2">
+                                                <span>Streak &amp; Daily Practice</span>
+                                                <span className="text-orange-500">🔥</span>
+                                            </h3>
+                                            <p className="text-xs text-slate-500 font-medium mt-0.5">Daily stats on how much you learn &amp; practice</p>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="px-3 py-1 rounded-full bg-orange-50 border border-orange-200 text-orange-600 font-bold text-xs">
+                                                {profile?.activityData?.currentStreak || 0} Day Streak
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="rounded-xl border border-slate-200 flex divide-x mb-6">
+                                        <div className="flex-1 p-4 flex flex-col gap-1.5">
+                                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">CURRENT STREAK</span>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-7 h-7 rounded-full bg-orange-500 flex items-center justify-center shrink-0">
+                                                    <Flame size={15} className="text-white" />
+                                                </div>
+                                                <span className="text-[18px] font-bold text-orange-500">{profile?.activityData?.currentStreak || 0} {profile?.activityData?.currentStreak === 1 ? 'day' : 'days'}</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex-1 p-4 flex flex-col gap-1.5">
+                                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">LONGEST STREAK</span>
+                                            <div className="text-[18px] font-bold text-slate-700">{profile?.activityData?.longestStreak || 0} {profile?.activityData?.longestStreak === 1 ? 'day' : 'days'}</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Calendar Grid */}
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between pl-20 pr-4">
+                                            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+                                                <span key={i} className="text-xs font-bold w-7 text-center text-slate-600">{d}</span>
+                                            ))}
+                                        </div>
+
+                                        {(profile?.activityData?.weeks?.length > 0 ? profile.activityData.weeks : DEFAULT_WEEKS).map((week, wIdx) => (
+                                            <div key={wIdx} className="flex items-center justify-between">
+                                                <span className={`text-xs w-20 shrink-0 ${week.bold ? 'font-bold text-slate-900' : 'font-medium text-slate-700'}`}>
+                                                    {week.label}
+                                                </span>
+                                                <div className="flex items-center justify-between flex-1 pl-2 pr-4">
+                                                    {week.days.map((practiced, dayIdx) => (
+                                                        practiced ? (
+                                                            <div key={dayIdx} className="w-7 h-7 rounded-full bg-orange-500 flex items-center justify-center shrink-0 shadow-[0_0_6px_rgba(249,115,22,0.4)]">
+                                                                <Flame size={15} className="text-white fill-white" />
+                                                            </div>
+                                                        ) : (
+                                                            <div key={dayIdx} className="w-7 h-7 rounded-full border-[1.5px] border-slate-200" />
+                                                        )
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             </div>
@@ -1380,12 +1469,12 @@ MOBILE (< lg) — Unacademy-style layout
                                     <div className="w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center shrink-0">
                                         <Flame size={14} className="text-white" />
                                     </div>
-                                    <span className="text-[15px] font-bold text-orange-500">{profile?.activityData?.currentStreak || 0} days</span>
+                                    <span className="text-[15px] font-bold text-orange-500">{profile?.activityData?.currentStreak || 0} {profile?.activityData?.currentStreak === 1 ? 'day' : 'days'}</span>
                                 </div>
                             </div>
                             <div className="flex-1 p-4 flex flex-col gap-2">
                                 <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>LONGEST</span>
-                                <div className={`text-[15px] font-bold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{profile?.activityData?.longestStreak || 0} days</div>
+                                <div className={`text-[15px] font-bold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{profile?.activityData?.longestStreak || 0} {profile?.activityData?.longestStreak === 1 ? 'day' : 'days'}</div>
                             </div>
                         </div>
 

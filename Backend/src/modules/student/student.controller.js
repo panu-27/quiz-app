@@ -14,10 +14,25 @@ export const getMyTests = async (req, res) => {
 
 export const getProfile = async (req, res) => {
   try {
-    const profile = await service.getProfile(req.user.id);
+    const profile = await service.getProfile(req.user.id, req.query.clientDate);
     res.json(profile);
   } catch (err) {
     res.status(404).json({ message: err.message });
+  }
+};
+
+export const recordVisit = async (req, res) => {
+  try {
+    const { clientDate } = req.body;
+    const result = await service.recordVisit(req.user.id, clientDate);
+    res.json({
+      success: true,
+      message: "Streak visit recorded successfully",
+      ...result
+    });
+  } catch (err) {
+    console.error("recordVisit controller error:", err.message);
+    res.status(400).json({ success: false, message: err.message });
   }
 };
 

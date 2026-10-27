@@ -284,6 +284,43 @@ export default function StudentDashboard({ initialCounsellor = false }) {
   const [activeReviewIdx, setActiveReviewIdx] = useState(0);
   const [expandedTestId, setExpandedTestId] = useState(null);
 
+  // ── Live Streak Count State ──
+  const [streakCount, setStreakCount] = useState(() => {
+    const studentId = user?._id || user?.id;
+    if (!studentId) return 0;
+    const saved = localStorage.getItem(`nexus_streak_count_${studentId}`);
+    return saved ? parseInt(saved, 10) : 0;
+  });
+
+  useEffect(() => {
+    const handleStreakUpdate = (e) => {
+      if (e.detail?.currentStreak !== undefined) {
+        setStreakCount(e.detail.currentStreak);
+      }
+    };
+    window.addEventListener("streak-updated", handleStreakUpdate);
+    return () => window.removeEventListener("streak-updated", handleStreakUpdate);
+  }, []);
+
+  useEffect(() => {
+    const studentId = user?._id || user?.id;
+    if (!studentId) return;
+    const saved = localStorage.getItem(`nexus_streak_count_${studentId}`);
+    if (saved) {
+      setStreakCount(parseInt(saved, 10));
+    } else {
+      api.get("/student/profile")
+        .then((res) => {
+          if (res.data?.activityData?.currentStreak !== undefined) {
+            const s = res.data.activityData.currentStreak;
+            setStreakCount(s);
+            localStorage.setItem(`nexus_streak_count_${studentId}`, String(s));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [user]);
+
   const isCounsellorRoute = location.pathname === "/student/counsellor";
   const isCounsellorOpen = isCounsellorRoute || (initialCounsellor && location.pathname.endsWith("/counsellor")) || showCounsellorModal;
 
@@ -802,6 +839,17 @@ export default function StudentDashboard({ initialCounsellor = false }) {
                       {user?.approved ? "Active" : "Pending"}
                     </span>
                   </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-600">Streak</span>
+                    <button
+                      onClick={() => navigate('/student/profile')}
+                      className="text-sm font-bold text-orange-500 hover:text-orange-600 flex items-center gap-1 active:scale-95 transition-all cursor-pointer bg-transparent border-none p-0"
+                      title="View Streak Details"
+                    >
+                      <span>🔥</span>
+                      <span>{streakCount} {streakCount === 1 ? 'day' : 'days'}</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -904,17 +952,20 @@ export default function StudentDashboard({ initialCounsellor = false }) {
             <div className="flex items-center justify-between px-1 gap-2 min-w-0">
               <CurrentGoalSelector useDarkText={useDarkText} />
               <div className="flex items-center gap-3 flex-shrink-0">
-                <div
-                  className={` sm:flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all ${useDarkText
-                    ? "bg-slate-100 border-slate-200 text-slate-800"
-                    : "bg-black/20 border-white/10 text-white"
+                <button
+                  type="button"
+                  onClick={() => navigate('/student/profile')}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all cursor-pointer active:scale-95 ${useDarkText
+                    ? "bg-slate-100 border-slate-200 text-slate-800 hover:bg-slate-200"
+                    : "bg-black/20 border-white/10 text-white hover:bg-black/30"
                     }`}
+                  title="View Streak Details"
                 >
                   <span className="text-orange-400">🔥</span>
                   <span className="text-xs font-bold whitespace-nowrap">
-                    0 day
+                    {streakCount} {streakCount === 1 ? 'day' : 'days'}
                   </span>
-                </div>
+                </button>
                 <button
                   onClick={handleOpenCounsellor}
                   className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center border transition-all active:scale-95 ${useDarkText

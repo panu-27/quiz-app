@@ -7,6 +7,7 @@ import { App } from "@capacitor/app";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import EnquiryBottomBar from "../../components/EnquiryBottomBar";
+import api from "../../api/axios";
 
 const STATUS_BAR_H = 28.5;
 
@@ -48,6 +49,42 @@ export default function StudentLayout() {
   const isDarkPage = isDark || location.pathname.startsWith('/student/qbank');
   const navigate = useNavigate();
   const [hideForPdf, setHideForPdf] = useState(false);
+
+  // ── Smart Streak Recording: Mark streak once per day locally ──
+  useEffect(() => {
+    if (!user || user.role !== "STUDENT") return;
+    const studentId = user._id || user.id;
+    if (!studentId) return;
+
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const todayStr = `${year}-${month}-${day}`;
+
+    const storageKey = `nexus_streak_marked_${studentId}`;
+    const lastMarkedDate = localStorage.getItem(storageKey);
+
+    // If today is already marked locally, skip API call completely
+    if (lastMarkedDate === todayStr) {
+      return;
+    }
+
+    // Call API once for the day
+    api.post("/student/record-visit", { clientDate: todayStr })
+      .then((res) => {
+        if (res.data?.success) {
+          localStorage.setItem(storageKey, todayStr);
+          if (res.data.currentStreak !== undefined) {
+            localStorage.setItem(`nexus_streak_count_${studentId}`, String(res.data.currentStreak));
+          }
+          window.dispatchEvent(new CustomEvent("streak-updated", { detail: res.data }));
+        }
+      })
+      .catch((err) => {
+        console.warn("Could not record daily streak visit:", err);
+      });
+  }, [user]);
 
   // ── Mobile Detection Logic ──
   const [isMobile, setIsMobile] = useState(() =>

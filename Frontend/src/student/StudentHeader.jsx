@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { LogOut, ChevronDown } from "lucide-react";
+import api from "../api/axios";
 
 export default function StudentHeader() {
   const navigate = useNavigate();
@@ -9,6 +10,42 @@ export default function StudentHeader() {
   const { user, logout } = useAuth();
 
   const [selectedGoal, setSelectedGoal] = useState(localStorage.getItem("selectedGoal") || "");
+
+  const [streakCount, setStreakCount] = useState(() => {
+    const studentId = user?._id || user?.id;
+    if (!studentId) return 0;
+    const saved = localStorage.getItem(`nexus_streak_count_${studentId}`);
+    return saved ? parseInt(saved, 10) : 0;
+  });
+
+  useEffect(() => {
+    const handleStreakUpdate = (e) => {
+      if (e.detail?.currentStreak !== undefined) {
+        setStreakCount(e.detail.currentStreak);
+      }
+    };
+    window.addEventListener("streak-updated", handleStreakUpdate);
+    return () => window.removeEventListener("streak-updated", handleStreakUpdate);
+  }, []);
+
+  useEffect(() => {
+    const studentId = user?._id || user?.id;
+    if (!studentId) return;
+    const saved = localStorage.getItem(`nexus_streak_count_${studentId}`);
+    if (saved) {
+      setStreakCount(parseInt(saved, 10));
+    } else {
+      api.get("/student/profile")
+        .then((res) => {
+          if (res.data?.activityData?.currentStreak !== undefined) {
+            const s = res.data.activityData.currentStreak;
+            setStreakCount(s);
+            localStorage.setItem(`nexus_streak_count_${studentId}`, String(s));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [user]);
 
   const navItems = [
     { label: "Dashboard", path: "/student" },
@@ -52,7 +89,19 @@ export default function StudentHeader() {
 
       {/* ===== MOBILE RIGHT : PROFILE ONLY ===== */}
       <div className="flex sm:hidden items-center gap-3">
-
+        {/* Streak badge */}
+        <button
+          onClick={() => {
+            const fromPath = (location.pathname + location.search) || '/student';
+            try { sessionStorage.setItem('student_profile_parent', fromPath); } catch (e) {}
+            navigate(`/student/profile?from=${encodeURIComponent(fromPath)}`, { state: { from: fromPath } });
+          }}
+          className="flex items-center gap-1 px-2.5 py-1 rounded-full border border-orange-200 dark:border-orange-900/50 bg-orange-50/80 dark:bg-orange-950/20 text-orange-600 dark:text-orange-400 text-[11px] font-bold active:scale-95 transition-all cursor-pointer"
+          title="Streak"
+        >
+          <span>🔥</span>
+          <span>{streakCount} {streakCount === 1 ? 'day' : 'days'}</span>
+        </button>
 
         {/* Student name */}
         <div className="flex flex-col leading-tight">
@@ -88,6 +137,20 @@ export default function StudentHeader() {
 
       {/* ===== DESKTOP / TABLET : NAV + LOGOUT ===== */}
       <div className="hidden sm:flex items-center gap-8 ml-auto">
+        {/* STREAK BADGE */}
+        <button
+          onClick={() => {
+            const fromPath = (location.pathname + location.search) || '/student';
+            try { sessionStorage.setItem('student_profile_parent', fromPath); } catch (e) {}
+            navigate(`/student/profile?from=${encodeURIComponent(fromPath)}`, { state: { from: fromPath } });
+          }}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-orange-200 dark:border-orange-900/50 bg-orange-50/80 dark:bg-orange-950/20 text-orange-600 dark:text-orange-400 text-xs sm:text-sm font-bold hover:scale-105 active:scale-95 transition-all shadow-sm cursor-pointer"
+          title="Streak Details"
+        >
+          <span>🔥</span>
+          <span>{streakCount} {streakCount === 1 ? 'day' : 'days'}</span>
+        </button>
+
         {/* GOAL SELECTOR */}
         <div className="relative">
           <button
