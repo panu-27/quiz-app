@@ -77,7 +77,10 @@ export const deleteBatch = async (admin, batchId) => {
 
 // --- STUDENT APPROVAL ---
 export const getPendingRequests = (admin) =>
-  User.find({ instituteId: admin.instituteId, role: "STUDENT", approved: false }).select("-password");
+  User.find({ instituteId: admin.instituteId, role: "STUDENT", approved: false })
+    .populate("batchId", "name className")
+    .select("-password")
+    .sort({ updatedAt: -1, createdAt: -1 });
 
 export const approveAndAssign = async (admin, { studentId, batchId }) => {
   const updateData = { approved: true };
@@ -92,6 +95,11 @@ export const approveAndAssign = async (admin, { studentId, batchId }) => {
 
   if (batchId) {
     await Batch.updateOne({ _id: batchId }, { $addToSet: { students: studentId } });
+    // Remove from any FREE batches in the institute so they aren't duplicated
+    await Batch.updateMany(
+      { instituteId: admin.instituteId, name: /FREE/i },
+      { $pull: { students: studentId } }
+    );
   }
   return student;
 };
@@ -136,25 +144,75 @@ export const rejectAndDelete = async (admin, { studentId }) => {
 
   if (!student) throw new Error("Pending student not found or already approved");
 
+  // Remove from all batches
+  await Batch.updateMany(
+    { instituteId: admin.instituteId },
+    { $pull: { students: studentId } }
+  );
+
   return { message: "Student rejected and removed", studentId };
 };
 
 export const removeStudentFromBatch = async (admin, { batchId, studentId }) => {
+  if (!studentId) throw new Error("studentId is required");
 
-  // 1️⃣ Remove batchId and set approved to false
-  await User.updateOne(
-    { _id: studentId, instituteId: admin.instituteId },
-    {
-      $unset: { batchId: "" },
-      $set: { approved: false }
+  const student = await User.findById(studentId);
+  if (!student) throw new Error("Student not found");
+
+  const instituteId = admin.instituteId || student.instituteId;
+
+  // 1️⃣ Remove student from the specific batch array
+  let className = null;
+  if (batchId) {
+    const currentBatch = await Batch.findById(batchId).lean();
+    if (currentBatch?.className) {
+      className = currentBatch.className;
     }
+    await Batch.updateOne(
+      { _id: batchId },
+      { $pull: { students: student._id } }
+    );
+  }
+
+  // Also remove student from any other non-free batch
+  await Batch.updateMany(
+    { instituteId, name: { $not: /FREE/i } },
+    { $pull: { students: student._id } }
   );
 
-  // 2️⃣ Remove student from batch array
-  return Batch.updateOne(
-    { _id: batchId },
-    { $pull: { students: studentId } }
-  );
+  // 2️⃣ Assign back to the FREE batch of their class so they don't break as a ghost
+  if (!className && student.batchId) {
+    const prevB = await Batch.findById(student.batchId).lean();
+    if (prevB?.className) className = prevB.className;
+  }
+  const targetClass = className || "MHT CET";
+
+  let freeBatch = await Batch.findOne({ instituteId, className: targetClass, name: /FREE/i });
+  if (!freeBatch) {
+    freeBatch = await Batch.findOne({ instituteId, name: /FREE/i });
+  }
+
+  // 3️⃣ Mark student as unapproved (approved: false) and update timestamp so they appear at the top of Requests
+  student.approved = false;
+  student.instituteId = instituteId;
+  if (freeBatch) {
+    student.batchId = freeBatch._id;
+    if (!freeBatch.students.some(id => id.toString() === student._id.toString())) {
+      freeBatch.students.push(student._id);
+      await freeBatch.save();
+    }
+  } else {
+    student.batchId = null;
+  }
+
+  await student.save();
+
+  return {
+    success: true,
+    message: "Student removed from batch and moved back to pending requests",
+    studentId: student._id,
+    studentName: student.name
+  };
 };
 
 // --- SYLLABUS ---

@@ -842,68 +842,70 @@ export default function InstituteAdmin() {
                       </label>
 
                       {/* Class Dropdown */}
-                      <select
-                        value={approvalSelectedClass[student._id] || ""}
-                        onChange={(e) => {
-                          const newClass = e.target.value;
-                          setApprovalSelectedClass(prev => ({ ...prev, [student._id]: newClass }));
-                          // Clear the batch select when class changes
-                          const batchSelect = document.getElementById(`batch-select-${student._id}`);
-                          if (batchSelect) batchSelect.value = "";
-                        }}
-                        className="
-                          w-full md:w-1/2
-                          bg-slate-50 border border-slate-200
-                          rounded-xl
-                          px-3 py-3 md:py-2
-                          text-xs font-bold
-                          outline-none
-                          focus:ring-2 focus:ring-emerald-400
-                        "
-                      >
-                        <option value="">Choose Class...</option>
-                        {Object.keys(
-                          data.batches.reduce((acc, b) => {
-                            const c = b.className || "General Class";
-                            if (!acc[c]) acc[c] = [];
-                            acc[c].push(b);
-                            return acc;
-                          }, {})
-                        ).map((cName) => (
-                          <option key={cName} value={cName}>
-                            {cName}
-                          </option>
-                        ))}
-                      </select>
+                      {(() => {
+                        const studentClass = approvalSelectedClass[student._id] ?? (student.batchId?.className || "");
+                        return (
+                          <>
+                            <select
+                              value={studentClass}
+                              onChange={(e) => {
+                                const newClass = e.target.value;
+                                setApprovalSelectedClass(prev => ({ ...prev, [student._id]: newClass }));
+                                const batchSelect = document.getElementById(`batch-select-${student._id}`);
+                                if (batchSelect) batchSelect.value = "";
+                              }}
+                              className="
+                                w-full md:w-1/2
+                                bg-slate-50 border border-slate-200
+                                rounded-xl
+                                px-3 py-3 md:py-2
+                                text-xs font-bold
+                                outline-none
+                                focus:ring-2 focus:ring-emerald-400
+                              "
+                            >
+                              <option value="">Choose Class...</option>
+                              {Object.keys(
+                                data.batches.reduce((acc, b) => {
+                                  const c = b.className || "General Class";
+                                  if (!acc[c]) acc[c] = [];
+                                  acc[c].push(b);
+                                  return acc;
+                                }, {})
+                              ).map((cName) => (
+                                <option key={cName} value={cName}>
+                                  {cName}
+                                </option>
+                              ))}
+                            </select>
 
-                      {/* Batch Dropdown */}
-                      <select
-                        id={`batch-select-${student._id}`}
-                        disabled={!approvalSelectedClass[student._id]}
-                        className="
-                          w-full md:w-1/2
-                          bg-slate-50 border border-slate-200
-                          rounded-xl
-                          px-3 py-3 md:py-2
-                          text-xs font-bold
-                          outline-none
-                          focus:ring-2 focus:ring-emerald-400
-                          disabled:opacity-50 disabled:cursor-not-allowed
-                        "
-                      >
-                        <option value="">Choose Division...</option>
-                        {(() => {
-                          const selectedClassName = approvalSelectedClass[student._id];
-                          if (!selectedClassName) return null;
-                          return data.batches
-                            .filter(b => (b.className || "General Class") === selectedClassName)
-                            .map((b) => (
-                              <option key={b._id} value={b._id}>
-                                {b.name}
-                              </option>
-                            ));
-                        })()}
-                      </select>
+                            {/* Batch Dropdown */}
+                            <select
+                              id={`batch-select-${student._id}`}
+                              disabled={!studentClass}
+                              className="
+                                w-full md:w-1/2
+                                bg-slate-50 border border-slate-200
+                                rounded-xl
+                                px-3 py-3 md:py-2
+                                text-xs font-bold
+                                outline-none
+                                focus:ring-2 focus:ring-emerald-400
+                                disabled:opacity-50 disabled:cursor-not-allowed
+                              "
+                            >
+                              <option value="">Choose Division...</option>
+                              {data.batches
+                                .filter(b => (b.className || "General Class") === studentClass && !/FREE/i.test(b.name))
+                                .map((b) => (
+                                  <option key={b._id} value={b._id}>
+                                    {b.name}
+                                  </option>
+                                ))}
+                            </select>
+                          </>
+                        );
+                      })()}
                     </div>
 
                     {/* ACTION */}
