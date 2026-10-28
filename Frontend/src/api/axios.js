@@ -4,7 +4,9 @@ import axios from "axios";
 // 1. window.__API_URL__  — injected by Electron preload.js at runtime (always correct)
 // 2. VITE_API_BASE_URL   — baked in at build time from .env (web builds)
 // 3. localhost fallback  — local dev safety net
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ;
+const BASE_URL = (typeof window !== "undefined" && window.__API_URL__) 
+  ? window.__API_URL__ 
+  : (import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api");
 
 const api = axios.create({
   baseURL: BASE_URL,
