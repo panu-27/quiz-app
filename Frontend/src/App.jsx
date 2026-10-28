@@ -274,7 +274,11 @@ export default function App() {
       // 0. Check if any component intercepts the back button (Active Exam Guard, Modals, Overlays)
       if (!previousPath.endsWith("/counsellor")) {
         if (executeBackAction()) {
-          window.history.pushState(null, "", previousFullUrl);
+          if (newPath !== previousPath) {
+            navigate(previousFullUrl, { replace: true, state: previousState });
+          } else {
+            window.history.pushState(null, "", previousFullUrl);
+          }
           return;
         }
       }
@@ -284,8 +288,8 @@ export default function App() {
         (previousPath === "/student/quiztest" && newPath !== "/student/quiztest") ||
         (previousPath.startsWith("/student/test/") && newPath !== previousPath)
       ) {
-        window.history.pushState(null, "", previousFullUrl);
         executeBackAction();
+        navigate(previousFullUrl, { replace: true, state: previousState });
         return;
       }
 

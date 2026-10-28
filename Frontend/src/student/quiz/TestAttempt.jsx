@@ -179,6 +179,29 @@ const TestAttempt = ({ examData, onFinish, parentAttemptId }) => {
     );
     const visiblePool = flattenedPool;
 
+    /* ── History Trap for Browser & Device Back Button ── */
+    useEffect(() => {
+        if (submitted) return;
+
+        // Push guard state so browser/device back navigation stays on /student/quiztest without unmounting
+        try {
+            window.history.pushState({ inQuizGuard: true }, '', window.location.href);
+        } catch (e) {}
+
+        const handleBrowserPop = () => {
+            if (submitted) return;
+            // Re-arm history guard to trap subsequent back presses
+            try {
+                window.history.pushState({ inQuizGuard: true }, '', window.location.href);
+            } catch (e) {}
+        };
+
+        window.addEventListener('popstate', handleBrowserPop);
+        return () => {
+            window.removeEventListener('popstate', handleBrowserPop);
+        };
+    }, [submitted]);
+
     /* ── Hardware / Browser Back Button Interceptor ── */
     useBackButton(() => {
         if (submitted) return false;
