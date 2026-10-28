@@ -120,27 +120,49 @@ async function fetchQuestionsForSubject({
   const subjectChapters = await Chapter.find({
     subjectId,
     _id: { $in: chapterIds },
-  }).select('_id');
+  }).select('_id').lean();
 
   const subjectChapterIds = subjectChapters.map((c) => c._id);
   if (subjectChapterIds.length === 0) return [];
 
+  const query = {
+    subjectId,
+    chapterId: { $in: subjectChapterIds },
+    isDeleted: { $ne: true },
+  };
+  if (topicIds && topicIds.length > 0) query.topicId = { $in: topicIds };
+  if (difficulty) query.difficulty = difficulty;
+  if (type === 'pyq' && yearRange) {
+    const min = yearRange.min || yearRange.minYear;
+    const max = yearRange.max || yearRange.maxYear;
+    if (min && max) query.year = { $gte: parseInt(min), $lte: parseInt(max) };
+  }
+
+  // Fetch all matching questions across all selected chapters in a SINGLE round-trip
+  const questions = await PYQ.find(query).lean();
+  if (!questions || questions.length === 0) return [];
+
+  // Group by chapter in memory to ensure balanced chapter distribution
+  const byChapter = {};
+  for (const q of questions) {
+    const cId = q.chapterId?.toString();
+    if (!byChapter[cId]) byChapter[cId] = [];
+    byChapter[cId].push(q);
+  }
+
   const perChapter = Math.max(1, Math.ceil(totalLimit / subjectChapterIds.length));
   const allQuestions = [];
 
-  for (const chapId of subjectChapterIds) {
-    const query = { subjectId, chapterId: chapId };
-    if (topicIds && topicIds.length > 0) query.topicId = { $in: topicIds };
-    if (difficulty) query.difficulty = difficulty;
-    if (type === 'pyq' && yearRange) {
-      const min = yearRange.min || yearRange.minYear;
-      const max = yearRange.max || yearRange.maxYear;
-      if (min && max) query.year = { $gte: parseInt(min), $lte: parseInt(max) };
-    }
-
-    const questions = await PYQ.find(query).lean();
-    const picked = shuffle(questions).slice(0, perChapter);
+  for (const cId of Object.keys(byChapter)) {
+    const picked = shuffle(byChapter[cId]).slice(0, perChapter);
     allQuestions.push(...picked);
+  }
+
+  // If chapter-balanced selection is below totalLimit, top up from remaining questions
+  if (allQuestions.length < totalLimit) {
+    const pickedIds = new Set(allQuestions.map(q => q._id.toString()));
+    const remaining = shuffle(questions.filter(q => !pickedIds.has(q._id.toString())));
+    allQuestions.push(...remaining.slice(0, totalLimit - allQuestions.length));
   }
 
   return shuffle(allQuestions).slice(0, totalLimit);
@@ -180,8 +202,21 @@ const fetchAndFillQuestions = async ({
     questions.push(...batch);
   }
 
-  // Return strict question list without any filler dummy questions
-
+  // Top up if difficulty ratios didn't have enough questions
+  if (questions.length < targetLimit) {
+    const needed = targetLimit - questions.length;
+    const existingIds = new Set(questions.map(q => q._id?.toString()));
+    const fallback = await fetchQuestionsForSubject({
+      subjectId,
+      chapterIds,
+      topicIds,
+      yearRange,
+      type,
+      totalLimit: needed + 10,
+    });
+    const extra = fallback.filter(q => !existingIds.has(q._id?.toString()));
+    questions.push(...extra.slice(0, needed));
+  }
 
   return shuffle(questions).slice(0, targetLimit);
 };
