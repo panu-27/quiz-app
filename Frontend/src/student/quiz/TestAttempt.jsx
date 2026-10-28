@@ -179,35 +179,47 @@ const TestAttempt = ({ examData, onFinish, parentAttemptId }) => {
     );
     const visiblePool = flattenedPool;
 
-    /* ── Hardware / Browser Back Button Interceptors (matching teacher test pattern) ── */
-    
-    // 1. Report sheet overlay
-    useBackButton(() => {
-        setShowReportModal(false);
-        return true;
-    }, showReportModal || activeDialog === 'report');
-
-    // 2. Submit confirmation modal
-    useBackButton(() => {
-        setShowConfirmSubmit(false);
-        return true;
-    }, showConfirmSubmit || activeDialog === 'submit');
-
-    // 3. Question map panel overlay
-    useBackButton(() => {
-        setPanelOpen(false);
-        return true;
-    }, panelOpen || panelParam === 'open');
-
-    // 4. Confirm leave modal: back press resumes quiz
-    useBackButton(() => {
-        setShowConfirmLeave(false);
-        return true;
-    }, showConfirmLeave || activeDialog === 'quit');
-
-    // 5. Base exam guard: If exam is active, intercept back to show exit confirmation
+    /* ── Hardware / Browser Back Button Interceptor ── */
     useBackButton(() => {
         if (submitted) return false;
+
+        // 1. Report sheet overlay
+        if (showReportModal || activeDialog === 'report') {
+            setShowReportModal(false);
+            if (activeDialog === 'report') {
+                navigateRouter('/student/quiztest', { replace: true, state: location.state });
+            }
+            return true;
+        }
+
+        // 2. Submit confirmation modal
+        if (showConfirmSubmit || activeDialog === 'submit') {
+            setShowConfirmSubmit(false);
+            if (activeDialog === 'submit') {
+                navigateRouter('/student/quiztest', { replace: true, state: location.state });
+            }
+            return true;
+        }
+
+        // 3. Question map panel overlay
+        if (panelOpen || panelParam === 'open') {
+            setPanelOpen(false);
+            if (panelParam === 'open') {
+                navigateRouter('/student/quiztest', { replace: true, state: location.state });
+            }
+            return true;
+        }
+
+        // 4. Confirm leave / end quiz modal: back press closes modal and resumes quiz (acts as pressing "No")
+        if (showConfirmLeave || activeDialog === 'quit') {
+            setShowConfirmLeave(false);
+            if (activeDialog === 'quit') {
+                navigateRouter('/student/quiztest', { replace: true, state: location.state });
+            }
+            return true;
+        }
+
+        // 5. Base exam guard: if giving test and no overlay is open, back press shows "Do you want to end the quiz?" popup
         setShowConfirmLeave(true);
         return true;
     }, !submitted);
@@ -618,41 +630,103 @@ const TestAttempt = ({ examData, onFinish, parentAttemptId }) => {
                 </div>
             )}
 
-            {/* ── CONFIRM QUIT MODAL ── */}
+            {/* ── CONFIRM END QUIZ MODAL ── */}
             {isQuitOpen && (
-                <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(4px)', padding: 20 }}>
-                    <div style={{ background: '#fff', borderRadius: 24, padding: 24, maxWidth: 360, width: '100%', textAlign: 'center', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+                <div
+                    onClick={closeOverlay}
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        zIndex: 1000,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'rgba(15,23,42,0.45)',
+                        backdropFilter: 'blur(4px)',
+                        padding: 20
+                    }}
+                >
+                    <div
+                        onClick={e => e.stopPropagation()}
+                        style={{
+                            background: '#fff',
+                            borderRadius: 24,
+                            padding: '28px 24px 22px',
+                            maxWidth: 380,
+                            width: '100%',
+                            textAlign: 'center',
+                            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05)',
+                            animation: 'slideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                        }}
+                    >
                         <div style={{ width: 56, height: 56, background: '#FEF2F2', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
                             <AlertTriangle color="#EF4444" size={28} />
                         </div>
-                        <h3 style={{ fontSize: 19, fontWeight: 800, color: '#111827', margin: '0 0 8px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Do you want to quit this?</h3>
-                        <p style={{ fontSize: 13, color: '#64748B', marginBottom: 20, lineHeight: 1.5, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                            You can choose to end your exam now and generate your detailed performance result report, or resume answering questions.
+                        <h3 style={{ fontSize: 20, fontWeight: 800, color: '#111827', margin: '0 0 8px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                            Do you want to end the quiz?
+                        </h3>
+                        <p style={{ fontSize: 13, color: '#64748B', marginBottom: 22, lineHeight: 1.55, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                            Ending the quiz will submit your answers and show your result page. Press <strong>No</strong> to continue your quiz, or <strong>Yes</strong> to end and view results.
                         </p>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        <div style={{ display: 'flex', gap: 10 }}>
                             <button
                                 onClick={closeOverlay}
-                                style={{ width: '100%', padding: 13, borderRadius: 12, background: '#4F46E5', border: 'none', color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer', fontFamily: "'Plus Jakarta Sans', sans-serif", boxShadow: '0 4px 12px rgba(79,70,229,0.25)' }}
+                                style={{
+                                    flex: 1,
+                                    padding: '13px 14px',
+                                    borderRadius: 12,
+                                    background: '#F1F5F9',
+                                    border: '1.5px solid #E2E8F0',
+                                    color: '#475569',
+                                    fontWeight: 700,
+                                    fontSize: 14,
+                                    cursor: 'pointer',
+                                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                                    transition: '0.15s'
+                                }}
                             >
-                                Resume Test
+                                No, Continue
                             </button>
                             <button
                                 onClick={finalizeAndRedirectResult}
-                                style={{ width: '100%', padding: 13, borderRadius: 12, background: '#F0FDF4', border: '1.5px solid #BBF7D0', color: '#15803D', fontWeight: 800, fontSize: 14, cursor: 'pointer', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-                            >
-                                End Exam & View Results
-                            </button>
-                            <button
-                                onClick={() => {
-                                    setSubmitted(true);
-                                    if (onFinish) onFinish();
-                                    else navigateRouter('/student/quiz', { replace: true });
+                                style={{
+                                    flex: 1,
+                                    padding: '13px 14px',
+                                    borderRadius: 12,
+                                    background: '#EF4444',
+                                    border: 'none',
+                                    color: '#fff',
+                                    fontWeight: 800,
+                                    fontSize: 14,
+                                    cursor: 'pointer',
+                                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                                    boxShadow: '0 4px 12px rgba(239,68,68,0.25)',
+                                    transition: '0.15s'
                                 }}
-                                style={{ width: '100%', padding: 10, borderRadius: 12, background: 'transparent', border: 'none', color: '#94A3B8', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
                             >
-                                Discard & Exit
+                                Yes, End Quiz
                             </button>
                         </div>
+                        <button
+                            onClick={() => {
+                                setSubmitted(true);
+                                sessionStorage.removeItem('active_quiz_session');
+                                if (onFinish) onFinish();
+                                else navigateRouter('/student/quiz', { replace: true });
+                            }}
+                            style={{
+                                marginTop: 14,
+                                background: 'transparent',
+                                border: 'none',
+                                color: '#94A3B8',
+                                fontWeight: 600,
+                                fontSize: 12,
+                                cursor: 'pointer',
+                                fontFamily: "'Plus Jakarta Sans', sans-serif"
+                            }}
+                        >
+                            Discard & Exit without saving
+                        </button>
                     </div>
                 </div>
             )}
