@@ -41,6 +41,9 @@ function applyStatusBar(shouldHide) {
 
 initStatusBarListener();
 
+// Module-scoped lock to guarantee strictly ONE call goes to the server when app opens
+let isStreakCallInProgress = false;
+
 export default function StudentLayout() {
   const { theme } = useTheme();
   const { user } = useAuth();
@@ -68,18 +71,28 @@ export default function StudentLayout() {
       const lastMarkedDate = localStorage.getItem(storageKey);
       const cachedCount = localStorage.getItem(countKey);
 
-      // If today is already marked locally AND we have a valid cached count, skip API call completely!
-      if (lastMarkedDate === todayStr && cachedCount !== null && !isNaN(parseInt(cachedCount, 10))) {
-        window.dispatchEvent(new CustomEvent("streak-updated", {
-          detail: { currentStreak: parseInt(cachedCount, 10) }
-        }));
+      // Smart check: Only run server call if the streak day does NOT match today's day!
+      if (lastMarkedDate === todayStr) {
+        // Today is already recorded on server and noted down locally.
+        if (cachedCount !== null && !isNaN(parseInt(cachedCount, 10))) {
+          window.dispatchEvent(new CustomEvent("streak-updated", {
+            detail: { currentStreak: parseInt(cachedCount, 10) }
+          }));
+        }
         return;
       }
 
-      // Call API once for the day
+      // Prevent duplicate concurrent calls while app opens or renders
+      if (isStreakCallInProgress) {
+        return;
+      }
+      isStreakCallInProgress = true;
+
+      // Exactly ONE call goes to the server to mark today's streak
       api.post("/student/record-visit", { clientDate: todayStr })
         .then((res) => {
           if (res.data?.success) {
+            // Note down the streak day on success
             localStorage.setItem(storageKey, todayStr);
             if (res.data.currentStreak !== undefined) {
               localStorage.setItem(countKey, String(res.data.currentStreak));
@@ -89,6 +102,9 @@ export default function StudentLayout() {
         })
         .catch((err) => {
           console.warn("Could not record daily streak visit:", err);
+        })
+        .finally(() => {
+          isStreakCallInProgress = false;
         });
     };
 

@@ -773,6 +773,9 @@ export default function StudentProfile() {
                         const sid = authUser._id || authUser.id;
                         if (sid) {
                             localStorage.setItem(`nexus_streak_count_${sid}`, String(data.activityData.currentStreak));
+                            if (data.activityData?.lastVisitDate === todayStr || data.streak?.lastVisitDate === todayStr) {
+                                localStorage.setItem(`nexus_streak_marked_${sid}`, todayStr);
+                            }
                         }
                     }
                 }
