@@ -56,34 +56,58 @@ export default function StudentLayout() {
     const studentId = user._id || user.id;
     if (!studentId) return;
 
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const todayStr = `${year}-${month}-${day}`;
+    const checkAndRecordStreak = () => {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const todayStr = `${year}-${month}-${day}`;
 
-    const storageKey = `nexus_streak_marked_${studentId}`;
-    const lastMarkedDate = localStorage.getItem(storageKey);
+      const storageKey = `nexus_streak_marked_${studentId}`;
+      const countKey = `nexus_streak_count_${studentId}`;
+      const lastMarkedDate = localStorage.getItem(storageKey);
+      const cachedCount = localStorage.getItem(countKey);
 
-    // If today is already marked locally, skip API call completely
-    if (lastMarkedDate === todayStr) {
-      return;
-    }
+      // If today is already marked locally AND we have a valid cached count, skip API call completely!
+      if (lastMarkedDate === todayStr && cachedCount !== null && !isNaN(parseInt(cachedCount, 10))) {
+        window.dispatchEvent(new CustomEvent("streak-updated", {
+          detail: { currentStreak: parseInt(cachedCount, 10) }
+        }));
+        return;
+      }
 
-    // Call API once for the day
-    api.post("/student/record-visit", { clientDate: todayStr })
-      .then((res) => {
-        if (res.data?.success) {
-          localStorage.setItem(storageKey, todayStr);
-          if (res.data.currentStreak !== undefined) {
-            localStorage.setItem(`nexus_streak_count_${studentId}`, String(res.data.currentStreak));
+      // Call API once for the day
+      api.post("/student/record-visit", { clientDate: todayStr })
+        .then((res) => {
+          if (res.data?.success) {
+            localStorage.setItem(storageKey, todayStr);
+            if (res.data.currentStreak !== undefined) {
+              localStorage.setItem(countKey, String(res.data.currentStreak));
+            }
+            window.dispatchEvent(new CustomEvent("streak-updated", { detail: res.data }));
           }
-          window.dispatchEvent(new CustomEvent("streak-updated", { detail: res.data }));
-        }
-      })
-      .catch((err) => {
-        console.warn("Could not record daily streak visit:", err);
-      });
+        })
+        .catch((err) => {
+          console.warn("Could not record daily streak visit:", err);
+        });
+    };
+
+    checkAndRecordStreak();
+
+    // Check again if user comes back to the app on another day (tab focus / visibility)
+    const handleVisibilityOrFocus = () => {
+      if (document.visibilityState === "visible") {
+        checkAndRecordStreak();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityOrFocus);
+    window.addEventListener("focus", handleVisibilityOrFocus);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityOrFocus);
+      window.removeEventListener("focus", handleVisibilityOrFocus);
+    };
   }, [user]);
 
   // ── Mobile Detection Logic ──

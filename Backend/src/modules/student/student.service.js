@@ -1,5 +1,6 @@
 import Test from "../test/test.model.js";
 import TestAttempt from "../test/testAttempt.model.js";
+import QuizAttempt from "../test/quizAttempt.model.js";
 import User from "../user/user.model.js";
 import Leaderboard from "../test/leaderboard.model.js";
 import Resource from "../teacher/Resource.js";   // ← moved to top (was mid-file, breaking ESM)
@@ -578,6 +579,21 @@ export const getStudentActivityData = async (student, referenceDateStr) => {
         console.warn("Could not fetch test attempts for streak activity:", err);
     }
 
+    try {
+        const quizAttempts = await QuizAttempt.find({ studentId: student._id })
+            .select("createdAt submittedAt")
+            .lean();
+        for (const att of quizAttempts) {
+            const dt = att.submittedAt || att.createdAt;
+            if (dt) {
+                const istAtt = new Date(new Date(dt).getTime() + 5.5 * 60 * 60 * 1000);
+                practicedDates.add(istAtt.toISOString().slice(0, 10));
+            }
+        }
+    } catch (err) {
+        console.warn("Could not fetch quiz attempts for streak activity:", err);
+    }
+
     let currentStreak = student.streak?.currentStreak || 0;
     const longestStreak = student.streak?.longestStreak || 0;
     const lastVisit = student.streak?.lastVisitDate;
@@ -592,6 +608,12 @@ export const getStudentActivityData = async (student, referenceDateStr) => {
     } else {
         currentStreak = 0;
     }
+
+    // If student has visited or practiced today, currentStreak is at least 1
+    if (practicedDates.has(todayStr) && currentStreak === 0) {
+        currentStreak = 1;
+    }
+    const finalLongestStreak = Math.max(longestStreak, currentStreak);
 
     // Build 5 weeks: Week 1, Week 2, Week 3, Week 4, This week
     // Sunday-first (0 = Sun, 6 = Sat)
@@ -641,9 +663,34 @@ export const getStudentActivityData = async (student, referenceDateStr) => {
         }
     } catch (e) { }
 
+    try {
+        const quizAttemptsToday = await QuizAttempt.find({ studentId: student._id })
+            .select("blocks submittedAt createdAt")
+            .lean();
+        for (const att of quizAttemptsToday) {
+            const dt = att.submittedAt || att.createdAt;
+            if (dt) {
+                const istAtt = new Date(new Date(dt).getTime() + 5.5 * 60 * 60 * 1000);
+                if (istAtt.toISOString().slice(0, 10) === todayStr) {
+                    if (Array.isArray(att.blocks)) {
+                        for (const b of att.blocks) {
+                            if (Array.isArray(b.sections)) {
+                                for (const s of b.sections) {
+                                    if (Array.isArray(s.questions)) {
+                                        questionsAttempted += s.questions.filter(q => q.chosenOption !== -1).length;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    } catch (e) { }
+
     return {
         currentStreak,
-        longestStreak,
+        longestStreak: finalLongestStreak,
         lastVisitDate: lastVisit,
         questionsAttempted: questionsAttempted || currentStreak || 0,
         weeks
@@ -681,6 +728,12 @@ export const recordVisit = async (userId, clientDate) => {
     let currentStreak = student.streak.currentStreak || 0;
     let longestStreak = student.streak.longestStreak || 0;
 
+    const parseD = (s) => {
+        const parts = s.split('-').map(Number);
+        return new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+    };
+    const dToday = parseD(todayStr);
+
     if (lastVisit === todayStr) {
         if (currentStreak === 0) currentStreak = 1;
         longestStreak = Math.max(longestStreak, currentStreak);
@@ -689,6 +742,7 @@ export const recordVisit = async (userId, clientDate) => {
         if (!student.streak.visitedDates.includes(todayStr)) {
             student.streak.visitedDates.push(todayStr);
         }
+        student.markModified('streak');
         await student.save();
         const activityData = await getStudentActivityData(student, todayStr);
         return {
@@ -702,19 +756,43 @@ export const recordVisit = async (userId, clientDate) => {
     if (!lastVisit) {
         currentStreak = 1;
     } else {
-        const parseD = (s) => {
-            const parts = s.split('-').map(Number);
-            return new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
-        };
-        const dToday = parseD(todayStr);
         const dLast = parseD(lastVisit);
         const diffDays = Math.round((dToday - dLast) / (1000 * 60 * 60 * 24));
 
         if (diffDays === 1) {
-            currentStreak += 1;
+            currentStreak = (currentStreak || 0) + 1;
         } else if (diffDays > 1) {
-            currentStreak = 1;
+            // Check if user had activity on yesterday
+            const dYesterday = new Date(dToday);
+            dYesterday.setUTCDate(dToday.getUTCDate() - 1);
+            const yesterdayStr = dYesterday.toISOString().slice(0, 10);
+
+            let hadActivityYesterday = student.streak.visitedDates.includes(yesterdayStr);
+            if (!hadActivityYesterday) {
+                try {
+                    const attempts = await TestAttempt.find({ studentId: student._id }).select("createdAt submittedAt").lean();
+                    const quizAttempts = await QuizAttempt.find({ studentId: student._id }).select("createdAt submittedAt").lean();
+                    const allAtts = [...attempts, ...quizAttempts];
+                    for (const att of allAtts) {
+                        const dt = att.submittedAt || att.createdAt;
+                        if (dt) {
+                            const istAtt = new Date(new Date(dt).getTime() + 5.5 * 60 * 60 * 1000);
+                            if (istAtt.toISOString().slice(0, 10) === yesterdayStr) {
+                                hadActivityYesterday = true;
+                                break;
+                            }
+                        }
+                    }
+                } catch (e) {}
+            }
+
+            if (hadActivityYesterday) {
+                currentStreak = (currentStreak || 0) + 1;
+            } else {
+                currentStreak = 1;
+            }
         } else {
+            // diffDays <= 0 (same day or clock skew)
             if (currentStreak === 0) currentStreak = 1;
         }
     }
@@ -728,6 +806,7 @@ export const recordVisit = async (userId, clientDate) => {
         student.streak.visitedDates.push(todayStr);
     }
 
+    student.markModified('streak');
     await student.save();
     const activityData = await getStudentActivityData(student, todayStr);
     return {

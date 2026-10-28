@@ -784,8 +784,22 @@ export default function StudentProfile() {
         })();
 
         const handleStreakUpdated = (e) => {
-            if (e.detail?.activityData && !cancelled) {
+            if (cancelled) return;
+            if (e.detail?.activityData) {
                 setProfile(prev => prev ? { ...prev, activityData: e.detail.activityData } : prev);
+            } else if (e.detail?.currentStreak !== undefined) {
+                setProfile(prev => {
+                    if (!prev) return prev;
+                    const prevActivity = prev.activityData || {};
+                    return {
+                        ...prev,
+                        activityData: {
+                            ...prevActivity,
+                            currentStreak: e.detail.currentStreak,
+                            longestStreak: Math.max(prevActivity.longestStreak || 0, e.detail.currentStreak)
+                        }
+                    };
+                });
             }
         };
         window.addEventListener("streak-updated", handleStreakUpdated);
@@ -1386,7 +1400,9 @@ MOBILE (< lg) — Unacademy-style layout
                                     </div>
                                 </div>
                                 <div>
-                                    <div className="text-[20px] font-bold text-[#00E2B8]">{profile?.activityData?.currentStreak || 0} / 10</div>
+                                    <div className="text-[20px] font-bold text-[#00E2B8]">
+                                        {profile?.activityData?.questionsAttempted ?? profile?.activityData?.currentStreak ?? 0} / 10
+                                    </div>
                                     <div className={`text-[12px] font-medium ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Questions attempted</div>
                                 </div>
                             </div>
@@ -1403,7 +1419,7 @@ MOBILE (< lg) — Unacademy-style layout
                                 <svg className="absolute w-24 h-24 -rotate-90">
                                     <circle cx="48" cy="48" r="40" stroke={isDark ? "rgba(0, 226, 184, 0.15)" : "rgba(0, 226, 184, 0.1)"} strokeWidth="6" fill="transparent" />
                                     <circle cx="48" cy="48" r="40" stroke="#00E2B8" strokeWidth="6" fill="transparent"
-                                        strokeDasharray={251.32} strokeDashoffset={251.32 - (251.32 * Math.min(100, ((profile?.activityData?.currentStreak || 0) / 10) * 100)) / 100} strokeLinecap="round" />
+                                        strokeDasharray={251.32} strokeDashoffset={251.32 - (251.32 * Math.min(100, (((profile?.activityData?.questionsAttempted ?? profile?.activityData?.currentStreak ?? 0)) / 10) * 100)) / 100} strokeLinecap="round" />
                                 </svg>
                             </div>
                         </div>

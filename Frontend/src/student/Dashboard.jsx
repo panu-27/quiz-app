@@ -308,16 +308,6 @@ export default function StudentDashboard({ initialCounsellor = false }) {
     const saved = localStorage.getItem(`nexus_streak_count_${studentId}`);
     if (saved) {
       setStreakCount(parseInt(saved, 10));
-    } else {
-      api.get("/student/profile")
-        .then((res) => {
-          if (res.data?.activityData?.currentStreak !== undefined) {
-            const s = res.data.activityData.currentStreak;
-            setStreakCount(s);
-            localStorage.setItem(`nexus_streak_count_${studentId}`, String(s));
-          }
-        })
-        .catch(() => {});
     }
   }, [user]);
 
