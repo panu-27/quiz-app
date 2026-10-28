@@ -581,6 +581,13 @@ export default function StudentLibrary({ initialCounsellor = false }) {
 
   const { chapterId } = useParams();
 
+  // Toast feedback state
+  const [toastMessage, setToastMessage] = useState("");
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(""), 2000);
+  };
+
   // Dynamic Syllabus State
   const [syllabus, setSyllabus] = useState(null);
   const [allTopics, setAllTopics] = useState([]);
@@ -1147,13 +1154,18 @@ export default function StudentLibrary({ initialCounsellor = false }) {
                     ? 'bg-[#EBFDEB] border-[#D6F7D6]'
                     : 'bg-[#0A1C16] border-[#12302A]'
                     }`}
-                  onClick={() => navigate("/student/quiz", { state: { from: '/student/library' } })}
+                  onClick={() => showToast("Coming Soon")}
                 >
                   <div className="absolute -right-6 -bottom-6 w-28 h-28 rounded-full bg-emerald-500/10" />
                   <div className="absolute right-2 bottom-0">
                     <div className="text-[40px] opacity-20">🤓</div>
                   </div>
-                  <MessageCircle size={18} className="text-emerald-500 dark:text-emerald-400 mb-2 relative z-10" />
+                  <div className="flex items-center justify-between mb-2 relative z-10">
+                    <MessageCircle size={18} className="text-emerald-500 dark:text-emerald-400" />
+                    <span className="text-[10px] font-bold text-amber-500 uppercase tracking-wider bg-amber-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <Lock size={10} /> Coming Soon
+                    </span>
+                  </div>
                   <p className={`font-bold text-[14px] leading-tight relative z-10 ${theme === 'light' ? 'text-emerald-950' : 'text-white'
                     }`}>Give Quiz</p>
                   <p className={`text-[11px] mt-1 leading-relaxed relative z-10 ${theme === 'light' ? 'text-emerald-800/80' : 'text-slate-400'
@@ -1272,6 +1284,28 @@ export default function StudentLibrary({ initialCounsellor = false }) {
           }}
           resolveFileUrl={resolveFileUrl}
         />
+      )}
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div style={{
+          position: 'fixed',
+          bottom: 85,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          backgroundColor: '#10B981',
+          color: '#FFFFFF',
+          padding: '10px 20px',
+          borderRadius: 30,
+          fontSize: 12,
+          fontWeight: 700,
+          zIndex: 10000,
+          boxShadow: '0 10px 25px rgba(16,185,129,0.3)',
+          animation: 'fadeUp 0.2s ease-out',
+          pointerEvents: 'none'
+        }}>
+          {toastMessage}
+        </div>
       )}
     </div>
   );
