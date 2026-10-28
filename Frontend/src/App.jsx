@@ -243,13 +243,6 @@ export default function App() {
     }
 
     const handlePopState = () => {
-      // Forward blocker: when user has gone back, prevent browser forward arrow from going ahead
-      const currentIdx = window.history.state?.idx;
-      if (typeof currentIdx === 'number' && currentIdx > maxAllowedIdxRef.current) {
-        window.history.back();
-        return;
-      }
-
       const previousPath = locationRef.current.pathname;
       const previousSearch = locationRef.current.search;
       const previousFullUrl = previousPath + (previousSearch || "");
@@ -258,8 +251,25 @@ export default function App() {
       const newSearch = window.location.search;
       const newFullUrl = newPath + (newSearch || "");
 
+      // Forward blocker: when user has gone back, prevent browser forward arrow from going ahead
+      // NEVER run forward blocker on active test or quiz, as it causes cascading back exits
+      const isQuizOrTest = (
+        previousPath === '/student/quiztest' ||
+        newPath === '/student/quiztest' ||
+        previousPath.startsWith('/student/test/') ||
+        newPath.startsWith('/student/test/')
+      );
+      if (!isQuizOrTest) {
+        const currentIdx = window.history.state?.idx;
+        if (typeof currentIdx === 'number' && currentIdx > maxAllowedIdxRef.current) {
+          window.history.back();
+          return;
+        }
+      }
+
       // Never allow browser forward navigation into bookmarks or progress modal views
       if (newPath === '/student/pyq/bookmarks' || newPath === '/student/pyq/progress') {
+        const currentIdx = window.history.state?.idx;
         const isForward = typeof currentIdx === 'number' && currentIdx >= maxAllowedIdxRef.current && (previousPath === '/student/pyq' || previousPath.startsWith('/student/pyq/subject/'));
         if (isForward) {
           window.history.back();
@@ -267,6 +277,7 @@ export default function App() {
         }
       }
 
+      const currentIdx = window.history.state?.idx;
       if (typeof currentIdx === 'number') {
         maxAllowedIdxRef.current = currentIdx;
       }
@@ -277,7 +288,8 @@ export default function App() {
           if (newPath !== previousPath) {
             navigate(previousFullUrl, { replace: true, state: previousState });
           } else {
-            window.history.pushState(null, "", previousFullUrl);
+            const currState = window.history.state || {};
+            window.history.pushState(currState, "", previousFullUrl);
           }
           return;
         }
