@@ -48,11 +48,21 @@ const MOCK_PDF_QUESTIONS = [
 /* ══════════════════════════════════════════════════════════
    Single PDF page → canvas (lazy rendered, memory-friendly)
 ══════════════════════════════════════════════════════════ */
-function PdfPage({ pdf, pageNum, cssWidth, root, pageShadow }) {
+function PdfPage({
+    pdf,
+    pageNum,
+    isLandscape = false,
+    zoom = 1,
+    availW = 800,
+    availH = 600,
+    baseW = 800,
+    root,
+    pageShadow,
+}) {
     const wrapRef = useRef(null);
     const canvasRef = useRef(null);
     const taskRef = useRef(null);
-    const [ratio, setRatio] = useState(1.414);
+    const [ratio, setRatio] = useState(isLandscape ? 0.707 : 1.414);
     const [visible, setVisible] = useState(false);
 
     // Page aspect ratio so layout is stable before render
@@ -60,29 +70,47 @@ function PdfPage({ pdf, pageNum, cssWidth, root, pageShadow }) {
         let alive = true;
         pdf.getPage(pageNum).then((p) => {
             if (!alive) return;
-            const vp = p.getViewport({ scale: 1 });
+            const rot = (p.rotate + (isLandscape ? 90 : 0)) % 360;
+            const vp = p.getViewport({ scale: 1, rotation: rot });
             setRatio(vp.height / vp.width);
         });
         return () => { alive = false; };
-    }, [pdf, pageNum]);
+    }, [pdf, pageNum, isLandscape]);
 
-    // Only render pages near the viewport
+    // Only render pages near the viewport (both horizontal and vertical margin)
     useEffect(() => {
         if (!wrapRef.current || !root) return;
         const io = new IntersectionObserver(
             ([e]) => setVisible(e.isIntersecting),
-            { root, rootMargin: '900px 0px' }
+            { root, rootMargin: '900px 900px' }
         );
         io.observe(wrapRef.current);
         return () => io.disconnect();
     }, [root]);
+
+    // Calculate dimensions
+    let pageWidth = 0;
+    let pageHeight = 0;
+    if (isLandscape) {
+        let pw = availW;
+        let ph = pw * ratio;
+        if (ph > availH) {
+            ph = availH;
+            pw = ph / ratio;
+        }
+        pageWidth = Math.round(pw * zoom);
+        pageHeight = Math.round(ph * zoom);
+    } else {
+        pageWidth = Math.round(baseW * zoom);
+        pageHeight = Math.round(pageWidth * ratio);
+    }
 
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
 
         // Off-screen: free the bitmap memory
-        if (!visible || !cssWidth) {
+        if (!visible || !pageWidth || !pageHeight) {
             canvas.width = 0;
             canvas.height = 0;
             return;
@@ -92,10 +120,11 @@ function PdfPage({ pdf, pageNum, cssWidth, root, pageShadow }) {
         (async () => {
             const page = await pdf.getPage(pageNum);
             if (!alive) return;
-            const base = page.getViewport({ scale: 1 });
+            const rot = (page.rotate + (isLandscape ? 90 : 0)) % 360;
+            const base = page.getViewport({ scale: 1, rotation: rot });
             const dpr = Math.min(window.devicePixelRatio || 1, 2);
-            const targetW = Math.min(cssWidth * dpr, 3000);
-            const viewport = page.getViewport({ scale: targetW / base.width });
+            const targetW = Math.min(pageWidth * dpr, 3000);
+            const viewport = page.getViewport({ scale: targetW / base.width, rotation: rot });
 
             // Render offscreen, then swap — no white flash on re-render
             const off = document.createElement('canvas');
@@ -119,20 +148,24 @@ function PdfPage({ pdf, pageNum, cssWidth, root, pageShadow }) {
             alive = false;
             taskRef.current?.cancel();
         };
-    }, [visible, pdf, pageNum, cssWidth]);
+    }, [visible, pdf, pageNum, pageWidth, pageHeight, isLandscape]);
 
     return (
         <div
             ref={wrapRef}
             data-page-num={pageNum}
             style={{
-                width: cssWidth,
-                height: Math.round(cssWidth * ratio),
+                width: pageWidth,
+                height: pageHeight,
+                flexShrink: 0,
                 background: '#fff',
-                marginBottom: 10,
+                marginBottom: isLandscape ? 0 : 10,
+                marginRight: isLandscape ? 16 : 0,
                 borderRadius: 2,
                 boxShadow: pageShadow,
                 overflow: 'hidden',
+                scrollSnapAlign: isLandscape && zoom <= 1.05 ? 'center' : 'none',
+                scrollSnapStop: 'normal',
             }}
         >
             <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block' }} />
@@ -147,6 +180,8 @@ function PdfPage({ pdf, pageNum, cssWidth, root, pageShadow }) {
 function PdfCanvasViewer({
     url,
     zoom = 1,
+    isLandscape = false,
+    currentPage = 1,
     onZoomChange,
     onPageChange,
     onLoadSuccess,
@@ -162,7 +197,10 @@ function PdfCanvasViewer({
     const [scroller, setScroller] = useState(null);
     const contentRef = useRef(null);
     const [pdf, setPdf] = useState(null);
-    const [baseWidth, setBaseWidth] = useState(0);
+    const [containerSize, setContainerSize] = useState({
+        width: typeof window !== 'undefined' ? window.innerWidth : 800,
+        height: typeof window !== 'undefined' ? window.innerHeight : 600,
+    });
     const zoomRef = useRef(zoom);
 
     useEffect(() => {
@@ -211,14 +249,16 @@ function PdfCanvasViewer({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [url]);
 
-    // Responsive base width
+    // Responsive container size
     useEffect(() => {
         if (!scroller) return;
         const update = () => {
-            const clientW = scroller.clientWidth;
-            if (!clientW) return;
-            // 100% = the full width of the device; on wide screens cap it so lines stay readable
-            setBaseWidth(clientW < 840 ? clientW : 840);
+            if (scroller.clientWidth && scroller.clientHeight) {
+                setContainerSize({
+                    width: scroller.clientWidth,
+                    height: scroller.clientHeight,
+                });
+            }
         };
         update();
         const ro = new ResizeObserver(update);
@@ -226,9 +266,9 @@ function PdfCanvasViewer({
         return () => ro.disconnect();
     }, [scroller]);
 
-    // Scroll direction → hide header on scroll down, show on scroll up
+    // Scroll direction → hide header on scroll down, show on scroll up (vertical mode)
     useEffect(() => {
-        if (!scroller) return;
+        if (!scroller || isLandscape) return;
         let last = scroller.scrollTop;
         const onScroll = () => {
             const top = scroller.scrollTop;
@@ -244,7 +284,7 @@ function PdfCanvasViewer({
         };
         scroller.addEventListener('scroll', onScroll, { passive: true });
         return () => scroller.removeEventListener('scroll', onScroll);
-    }, [scroller, onScrollDirection]);
+    }, [scroller, onScrollDirection, isLandscape]);
 
     // Track the page currently in view
     useEffect(() => {
@@ -266,38 +306,82 @@ function PdfCanvasViewer({
 
         pageEls.forEach((el) => observer.observe(el));
         return () => observer.disconnect();
-    }, [scroller, pdf, onPageChange]);
+    }, [scroller, pdf, onPageChange, isLandscape]);
 
-    // Desktop: Ctrl + wheel / trackpad pinch zooms the document only
+    // Keep current page in view when orientation toggles and reset zoom
+    const prevLandscapeRef = useRef(isLandscape);
+    useEffect(() => {
+        if (prevLandscapeRef.current !== isLandscape && scroller) {
+            prevLandscapeRef.current = isLandscape;
+            zoomRef.current = 1;
+            if (contentRef.current) contentRef.current.style.transform = '';
+            const targetPage = currentPage;
+            requestAnimationFrame(() => {
+                const pageEl = scroller.querySelector(`[data-page-num="${targetPage}"]`);
+                if (pageEl) {
+                    pageEl.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'center' });
+                }
+            });
+        }
+    }, [isLandscape, scroller, currentPage]);
+
+    // Desktop: Ctrl + wheel / trackpad pinch zooms the document only.
+    // In landscape mode: vertical wheel scrolls horizontally between pages!
     useEffect(() => {
         const el = scroller;
         if (!el) return;
 
         const handleWheel = (e) => {
-            if (!e.ctrlKey) return;
-            e.preventDefault(); // stops browser page zoom
-            const factor = e.deltaY < 0 ? 1.15 : 0.87;
-            const targetZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Number((zoomRef.current * factor).toFixed(2))));
-            if (targetZoom === zoomRef.current) return;
+            if (e.ctrlKey) {
+                e.preventDefault(); // stops browser page zoom
+                const factor = e.deltaY < 0 ? 1.15 : 0.87;
+                const targetZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Number((zoomRef.current * factor).toFixed(2))));
+                if (targetZoom === zoomRef.current) return;
 
-            const r = el.getBoundingClientRect();
-            const fx = e.clientX - r.left;
-            const fy = e.clientY - r.top;
-            const z = zoomRef.current;
-            const cx = (el.scrollLeft + fx) / z;
-            const cy = (el.scrollTop + fy) / z;
+                const r = el.getBoundingClientRect();
+                const fx = e.clientX - r.left;
+                const fy = e.clientY - r.top;
+                const z = zoomRef.current;
+                const cx = (el.scrollLeft + fx) / z;
+                const cy = (el.scrollTop + fy) / z;
 
-            zoomRef.current = targetZoom;
-            onZoomChange?.(targetZoom);
-            requestAnimationFrame(() => {
-                el.scrollLeft = cx * targetZoom - fx;
-                el.scrollTop = cy * targetZoom - fy;
-            });
+                zoomRef.current = targetZoom;
+                onZoomChange?.(targetZoom);
+                requestAnimationFrame(() => {
+                    el.scrollLeft = cx * targetZoom - fx;
+                    el.scrollTop = cy * targetZoom - fy;
+                });
+                return;
+            }
+
+            // In horizontal mode, map vertical wheel to horizontal scroll so pages advance
+            if (isLandscape) {
+                if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+                    e.preventDefault();
+                    el.scrollLeft += e.deltaY;
+                }
+            }
         };
 
         el.addEventListener('wheel', handleWheel, { passive: false });
         return () => el.removeEventListener('wheel', handleWheel);
-    }, [scroller, onZoomChange]);
+    }, [scroller, onZoomChange, isLandscape]);
+
+    // Keyboard navigation (Arrow keys)
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (!scroller || !isLandscape) return;
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                scroller.scrollBy({ left: 320, behavior: 'smooth' });
+            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                scroller.scrollBy({ left: -320, behavior: 'smooth' });
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [scroller, isLandscape]);
 
     // Desktop: double click toggles zoom
     const handleDoubleClick = (e) => {
@@ -414,7 +498,24 @@ function PdfCanvasViewer({
         };
     }, [scroller, onZoomChange]);
 
-    const cssWidth = Math.round(baseWidth * zoom);
+    const clientW = containerSize.width || (typeof window !== 'undefined' ? window.innerWidth : 800);
+    const clientH = containerSize.height || (typeof window !== 'undefined' ? window.innerHeight : 600);
+
+    const baseW = clientW < 840 ? clientW : 840;
+    const availH = Math.max(220, clientH - topPad - bottomPad);
+    const availW = Math.max(280, clientW - (clientW < 640 ? 24 : 48));
+
+    // Approximate page width for horizontal mode container centering
+    let estPageW = availW;
+    let estPageH = estPageW * 0.707;
+    if (estPageH > availH) {
+        estPageH = availH;
+        estPageW = estPageH / 0.707;
+    }
+    const estScaledW = Math.round(estPageW * zoom);
+    const sidePad = Math.max(16, Math.round((clientW - estScaledW) / 2));
+
+    const cssWidth = Math.round(baseW * zoom);
 
     return (
         <div
@@ -423,19 +524,31 @@ function PdfCanvasViewer({
             style={{
                 position: 'absolute',
                 inset: 0,
-                overflow: 'auto',
+                overflowX: 'auto',
+                overflowY: isLandscape && zoom <= 1.05 ? 'hidden' : 'auto',
                 WebkitOverflowScrolling: 'touch',
                 overscrollBehavior: 'contain',
-                /* No "pinch-zoom" here: the browser must not zoom the app page.
-                   Pinch is handled manually above and scales only the PDF. */
+                scrollSnapType: isLandscape && zoom <= 1.05 ? 'x mandatory' : 'none',
                 touchAction: 'pan-x pan-y',
                 backgroundColor: colors.canvasBg,
             }}
         >
-            {pdf && baseWidth > 0 && (
+            {pdf && (
                 <div
                     ref={contentRef}
-                    style={{
+                    style={isLandscape ? {
+                        minWidth: '100%',
+                        width: 'max-content',
+                        height: '100%',
+                        paddingTop: topPad,
+                        paddingBottom: bottomPad,
+                        paddingLeft: sidePad,
+                        paddingRight: sidePad,
+                        display: 'flex',
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        willChange: 'transform',
+                    } : {
                         width: cssWidth,
                         margin: '0 auto',
                         paddingTop: topPad,
@@ -451,7 +564,11 @@ function PdfCanvasViewer({
                             key={i}
                             pdf={pdf}
                             pageNum={i + 1}
-                            cssWidth={cssWidth}
+                            isLandscape={isLandscape}
+                            zoom={zoom}
+                            availW={availW}
+                            availH={availH}
+                            baseW={baseW}
                             root={scroller}
                             pageShadow={colors.pageShadow}
                         />
@@ -478,16 +595,25 @@ export default function PdfViewerPage({
 
     const searchParams = new URLSearchParams(location.search);
     const stateData = location.state || {};
-    const pdfUrl = propPdfUrl || stateData.pdfUrl || searchParams.get('url');
-    const title = propTitle || stateData.title || searchParams.get('title') || '';
+    const pdfUrl = propPdfUrl || stateData.pdfUrl || searchParams.get('url') || sessionStorage.getItem('last_pdf_url') || '/uploads/vault/1785056339732-Nexus_Practice_Quiz.pdf';
+    const title = propTitle || stateData.title || searchParams.get('title') || sessionStorage.getItem('last_pdf_title') || 'Practice Quiz';
     const date = stateData.date || '';
     const questions = stateData.questions;
 
+    const [isLandscape, setIsLandscape] = useState(false);
     const [zoom, setZoom] = useState(1);
     const [viewerReady, setViewerReady] = useState(false);
     const [loadError, setLoadError] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [numPages, setNumPages] = useState(0);
+
+    useEffect(() => {
+        if (stateData.pdfUrl || propPdfUrl || searchParams.get('url')) {
+            const u = propPdfUrl || stateData.pdfUrl || searchParams.get('url');
+            sessionStorage.setItem('last_pdf_url', u);
+            if (title) sessionStorage.setItem('last_pdf_title', title);
+        }
+    }, [stateData, propPdfUrl, searchParams, title]);
 
     const handleBack = () => {
         if (onClose) {
@@ -669,6 +795,8 @@ export default function PdfViewerPage({
                         <PdfCanvasViewer
                             url={resolvedUrl}
                             zoom={zoom}
+                            isLandscape={isLandscape}
+                            currentPage={currentPage}
                             onZoomChange={setZoom}
                             onPageChange={setCurrentPage}
                             onLoadSuccess={({ numPages }) => setNumPages(numPages)}
@@ -718,12 +846,27 @@ export default function PdfViewerPage({
                         {/* Visual rotate button */}
                         <button
                             type="button"
-                            className="h-full px-3.5 flex items-center justify-center transition-colors hover:opacity-80 active:scale-95 focus:outline-none"
-                            style={{ color: colors.text, borderLeft: `1px solid ${colors.border}` }}
-                            title="Rotate (Visual)"
+                            onClick={() => {
+                                setIsLandscape((prev) => !prev);
+                                setZoom(1);
+                            }}
+                            className="h-full px-3.5 flex items-center justify-center transition-all hover:opacity-80 active:scale-95 focus:outline-none"
+                            style={{
+                                color: isLandscape ? '#3b82f6' : colors.text,
+                                borderLeft: `1px solid ${colors.border}`,
+                                backgroundColor: isLandscape ? (theme === 'light' ? 'rgba(59, 130, 246, 0.08)' : 'rgba(59, 130, 246, 0.15)') : 'transparent',
+                            }}
+                            title={isLandscape ? "Switch to Vertical" : "Switch to Horizontal"}
                             aria-label="Rotate"
                         >
-                            <RotateCw size={15} strokeWidth={1.8} />
+                            <RotateCw
+                                size={15}
+                                strokeWidth={1.8}
+                                style={{
+                                    transform: isLandscape ? 'rotate(90deg)' : 'rotate(0deg)',
+                                    transition: 'transform 0.25s ease',
+                                }}
+                            />
                         </button>
                         <div
                             className="absolute left-0 bottom-0 pointer-events-none"
