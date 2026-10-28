@@ -24,7 +24,8 @@ export const getProfile = async (req, res) => {
 export const recordVisit = async (req, res) => {
   try {
     const { clientDate } = req.body;
-    const result = await service.recordVisit(req.user.id, clientDate);
+    const userId = req.user?.id || req.user?._id;
+    const result = await service.recordVisit(userId, clientDate);
     res.json({
       success: true,
       message: "Streak visit recorded successfully",
