@@ -396,7 +396,7 @@ export default function QBank({ initialCounsellor = false }) {
   const qbankSectionRef = useRef(null);
   const scrollRef = useRef(null);
 
-  const isApproved = !!user?.isApproved;
+  const isApproved = !!(user?.approved || user?.isApproved);
 
   const resolveFileUrl = (fileUrl) => {
     if (!fileUrl) return "";

@@ -320,7 +320,7 @@ function TopicFullScreen({ topic, isApproved, onBack, resolveFileUrl }) {
   useEffect(() => {
     setLoading(true);
     const params = {
-      chapterId: topic.id || topic.name,
+      chapterId: topic.name || topic.id,
     };
     if (topic.subjId) {
       params.subjectId = topic.subjId;
@@ -518,10 +518,20 @@ function TopicFullScreen({ topic, isApproved, onBack, resolveFileUrl }) {
 ══════════════════════════════════════════════════════════ */
 function TopicRow({ topic, onPress, resources = [] }) {
   const { theme } = useTheme();
-  // Filter resources matching the current topic (chapterId)
-  const pdfCount = resources.filter(
-    (res) => res.chapterId === topic.id || (res.chapterId && res.chapterId.toString() === topic.id.toString())
-  ).length;
+  // Filter resources matching the current topic (chapterId or chapter name)
+  const pdfCount = resources.filter(res => {
+    if (!res || !topic) return false;
+    const resCh = (res.chapterId || res.chapter || "").trim().toLowerCase();
+    const tId = (topic.id || "").toString().trim().toLowerCase();
+    const tName = (topic.name || "").toString().trim().toLowerCase();
+    return (
+      resCh === tId ||
+      resCh === tName ||
+      (tId && resCh.includes(tId)) ||
+      (tName && resCh.includes(tName)) ||
+      (tName && (res.title || "").toLowerCase().includes(tName))
+    );
+  }).length;
 
   return (
     <button
@@ -803,7 +813,30 @@ export default function StudentLibrary({ initialCounsellor = false }) {
     };
   }, [isCounsellorOpen]);
 
-  const isApproved = !!user?.isApproved;
+  const [studentApproved, setStudentApproved] = useState(() => !!(user?.approved || user?.isApproved));
+
+  useEffect(() => {
+    if (user?.approved || user?.isApproved) {
+      setStudentApproved(true);
+    }
+    // Refresh approval status from server in case user was approved without relogging
+    api.get("/student/profile").then(({ data }) => {
+      if (data?.approved) {
+        setStudentApproved(true);
+        try {
+          const saved = JSON.parse(localStorage.getItem("user") || "{}");
+          if (!saved.approved) {
+            saved.approved = true;
+            if (data.batchId) saved.batchId = data.batchId._id || data.batchId;
+            if (data.batchId?.className) saved.className = data.batchId.className;
+            localStorage.setItem("user", JSON.stringify(saved));
+          }
+        } catch (e) {}
+      }
+    }).catch(() => {});
+  }, [user]);
+
+  const isApproved = studentApproved;
 
   const handleSelectSubject = sub => { setSelectedSubject(sub); setSelectedChapter(null); setSelectedCategory(null); };
   const handleSelectChapter = ch => { setSelectedChapter(ch); setSelectedCategory(null); };

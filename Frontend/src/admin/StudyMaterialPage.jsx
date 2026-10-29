@@ -5,8 +5,10 @@ import {
   Trash2, FileText, Loader2, Search, RefreshCw,
   Calendar, Users, Layers, AlertTriangle, X,
   FolderOpen, LayoutGrid, List, ArrowLeft, Download,
-  ExternalLink, ZoomIn, ChevronRight, UploadCloud, Plus, Check
+  ExternalLink, ZoomIn, ChevronRight, UploadCloud, Plus, Check,
+  GraduationCap
 } from "lucide-react";
+import PdfViewerPage from "../student/PdfViewerPage";
 import { SUBJECTS as LIB_SUBJECTS, CHAPTERS as LIB_CHAPTERS, CATEGORIES as LIB_CATEGORIES } from "../student/libraryConfig";
 
 const SUBJECTS = [
@@ -40,6 +42,39 @@ const CAT_META = {
   Formulas: { color: "#059669", bg: "#ecfdf5", border: "#a7f3d0" }, // legacy fallback
 };
 
+const getSubjectMeta = (m) => {
+  const sName = m?.subject || m?.subjectId || "Subject";
+  const sKey = Object.keys(SUBJECT_MAP).find(k => k.toLowerCase() === sName.toLowerCase()) ||
+               (sName.toLowerCase().startsWith("phy") ? "Physics" :
+                sName.toLowerCase().startsWith("chem") ? "Chemistry" :
+                sName.toLowerCase().startsWith("math") ? "Maths" :
+                sName.toLowerCase().startsWith("bio") ? "Biology" : null);
+  return SUBJECT_MAP[sKey] || {
+    name: sName,
+    color: "#6d28d9",
+    bg: "#f5f3ff",
+    accent: "#7c3aed",
+    icon: <BookOpen size={13} />
+  };
+};
+
+const getCategoryMeta = (cat) => {
+  const cKey = (cat || "notes").toLowerCase();
+  return CAT_META[cKey] || CAT_META.notes || { color: "#2563eb", bg: "#eff6ff", border: "#bfdbfe" };
+};
+
+const groupBatchesByClass = (batchList = []) => {
+  const grouped = {};
+  (batchList || []).forEach(b => {
+    if (!b) return;
+    const cName = (typeof b === "object" && b.className) ? b.className : "General Class";
+    const bName = (typeof b === "object" && b.name) ? b.name : (typeof b === "string" ? b : "Batch");
+    if (!grouped[cName]) grouped[cName] = [];
+    if (!grouped[cName].includes(bName)) grouped[cName].push(bName);
+  });
+  return grouped;
+};
+
 function DeleteModal({ item, onConfirm, onCancel, deleting }) {
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(15,23,42,0.55)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
@@ -59,92 +94,6 @@ function DeleteModal({ item, onConfirm, onCancel, deleting }) {
           </button>
         </div>
       </div>
-    </div>
-  );
-}
-
-function PreviewModal({ item, onClose }) {
-  const [iframeLoading, setIframeLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
-  const sub = SUBJECT_MAP[item.subject] || SUBJECTS[1];
-  const cat = CAT_META[item.category] || CAT_META.Notes;
-  const date = item.createdAt ? new Date(item.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—";
-  const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(item.fileUrl)}&embedded=true`;
-
-  useEffect(() => {
-    const h = (e) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", h);
-    return () => window.removeEventListener("keydown", h);
-  }, [onClose]);
-
-  return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 500, display: "flex", flexDirection: "column", background: "#0f172a", fontFamily: "'DM Sans',sans-serif", animation: "modalIn 0.18s ease" }}>
-      <div style={{ height: 56, background: "#fff", borderBottom: "1px solid #ede9f6", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px", flexShrink: 0, boxShadow: "0 2px 8px rgba(109,40,217,0.06)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flex: 1 }}>
-          <button onClick={onClose} style={{ all: "unset", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 9, background: "#f5f3ff", color: "#7c3aed", fontSize: 12, fontWeight: 700, border: "1.5px solid #ddd6fe", flexShrink: 0, transition: "background 0.13s" }}
-            onMouseEnter={e => e.currentTarget.style.background = "#ede9fe"}
-            onMouseLeave={e => e.currentTarget.style.background = "#f5f3ff"}
-          ><ArrowLeft size={13} /> Back</button>
-          <div style={{ width: 1, height: 24, background: "#ede9f6", flexShrink: 0 }} />
-          <div style={{ width: 32, height: 32, borderRadius: 9, background: sub.bg, display: "flex", alignItems: "center", justifyContent: "center", color: sub.color, flexShrink: 0 }}><FileText size={14} /></div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title || "Untitled"}</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
-              <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 5, background: sub.bg, color: sub.color, border: `1px solid ${sub.color}28` }}>{sub.name}</span>
-              <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 5, background: cat.bg, color: cat.color, border: `1px solid ${cat.border}` }}>{item.category}</span>
-              <span style={{ fontSize: 10, color: "#94a3b8", fontWeight: 500 }}>{date}</span>
-            </div>
-          </div>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-          <a href={item.fileUrl} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 9, border: "1.5px solid #e5e7eb", background: "transparent", color: "#64748b", fontSize: 12, fontWeight: 700, textDecoration: "none", transition: "all 0.13s" }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = "#7c3aed"; e.currentTarget.style.color = "#7c3aed"; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.color = "#64748b"; }}
-          ><ExternalLink size={12} /> Open</a>
-          <a href={item.fileUrl} download style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 9, background: "linear-gradient(135deg,#7c3aed,#6366f1)", color: "#fff", fontSize: 12, fontWeight: 700, textDecoration: "none", boxShadow: "0 2px 10px rgba(109,40,217,0.28)", transition: "opacity 0.13s" }}
-            onMouseEnter={e => e.currentTarget.style.opacity = "0.88"}
-            onMouseLeave={e => e.currentTarget.style.opacity = "1"}
-          ><Download size={12} /> Download</a>
-          <button onClick={onClose} style={{ all: "unset", cursor: "pointer", width: 32, height: 32, borderRadius: 8, background: "#f8fafc", border: "1.5px solid #e5e7eb", display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b", transition: "all 0.13s" }}
-            onMouseEnter={e => { e.currentTarget.style.background = "#fff1f2"; e.currentTarget.style.borderColor = "#fecdd3"; e.currentTarget.style.color = "#ef4444"; }}
-            onMouseLeave={e => { e.currentTarget.style.background = "#f8fafc"; e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.color = "#64748b"; }}
-          ><X size={14} /></button>
-        </div>
-      </div>
-
-      <div style={{ flex: 1, position: "relative", background: "#1e293b", minHeight: 0 }}>
-        {iframeLoading && !loadError && (
-          <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, zIndex: 10 }}>
-            <Loader2 size={24} style={{ color: "#a78bfa", animation: "nexusSpin 1s linear infinite" }} />
-            <div style={{ fontSize: 12, color: "#64748b", fontWeight: 500 }}>Loading preview…</div>
-          </div>
-        )}
-        {loadError ? (
-          <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14, padding: 40, textAlign: "center" }}>
-            <div style={{ width: 56, height: 56, borderRadius: 15, background: "rgba(239,68,68,0.1)", border: "1.5px solid rgba(239,68,68,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <AlertTriangle size={24} style={{ color: "#ef4444" }} />
-            </div>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "#e2e8f0", marginBottom: 6 }}>Preview unavailable</div>
-              <div style={{ fontSize: 12, color: "#64748b", maxWidth: 260, lineHeight: 1.6 }}>This file couldn't be previewed inline. Open or download it directly.</div>
-            </div>
-            <div style={{ display: "flex", gap: 10 }}>
-              <a href={item.fileUrl} target="_blank" rel="noreferrer" style={{ padding: "9px 18px", borderRadius: 10, border: "1.5px solid rgba(255,255,255,0.12)", background: "transparent", color: "#e2e8f0", fontWeight: 700, fontSize: 12, display: "flex", alignItems: "center", gap: 6, textDecoration: "none" }}><ExternalLink size={12} /> Open</a>
-              <a href={item.fileUrl} download style={{ padding: "9px 18px", borderRadius: 10, background: "linear-gradient(135deg,#7c3aed,#6366f1)", color: "#fff", fontWeight: 700, fontSize: 12, display: "flex", alignItems: "center", gap: 6, textDecoration: "none" }}><Download size={12} /> Download</a>
-            </div>
-          </div>
-        ) : (
-          <iframe src={viewerUrl} title={item.title || "Document Preview"} style={{ width: "100%", height: "100%", border: "none", opacity: iframeLoading ? 0 : 1, transition: "opacity 0.3s ease" }} onLoad={() => setIframeLoading(false)} onError={() => { setIframeLoading(false); setLoadError(true); }} />
-        )}
-      </div>
-
-      {!iframeLoading && !loadError && (
-        <div style={{ height: 34, background: "#0f172a", borderTop: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", paddingLeft: 20, paddingRight: 20, gap: 20, flexShrink: 0 }}>
-          <span style={{ fontSize: 10, color: "#475569", fontWeight: 500 }}>{item.title}</span>
-          {item.fileSize && <span style={{ fontSize: 10, color: "#475569", fontWeight: 500 }}>{item.fileSize}</span>}
-          <span style={{ fontSize: 10, color: "#334155", fontWeight: 500, marginLeft: "auto" }}>Press <kbd style={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 4, padding: "1px 5px", fontSize: 9, color: "#94a3b8" }}>Esc</kbd> to close</span>
-        </div>
-      )}
     </div>
   );
 }
@@ -763,11 +712,15 @@ export default function StudyMaterialPage() {
               </div>
 
             ) : viewMode === "grid" ? (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: 12 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(310px,1fr))", gap: 14 }}>
                 {displayed.map(m => {
-                  const sub = SUBJECT_MAP[m.subject] || SUBJECTS[1];
-                  const cat = CAT_META[m.category] || CAT_META.Notes;
+                  const sub = getSubjectMeta(m);
+                  const cat = getCategoryMeta(m.category);
                   const batchList = m.batchIds || m.batches || [];
+                  const groupedBatches = groupBatchesByClass(batchList);
+                  const classEntries = Object.entries(groupedBatches);
+                  const chapterName = m.chapterId || m.chapter || "";
+
                   return (
                     <div key={m._id} style={{ background: "#fff", borderRadius: 14, border: "1.5px solid #ede9f6", overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 2px 8px rgba(109,40,217,0.04)", transition: "transform 0.15s, box-shadow 0.15s, border-color 0.15s" }}
                       onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(109,40,217,0.1)"; e.currentTarget.style.borderColor = "#ddd6fe"; }}
@@ -775,14 +728,23 @@ export default function StudyMaterialPage() {
                     >
                       <div style={{ height: 3, background: `linear-gradient(90deg,${sub.accent},${sub.accent}88)` }} />
                       <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: 12, flex: 1 }}>
+                        {/* Top: Icon + Title + Tags + Actions */}
                         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                            <div style={{ width: 38, height: 38, borderRadius: 10, background: sub.bg, display: "flex", alignItems: "center", justifyContent: "center", color: sub.color, flexShrink: 0 }}><FileText size={16} /></div>
-                            <div style={{ minWidth: 0 }}>
-                              <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.title || "Untitled"}</div>
-                              <div style={{ display: "flex", gap: 5, marginTop: 4 }}>
-                                <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 7px", borderRadius: 5, background: sub.bg, color: sub.color, border: `1px solid ${sub.color}28` }}>{sub.name}</span>
-                                <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 7px", borderRadius: 5, background: cat.bg, color: cat.color, border: `1px solid ${cat.border}` }}>{m.category}</span>
+                          <div style={{ display: "flex", alignItems: "flex-start", gap: 10, minWidth: 0, flex: 1 }}>
+                            <div style={{ width: 38, height: 38, borderRadius: 10, background: sub.bg, display: "flex", alignItems: "center", justifyContent: "center", color: sub.color, flexShrink: 0, marginTop: 1 }}>
+                              <FileText size={16} />
+                            </div>
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", wordBreak: "break-word", lineHeight: 1.35 }} title={m.title}>
+                                {m.title || "Untitled"}
+                              </div>
+                              <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 5 }}>
+                                <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 5, background: sub.bg, color: sub.color, border: `1px solid ${sub.color}28` }}>
+                                  {sub.name}
+                                </span>
+                                <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 5, background: cat.bg, color: cat.color, border: `1px solid ${cat.border}` }}>
+                                  {m.category || "Notes"}
+                                </span>
                               </div>
                             </div>
                           </div>
@@ -796,31 +758,70 @@ export default function StudyMaterialPage() {
                             ><Trash2 size={12} /></button>
                           </div>
                         </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                          <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 10, color: "#94a3b8", fontWeight: 500 }}>
-                            <Calendar size={9} />{m.createdAt ? new Date(m.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : "—"}
-                          </span>
-                          {m.isFree ? (
-                            <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 9, color: "#059669", fontWeight: 700, background: "#ecfdf5", padding: "2px 8px", borderRadius: 99, border: "1px solid #a7f3d0" }}>
-                              Free for all
-                            </span>
-                          ) : batchList.length > 0 ? (
-                            <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 10, color: "#94a3b8", fontWeight: 500 }}>
-                              <Users size={9} />{batchList.length} batch{batchList.length !== 1 ? "es" : ""}
-                            </span>
-                          ) : null}
-                        </div>
-                        {batchList.length > 0 && (
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                            {batchList.slice(0, 3).map((b, i) => <span key={i} style={{ fontSize: 9, fontWeight: 600, padding: "2px 7px", borderRadius: 99, background: "#f8f7ff", color: "#7c3aed", border: "1px solid #ede9fe" }}>{b.name || b}</span>)}
-                            {batchList.length > 3 && <span style={{ fontSize: 9, fontWeight: 600, padding: "2px 7px", borderRadius: 99, background: "#f1f5f9", color: "#64748b", border: "1px solid #e2e8f0" }}>+{batchList.length - 3}</span>}
+
+                        {/* Chapter Name Banner */}
+                        {chapterName && (
+                          <div style={{ display: "flex", alignItems: "flex-start", gap: 7, fontSize: 11, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "6px 9px" }}>
+                            <BookOpen size={13} style={{ color: "#7c3aed", flexShrink: 0, marginTop: 2 }} />
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <span style={{ fontSize: 9, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.04em", display: "block" }}>Chapter</span>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: "#1e293b", wordBreak: "break-word" }}>{chapterName}</span>
+                            </div>
                           </div>
                         )}
+
+                        {/* Grouped Classes & Batches Section (Takes as much space as needed) */}
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6, background: "#faf8ff", border: "1px solid #ede9fe", borderRadius: 10, padding: "9px 10px" }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                            <span style={{ fontSize: 9, fontWeight: 800, color: "#7c3aed", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                              Assigned Classes & Batches
+                            </span>
+                            {m.isFree && (
+                              <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 7px", borderRadius: 99, background: "#ecfdf5", color: "#059669", border: "1px solid #a7f3d0" }}>
+                                Free Access
+                              </span>
+                            )}
+                          </div>
+
+                          {classEntries.length > 0 ? (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                              {classEntries.map(([cName, bNames]) => (
+                                <div key={cName} style={{ display: "flex", flexDirection: "column", gap: 4, background: "#ffffff", border: "1px solid #e9d5ff", borderRadius: 7, padding: "6px 8px" }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, fontWeight: 800, color: "#6d28d9" }}>
+                                    <GraduationCap size={12} style={{ color: "#7c3aed", flexShrink: 0 }} />
+                                    <span>{cName}</span>
+                                  </div>
+                                  <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                                    {bNames.map((bn, bi) => (
+                                      <span key={bi} style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 5, background: "#f5f3ff", color: "#5b21b6", border: "1px solid #ddd6fe" }}>
+                                        {bn}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <span style={{ fontSize: 10, color: m.isFree ? "#059669" : "#94a3b8", fontStyle: "italic" }}>
+                              {m.isFree ? "Accessible to all students" : "No specific batch assigned"}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Date & Meta */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 10, color: "#94a3b8", fontWeight: 500 }}>
+                          <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                            <Calendar size={10} />{m.createdAt ? new Date(m.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—"}
+                          </span>
+                          {m.fileSize && <span>· {m.fileSize}</span>}
+                        </div>
+
+                        {/* View PDF Button */}
                         {m.fileUrl && (
-                          <button onClick={() => setPreviewItem(m)} style={{ all: "unset", marginTop: "auto", padding: "8px 0", borderRadius: 10, border: "1.5px solid #ddd6fe", background: "#faf5ff", color: "#7c3aed", fontWeight: 700, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", gap: 5, cursor: "pointer", transition: "background 0.13s" }}
-                            onMouseEnter={e => e.currentTarget.style.background = "#ede9fe"}
-                            onMouseLeave={e => e.currentTarget.style.background = "#faf5ff"}
-                          ><ZoomIn size={12} /> Preview</button>
+                          <button onClick={() => setPreviewItem(m)} style={{ all: "unset", marginTop: "auto", padding: "9px 0", borderRadius: 9, background: "linear-gradient(135deg, #7c3aed, #6d28d9)", color: "#ffffff", fontWeight: 700, fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, cursor: "pointer", boxShadow: "0 2px 8px rgba(124, 58, 237, 0.2)", transition: "transform 0.12s, box-shadow 0.12s" }}
+                            onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 5px 14px rgba(124, 58, 237, 0.3)"; }}
+                            onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(124, 58, 237, 0.2)"; }}
+                          ><ZoomIn size={13} /> View PDF</button>
                         )}
                       </div>
                     </div>
@@ -830,53 +831,101 @@ export default function StudyMaterialPage() {
 
             ) : (
               <div style={{ background: "#fff", borderRadius: 14, border: "1.5px solid #ede9f6", overflow: "hidden", flexShrink: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "9px 16px", background: "#faf8ff", borderBottom: "1px solid #f0f0f0" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "10px 16px", background: "#faf8ff", borderBottom: "1px solid #f0f0f0" }}>
                   <div style={{ width: 36, flexShrink: 0 }} />
-                  <div style={{ flex: 1, fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.07em" }}>Title</div>
-                  <div style={{ width: 72, fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.07em" }}>Subject</div>
-                  <div style={{ width: 64, fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.07em" }}>Category</div>
-                  <div style={{ width: 80, fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.07em" }}>Batches</div>
-                  <div style={{ width: 88, fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.07em" }}>Actions</div>
+                  <div style={{ flex: 1.5, minWidth: 200, fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.07em" }}>Title & Chapter</div>
+                  <div style={{ width: 85, fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.07em" }}>Subject</div>
+                  <div style={{ width: 80, fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.07em" }}>Category</div>
+                  <div style={{ flex: 2, minWidth: 240, fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.07em" }}>Classes & Batches</div>
+                  <div style={{ width: 80, fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.07em" }}>Status</div>
+                  <div style={{ width: 125, fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.07em" }}>Actions</div>
                 </div>
                 {displayed.map((m, idx) => {
-                  const sub = SUBJECT_MAP[m.subject] || SUBJECTS[1];
-                  const cat = CAT_META[m.category] || CAT_META.Notes;
+                  const sub = getSubjectMeta(m);
+                  const cat = getCategoryMeta(m.category);
                   const batchList = m.batchIds || m.batches || [];
+                  const groupedBatches = groupBatchesByClass(batchList);
+                  const classEntries = Object.entries(groupedBatches);
+                  const chapterName = m.chapterId || m.chapter || "";
+
                   return (
-                    <div key={m._id} style={{ display: "flex", alignItems: "center", gap: 16, padding: "10px 16px", borderBottom: idx < displayed.length - 1 ? "1px solid #f9fafb" : "none", transition: "background 0.12s" }}
+                    <div key={m._id} style={{ display: "flex", alignItems: "center", gap: 16, padding: "12px 16px", borderBottom: idx < displayed.length - 1 ? "1px solid #f9fafb" : "none", transition: "background 0.12s" }}
                       onMouseEnter={e => e.currentTarget.style.background = "#faf8ff"}
                       onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                     >
-                      <div style={{ width: 36, height: 36, borderRadius: 10, background: sub.bg, display: "flex", alignItems: "center", justifyContent: "center", color: sub.color, flexShrink: 0 }}><FileText size={14} /></div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 12, fontWeight: 600, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.title || "Untitled"}</div>
-                        <div style={{ fontSize: 10, color: "#94a3b8", fontWeight: 500, marginTop: 1 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: sub.bg, display: "flex", alignItems: "center", justifyContent: "center", color: sub.color, flexShrink: 0 }}>
+                        <FileText size={15} />
+                      </div>
+                      
+                      {/* Title & Chapter Column */}
+                      <div style={{ flex: 1.5, minWidth: 200 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", wordBreak: "break-word" }}>{m.title || "Untitled"}</div>
+                        {chapterName && (
+                          <div style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 3, fontSize: 10, fontWeight: 600, color: "#5b21b6", background: "#f5f3ff", border: "1px solid #ddd6fe", padding: "1px 7px", borderRadius: 5 }}>
+                            <BookOpen size={10} style={{ color: "#7c3aed" }} />
+                            <span>{chapterName}</span>
+                          </div>
+                        )}
+                        <div style={{ fontSize: 10, color: "#94a3b8", fontWeight: 500, marginTop: 2 }}>
                           {m.createdAt ? new Date(m.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—"}{m.fileSize ? ` · ${m.fileSize}` : ""}
                         </div>
                       </div>
-                      <span style={{ width: 72, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 6, background: sub.bg, color: sub.color, border: `1px solid ${sub.color}28`, flexShrink: 0, textAlign: "center" }}>{sub.name}</span>
-                      <span style={{ width: 64, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 6, background: cat.bg, color: cat.color, border: `1px solid ${cat.border}`, flexShrink: 0, textAlign: "center" }}>{m.category}</span>
-                      <div style={{ width: 80, display: "flex", gap: 3, flexShrink: 0, flexWrap: "wrap" }}>
-                        {m.isFree ? (
-                          <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 99, background: "#ecfdf5", color: "#059669", border: "1px solid #a7f3d0" }}>Free for all</span>
-                        ) : batchList.length > 0 ? (
-                          <>
-                            {batchList.slice(0, 2).map((b, i) => <span key={i} style={{ fontSize: 9, fontWeight: 600, padding: "2px 6px", borderRadius: 99, background: "#f5f3ff", color: "#7c3aed", border: "1px solid #ede9fe" }}>{b.name || b}</span>)}
-                            {batchList.length > 2 && <span style={{ fontSize: 9, color: "#94a3b8" }}>+{batchList.length - 2}</span>}
-                          </>
+
+                      {/* Subject */}
+                      <span style={{ width: 85, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 6, background: sub.bg, color: sub.color, border: `1px solid ${sub.color}28`, flexShrink: 0, textAlign: "center" }}>
+                        {sub.name}
+                      </span>
+
+                      {/* Category */}
+                      <span style={{ width: 80, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 6, background: cat.bg, color: cat.color, border: `1px solid ${cat.border}`, flexShrink: 0, textAlign: "center" }}>
+                        {m.category || "Notes"}
+                      </span>
+
+                      {/* Classes & Batches Grouped Column */}
+                      <div style={{ flex: 2, minWidth: 240, display: "flex", flexDirection: "column", gap: 5 }}>
+                        {m.isFree && (
+                          <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 7px", borderRadius: 99, background: "#ecfdf5", color: "#059669", border: "1px solid #a7f3d0", width: "fit-content" }}>
+                            Free for all
+                          </span>
+                        )}
+                        {classEntries.length > 0 ? (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                            {classEntries.map(([cName, bNames]) => (
+                              <div key={cName} style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap", background: "#faf5ff", border: "1px solid #ede9fe", borderRadius: 6, padding: "3px 7px" }}>
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 9, fontWeight: 800, color: "#6d28d9", textTransform: "uppercase" }}>
+                                  <GraduationCap size={11} /> {cName}:
+                                </span>
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
+                                  {bNames.map((bn, bi) => (
+                                    <span key={bi} style={{ fontSize: 9, fontWeight: 600, padding: "1px 6px", borderRadius: 4, background: "#ffffff", color: "#4c1d95", border: "1px solid #ddd6fe" }}>
+                                      {bn}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         ) : (
-                          <span style={{ fontSize: 10, color: "#cbd5e1" }}>—</span>
+                          <span style={{ fontSize: 10, color: m.isFree ? "#059669" : "#94a3b8", fontStyle: "italic" }}>
+                            {m.isFree ? "Accessible to all" : "—"}
+                          </span>
                         )}
                       </div>
-                      <div style={{ width: 120, display: "flex", gap: 6, flexShrink: 0 }}>
-                        <button onClick={() => toggleFreeStatus(m._id, m.isFree)} style={{ all: "unset", cursor: "pointer", padding: "5px 10px", borderRadius: 8, fontSize: 10, fontWeight: 700, background: m.isFree ? "#ecfdf5" : "#f1f5f9", color: m.isFree ? "#059669" : "#64748b", border: `1.5px solid ${m.isFree ? "#a7f3d0" : "#e2e8f0"}`, transition: "all 0.12s" }}>
+
+                      {/* Status */}
+                      <div style={{ width: 80, flexShrink: 0 }}>
+                        <button onClick={() => toggleFreeStatus(m._id, m.isFree)} style={{ all: "unset", cursor: "pointer", padding: "4px 8px", borderRadius: 8, fontSize: 10, fontWeight: 700, background: m.isFree ? "#ecfdf5" : "#f1f5f9", color: m.isFree ? "#059669" : "#64748b", border: `1.5px solid ${m.isFree ? "#a7f3d0" : "#e2e8f0"}`, transition: "all 0.12s" }}>
                           {m.isFree ? "Free" : "Locked"}
                         </button>
+                      </div>
+
+                      {/* Actions */}
+                      <div style={{ width: 125, display: "flex", gap: 6, flexShrink: 0 }}>
                         {m.fileUrl && (
-                          <button onClick={() => setPreviewItem(m)} style={{ all: "unset", cursor: "pointer", padding: "5px 10px", borderRadius: 8, border: "1.5px solid #ddd6fe", background: "#faf5ff", color: "#7c3aed", fontWeight: 700, fontSize: 10, display: "flex", alignItems: "center", gap: 4, transition: "background 0.12s" }}
-                            onMouseEnter={e => e.currentTarget.style.background = "#ede9fe"}
-                            onMouseLeave={e => e.currentTarget.style.background = "#faf5ff"}
-                          ><ZoomIn size={10} /> View</button>
+                          <button onClick={() => setPreviewItem(m)} style={{ all: "unset", cursor: "pointer", padding: "5px 10px", borderRadius: 8, border: "1px solid #7c3aed", background: "#7c3aed", color: "#ffffff", fontWeight: 700, fontSize: 10, display: "flex", alignItems: "center", gap: 4, boxShadow: "0 2px 6px rgba(124, 58, 237, 0.2)", transition: "all 0.12s" }}
+                            onMouseEnter={e => { e.currentTarget.style.background = "#6d28d9"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = "#7c3aed"; e.currentTarget.style.transform = "translateY(0)"; }}
+                          ><ZoomIn size={11} /> View PDF</button>
                         )}
                         <button onClick={() => setDeleteTarget(m)} style={{ all: "unset", cursor: "pointer", width: 28, height: 28, borderRadius: 8, border: "1.5px solid #fecdd3", background: "#fff1f2", color: "#ef4444", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.12s" }}
                           onMouseEnter={e => e.currentTarget.style.background = "#fee2e2"}
@@ -894,7 +943,13 @@ export default function StudyMaterialPage() {
       </div>
 
       {deleteTarget && <DeleteModal item={deleteTarget} onConfirm={handleDelete} onCancel={() => setDeleteTarget(null)} deleting={deleting} />}
-      {previewItem && <PreviewModal item={previewItem} onClose={() => setPreviewItem(null)} />}
+      {previewItem && (
+        <PdfViewerPage
+          pdfUrl={previewItem.fileUrl}
+          title={previewItem.title}
+          onClose={() => setPreviewItem(null)}
+        />
+      )}
       {isUploadOpen && <UploadModal batches={batches} onClose={() => setIsUploadOpen(false)} onUploadSuccess={fetchMaterials} baseURL={baseURL} />}
 
       <style>{`

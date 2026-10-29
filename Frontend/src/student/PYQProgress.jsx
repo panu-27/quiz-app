@@ -270,7 +270,7 @@ export default function PYQProgress() {
     const location = useLocation();
     const { theme } = useTheme();
     const { user } = useAuth();
-    const isApproved = !!user?.isApproved;
+    const isApproved = !!(user?.approved || user?.isApproved);
     const PRIME_BANNER_H = 60;
 
     const handleBack = () => {

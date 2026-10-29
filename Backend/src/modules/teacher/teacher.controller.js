@@ -881,7 +881,7 @@ export const getStudyMaterialById = async (req, res) => {
     }
 
     const material = await Resource.findOne({ _id: id, uploadedBy: teacherId })
-      .populate("batchIds", "name");
+      .populate("batchIds", "name className");
 
     if (!material) {
       return res.status(404).json({ message: "Material not found or unauthorized" });
@@ -906,7 +906,7 @@ export const getStudyMaterials = async (req, res) => {
     if (search) filter.title = { $regex: search.trim(), $options: "i" };
 
     const materials = await Resource.find(filter)
-      .populate("batchIds", "name")   // get batch names for display
+      .populate("batchIds", "name className")   // get batch names and class names for display
       .sort({ createdAt: -1 });
 
     res.json(materials);

@@ -488,7 +488,7 @@ export default function PYQExplorer() {
     const activeSub = activeSubjectId || (isSubRoute ? subjectId : null);
 
     const { user } = useAuth();
-    const isApproved = !!user?.isApproved;
+    const isApproved = !!(user?.approved || user?.isApproved);
 
     const [searchSubject, setSearchSubject] = useState('');
     const [chapterTab, setChapterTab] = useState('all');

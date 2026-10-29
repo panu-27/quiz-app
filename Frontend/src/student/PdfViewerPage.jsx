@@ -89,8 +89,8 @@ function PdfPage({
     }, [root]);
 
     // Calculate dimensions
-    let pageWidth = 0;
-    let pageHeight = 0;
+    let basePageW = 0;
+    let basePageH = 0;
     if (isLandscape) {
         let pw = availW;
         let ph = pw * ratio;
@@ -98,19 +98,22 @@ function PdfPage({
             ph = availH;
             pw = ph / ratio;
         }
-        pageWidth = Math.round(pw * zoom);
-        pageHeight = Math.round(ph * zoom);
+        basePageW = Math.round(pw);
+        basePageH = Math.round(ph);
     } else {
-        pageWidth = Math.round(baseW * zoom);
-        pageHeight = Math.round(pageWidth * ratio);
+        basePageW = Math.round(baseW);
+        basePageH = Math.round(baseW * ratio);
     }
+
+    const pageWidth = Math.round(basePageW * zoom);
+    const pageHeight = Math.round(basePageH * zoom);
 
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
 
         // Off-screen: free the bitmap memory
-        if (!visible || !pageWidth || !pageHeight) {
+        if (!visible || !basePageW || !basePageH) {
             canvas.width = 0;
             canvas.height = 0;
             return;
@@ -123,7 +126,8 @@ function PdfPage({
             const rot = (page.rotate + (isLandscape ? 90 : 0)) % 360;
             const base = page.getViewport({ scale: 1, rotation: rot });
             const dpr = Math.min(window.devicePixelRatio || 1, 2);
-            const targetW = Math.min(pageWidth * dpr, 3000);
+            // Render at crisp 2x retina print resolution (independent of temporary zoom changes)
+            const targetW = Math.min(Math.round(basePageW * dpr * 1.5), 1800);
             const viewport = page.getViewport({ scale: targetW / base.width, rotation: rot });
 
             // Render offscreen, then swap — no white flash on re-render
@@ -148,7 +152,7 @@ function PdfPage({
             alive = false;
             taskRef.current?.cancel();
         };
-    }, [visible, pdf, pageNum, pageWidth, pageHeight, isLandscape]);
+    }, [visible, pdf, pageNum, isLandscape, basePageW, basePageH]);
 
     return (
         <div
@@ -160,7 +164,6 @@ function PdfPage({
                 flexShrink: 0,
                 background: '#fff',
                 marginBottom: isLandscape ? 0 : 10,
-                marginRight: isLandscape ? 16 : 0,
                 borderRadius: 2,
                 boxShadow: pageShadow,
                 overflow: 'hidden',
@@ -286,6 +289,15 @@ function PdfCanvasViewer({
         return () => scroller.removeEventListener('scroll', onScroll);
     }, [scroller, onScrollDirection, isLandscape]);
 
+    // Track latest current page in a ref
+    const currentPageRef = useRef(currentPage);
+    useEffect(() => {
+        currentPageRef.current = currentPage;
+    }, [currentPage]);
+
+    // Flag to suppress intersection observer during orientation reflow
+    const isTransitioningRef = useRef(false);
+
     // Track the page currently in view
     useEffect(() => {
         if (!scroller || !pdf) return;
@@ -293,6 +305,7 @@ function PdfCanvasViewer({
         if (!pageEls.length) return;
 
         const observer = new IntersectionObserver((entries) => {
+            if (isTransitioningRef.current) return;
             let maxRatio = 0;
             let bestPage = null;
             entries.forEach((entry) => {
@@ -301,29 +314,64 @@ function PdfCanvasViewer({
                     bestPage = Number(entry.target.getAttribute('data-page-num'));
                 }
             });
-            if (bestPage && maxRatio > 0.15) onPageChange?.(bestPage);
+            if (bestPage && maxRatio > 0.15 && !isTransitioningRef.current) {
+                onPageChange?.(bestPage);
+            }
         }, { root: scroller, threshold: [0.15, 0.35, 0.55, 0.75] });
 
         pageEls.forEach((el) => observer.observe(el));
         return () => observer.disconnect();
     }, [scroller, pdf, onPageChange, isLandscape]);
 
-    // Keep current page in view when orientation toggles and reset zoom
+    // Keep EXACT same page in view when orientation toggles and reset zoom
     const prevLandscapeRef = useRef(isLandscape);
     useEffect(() => {
         if (prevLandscapeRef.current !== isLandscape && scroller) {
             prevLandscapeRef.current = isLandscape;
             zoomRef.current = 1;
-            if (contentRef.current) contentRef.current.style.transform = '';
-            const targetPage = currentPage;
+            isTransitioningRef.current = true;
+
+            if (contentRef.current) {
+                contentRef.current.style.transform = '';
+                contentRef.current.style.transformOrigin = '';
+            }
+
+            const targetPage = currentPageRef.current || 1;
+
+            // Wait two frames for layout to compute new element positions
             requestAnimationFrame(() => {
-                const pageEl = scroller.querySelector(`[data-page-num="${targetPage}"]`);
-                if (pageEl) {
-                    pageEl.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'center' });
-                }
+                requestAnimationFrame(() => {
+                    if (!scroller) return;
+                    scroller.style.scrollSnapType = 'none';
+
+                    const targetEl = scroller.querySelector(`[data-page-num="${targetPage}"]`);
+                    if (targetEl) {
+                        if (isLandscape) {
+                            // Horizontal mode (RTL): center target page horizontally
+                            targetEl.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'center' });
+                            scroller.scrollTop = 0;
+                        } else {
+                            // Vertical mode: align vertically to target page
+                            const elTop = targetEl.offsetTop;
+                            const elHeight = targetEl.offsetHeight;
+                            const targetScroll = targetPage === 1 ? 0 : elTop - (scroller.clientHeight - elHeight) / 2;
+                            scroller.scrollTop = Math.max(0, targetScroll);
+                            scroller.scrollLeft = 0;
+                        }
+                    }
+
+                    // Re-enable observer and snap after layout settles
+                    setTimeout(() => {
+                        if (scroller) {
+                            scroller.style.scrollSnapType = '';
+                        }
+                        isTransitioningRef.current = false;
+                        onPageChange?.(targetPage);
+                    }, 250);
+                });
             });
         }
-    }, [isLandscape, scroller, currentPage]);
+    }, [isLandscape, scroller, onPageChange]);
 
     // Desktop: Ctrl + wheel / trackpad pinch zooms the document only.
     // In landscape mode: vertical wheel scrolls horizontally between pages!
@@ -354,11 +402,11 @@ function PdfCanvasViewer({
                 return;
             }
 
-            // In horizontal mode, map vertical wheel to horizontal scroll so pages advance
+            // In horizontal mode, map vertical wheel to horizontal scroll so pages advance (reversed: upcoming from left)
             if (isLandscape) {
                 if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
                     e.preventDefault();
-                    el.scrollLeft += e.deltaY;
+                    el.scrollLeft -= e.deltaY;
                 }
             }
         };
@@ -367,14 +415,14 @@ function PdfCanvasViewer({
         return () => el.removeEventListener('wheel', handleWheel);
     }, [scroller, onZoomChange, isLandscape]);
 
-    // Keyboard navigation (Arrow keys)
+    // Keyboard navigation (Arrow keys - reversed in horizontal mode so upcoming pages come from left)
     useEffect(() => {
         const handleKeyDown = (e) => {
             if (!scroller || !isLandscape) return;
-            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+            if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
                 e.preventDefault();
                 scroller.scrollBy({ left: 320, behavior: 'smooth' });
-            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
                 e.preventDefault();
                 scroller.scrollBy({ left: -320, behavior: 'smooth' });
             }
@@ -391,18 +439,18 @@ function PdfCanvasViewer({
         const fy = e.clientY - r.top;
         const z = zoomRef.current;
         const targetZoom = z > 1.05 ? 1 : DOUBLE_TAP_ZOOM;
-        const cx = (scroller.scrollLeft + fx) / z;
-        const cy = (scroller.scrollTop + fy) / z;
+        const docX = (scroller.scrollLeft + fx) / z;
+        const docY = (scroller.scrollTop + fy) / z;
 
         zoomRef.current = targetZoom;
         onZoomChange?.(targetZoom);
         requestAnimationFrame(() => {
-            scroller.scrollLeft = cx * targetZoom - fx;
-            scroller.scrollTop = cy * targetZoom - fy;
+            scroller.scrollLeft = isLandscape ? (docX * targetZoom - fx) : Math.max(0, docX * targetZoom - fx);
+            scroller.scrollTop = Math.max(0, docY * targetZoom - fy);
         });
     };
 
-    // Touch: pinch + double-tap
+    // Touch: pinch + double-tap (smooth 60fps GPU preview, anchored directly to fingers)
     useEffect(() => {
         const el = scroller;
         if (!el) return;
@@ -412,29 +460,63 @@ function PdfCanvasViewer({
         let tap = null;
         let lastTap = null;
 
-        const commitZoom = (nz, fx, fy, cx, cy) => {
-            const clamped = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Number(nz.toFixed(2))));
+        const commitZoom = (targetZoom, anchorDocX, anchorDocY, screenX, screenY) => {
+            const clamped = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Number(targetZoom.toFixed(2))));
             zoomRef.current = clamped;
             onZoomChange?.(clamped);
-            if (contentRef.current) contentRef.current.style.transform = '';
+
+            if (contentRef.current) {
+                contentRef.current.style.transform = '';
+                contentRef.current.style.transformOrigin = '';
+                contentRef.current.style.willChange = '';
+            }
+
             requestAnimationFrame(() => {
-                el.scrollLeft = cx * clamped - fx;
-                el.scrollTop = cy * clamped - fy;
+                el.scrollLeft = isLandscape ? (anchorDocX * clamped - screenX) : Math.max(0, anchorDocX * clamped - screenX);
+                el.scrollTop = Math.max(0, anchorDocY * clamped - screenY);
             });
         };
 
         const start = (e) => {
             if (e.touches.length === 2) {
+                if (e.cancelable) e.preventDefault();
                 tap = null;
+
                 const r = el.getBoundingClientRect();
                 const z = zoomRef.current;
-                const fx = (e.touches[0].clientX + e.touches[1].clientX) / 2 - r.left;
-                const fy = (e.touches[0].clientY + e.touches[1].clientY) / 2 - r.top;
+                const d = dist(e.touches);
+                const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+                const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+                const screenX = midX - r.left;
+                const screenY = midY - r.top;
+
+                const startScrollX = el.scrollLeft;
+                const startScrollY = el.scrollTop;
+
+                // Point in content coordinates
+                const anchorContentX = startScrollX + screenX;
+                const anchorContentY = startScrollY + screenY;
+
                 pinch = {
-                    d: dist(e.touches), z, fx, fy, s: 1,
-                    cx: (el.scrollLeft + fx) / z,
-                    cy: (el.scrollTop + fy) / z,
+                    d,
+                    z,
+                    startScrollX,
+                    startScrollY,
+                    screenX,
+                    screenY,
+                    anchorContentX,
+                    anchorContentY,
+                    anchorDocX: anchorContentX / z,
+                    anchorDocY: anchorContentY / z,
+                    currDist: d,
+                    currScreenX: screenX,
+                    currScreenY: screenY,
+                    targetZoom: z,
                 };
+
+                if (contentRef.current) {
+                    contentRef.current.style.willChange = 'transform';
+                }
             } else if (e.touches.length === 1 && !pinch) {
                 tap = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now(), moved: false };
             }
@@ -443,12 +525,29 @@ function PdfCanvasViewer({
         const move = (e) => {
             if (pinch && e.touches.length === 2) {
                 if (e.cancelable) e.preventDefault();
-                const factor = dist(e.touches) / pinch.d;
-                const nz = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, pinch.z * factor));
-                pinch.s = nz / pinch.z;
+                const d = dist(e.touches);
+                const r = el.getBoundingClientRect();
+                const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+                const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+                const currScreenX = midX - r.left;
+                const currScreenY = midY - r.top;
+
+                pinch.currDist = d;
+                pinch.currScreenX = currScreenX;
+                pinch.currScreenY = currScreenY;
+
+                const scaleFactor = d / pinch.d;
+                const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, pinch.z * scaleFactor));
+                pinch.targetZoom = newZoom;
+                const s = newZoom / pinch.z;
+
+                // Transform relative to 0 0 so content scales and follows fingers with zero drift
+                const tx = currScreenX - (pinch.anchorContentX * s - pinch.startScrollX);
+                const ty = currScreenY - (pinch.anchorContentY * s - pinch.startScrollY);
+
                 if (contentRef.current) {
-                    contentRef.current.style.transformOrigin = `${pinch.fx}px ${pinch.fy}px`;
-                    contentRef.current.style.transform = `scale(${pinch.s})`;
+                    contentRef.current.style.transformOrigin = '0 0';
+                    contentRef.current.style.transform = `translate3d(${tx}px, ${ty}px, 0) scale(${s})`;
                 }
             } else if (tap && e.touches.length === 1) {
                 const dx = e.touches[0].clientX - tap.x;
@@ -462,8 +561,7 @@ function PdfCanvasViewer({
                 if (e.touches.length < 2) {
                     const p = pinch;
                     pinch = null;
-                    if (contentRef.current) contentRef.current.style.transform = '';
-                    commitZoom(p.z * p.s, p.fx, p.fy, p.cx, p.cy);
+                    commitZoom(p.targetZoom, p.anchorDocX, p.anchorDocY, p.currScreenX, p.currScreenY);
                 }
                 tap = null;
                 return;
@@ -477,7 +575,9 @@ function PdfCanvasViewer({
                     const fy = tap.y - r.top;
                     const z = zoomRef.current;
                     const nz = z > 1.05 ? 1 : DOUBLE_TAP_ZOOM;
-                    commitZoom(nz, fx, fy, (el.scrollLeft + fx) / z, (el.scrollTop + fy) / z);
+                    const docX = (el.scrollLeft + fx) / z;
+                    const docY = (el.scrollTop + fy) / z;
+                    commitZoom(nz, docX, docY, fx, fy);
                     lastTap = null;
                 } else {
                     lastTap = { x: tap.x, y: tap.y, t: now };
@@ -486,7 +586,7 @@ function PdfCanvasViewer({
             tap = null;
         };
 
-        el.addEventListener('touchstart', start, { passive: true });
+        el.addEventListener('touchstart', start, { passive: false });
         el.addEventListener('touchmove', move, { passive: false });
         el.addEventListener('touchend', end, { passive: true });
         el.addEventListener('touchcancel', end, { passive: true });
@@ -524,6 +624,7 @@ function PdfCanvasViewer({
             style={{
                 position: 'absolute',
                 inset: 0,
+                direction: isLandscape ? 'rtl' : 'ltr',
                 overflowX: 'auto',
                 overflowY: isLandscape && zoom <= 1.05 ? 'hidden' : 'auto',
                 WebkitOverflowScrolling: 'touch',
@@ -547,6 +648,8 @@ function PdfCanvasViewer({
                         display: 'flex',
                         flexDirection: 'row',
                         alignItems: 'center',
+                        gap: 16,
+                        direction: 'rtl',
                         willChange: 'transform',
                     } : {
                         width: cssWidth,
@@ -556,6 +659,7 @@ function PdfCanvasViewer({
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
+                        direction: 'ltr',
                         willChange: 'transform',
                     }}
                 >
@@ -675,12 +779,13 @@ export default function PdfViewerPage({
                 className="absolute top-0 left-0 right-0 z-50 flex items-center gap-2 px-3 sm:px-5"
                 style={{
                     paddingTop: TOP_OFFSET,
-                    paddingBottom: 8,
-                    minHeight: HEADER_TOTAL_H,
+                    paddingBottom: isLandscape ? 4 : 8,
+                    minHeight: isLandscape ? (TOP_OFFSET + 40) : HEADER_TOTAL_H,
                     background: colors.bar,
                     backdropFilter: 'blur(14px)',
                     WebkitBackdropFilter: 'blur(14px)',
                     borderBottom: `1px solid ${colors.border}`,
+                    transition: 'min-height 0.2s ease, padding 0.2s ease',
                 }}
             >
                 <button
@@ -693,19 +798,21 @@ export default function PdfViewerPage({
                 >
                     <ArrowLeft size={20} strokeWidth={1.75} />
                 </button>
-                <div className="min-w-0 leading-tight">
-                    <span
-                        className="block text-[14.5px] font-medium truncate tracking-tight"
-                        title={fileName}
-                    >
-                        {fileName}
-                    </span>
-                    {subtitle && (
-                        <span className="block text-[11.5px]" style={{ color: colors.muted }}>
-                            {subtitle}
+                {!isLandscape && (
+                    <div className="min-w-0 leading-tight">
+                        <span
+                            className="block text-[14.5px] font-medium truncate tracking-tight"
+                            title={fileName}
+                        >
+                            {fileName}
                         </span>
-                    )}
-                </div>
+                        {subtitle && (
+                            <span className="block text-[11.5px]" style={{ color: colors.muted }}>
+                                {subtitle}
+                            </span>
+                        )}
+                    </div>
+                )}
             </header>
 
             {/* Document area */}
@@ -797,6 +904,7 @@ export default function PdfViewerPage({
                             zoom={zoom}
                             isLandscape={isLandscape}
                             currentPage={currentPage}
+                            topPad={isLandscape ? (TOP_OFFSET + 44) : (HEADER_TOTAL_H + 16)}
                             onZoomChange={setZoom}
                             onPageChange={setCurrentPage}
                             onLoadSuccess={({ numPages }) => setNumPages(numPages)}
@@ -811,7 +919,7 @@ export default function PdfViewerPage({
                     </div>
                 )}
 
-                {/* Floating dock — page number, zoom badge, rotate option */}
+                {/* Floating dock — page number, rotate option */}
                 {numPages > 0 && !loadError && (
                     <div
                         className="absolute left-1/2 z-40 flex items-center overflow-hidden rounded-full shadow-lg"
@@ -833,16 +941,6 @@ export default function PdfViewerPage({
                             <span className="mx-1.5 opacity-60">/</span>
                             <span>{numPages}</span>
                         </div>
-                        {zoom > 1.04 && (
-                            <button
-                                onClick={() => setZoom(1)}
-                                className="h-full px-3.5 font-semibold focus:outline-none active:opacity-60"
-                                style={{ color: colors.text, borderLeft: `1px solid ${colors.border}` }}
-                                aria-label="Reset zoom"
-                            >
-                                {Math.round(zoom * 100)}%
-                            </button>
-                        )}
                         {/* Visual rotate button */}
                         <button
                             type="button"

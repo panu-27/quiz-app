@@ -25,7 +25,7 @@ export default function PYQBookmarks() {
     const { theme } = useTheme();
     const { user } = useAuth();
     const isDark = theme === 'dark';
-    const isApproved = !!user?.isApproved;
+    const isApproved = !!(user?.approved || user?.isApproved);
     const PRIME_BANNER_H = 60;
 
     const goal = localStorage.getItem("selectedGoal") || "MHT CET";

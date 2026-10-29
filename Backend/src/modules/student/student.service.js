@@ -413,16 +413,53 @@ export const submitTest = async (student, testId, data) => {
 export const getMyLibrary = async (jwtUser, queryParams = {}) => {
     const student = await User.findById(jwtUser.id || jwtUser._id);
 
-    const instituteId = student?.instituteId || jwtUser?.instituteId;
+    let instituteId = student?.instituteId || jwtUser?.instituteId;
     let allowedBatchIds = [];
+    let studentBatch = null;
+
+    if (student?.batchId) {
+        allowedBatchIds.push(student.batchId);
+        try {
+            studentBatch = await Batch.findById(student.batchId).lean();
+            if (!instituteId && studentBatch?.instituteId) {
+                instituteId = studentBatch.instituteId;
+            }
+        } catch (e) {
+            console.warn("Error finding student batch:", e);
+        }
+    }
+
     try {
+        if (student?._id) {
+            const enrolled = await Batch.find({ students: student._id }).select('_id').lean();
+            enrolled.forEach(b => {
+                if (!allowedBatchIds.some(id => id.toString() === b._id.toString())) {
+                    allowedBatchIds.push(b._id);
+                }
+            });
+        }
+
+        if (studentBatch?.className) {
+            const classBatches = await Batch.find({ className: studentBatch.className }).select('_id').lean();
+            classBatches.forEach(b => {
+                if (!allowedBatchIds.some(id => id.toString() === b._id.toString())) {
+                    allowedBatchIds.push(b._id);
+                }
+            });
+        }
+
         const allInstituteBatches = await Batch.find(instituteId ? { instituteId } : {}).select('_id').lean();
-        allowedBatchIds = allInstituteBatches.map(b => b._id);
+        allInstituteBatches.forEach(b => {
+            if (!allowedBatchIds.some(id => id.toString() === b._id.toString())) {
+                allowedBatchIds.push(b._id);
+            }
+        });
     } catch (e) {
         console.warn("Error fetching all batches for library:", e);
     }
 
     const { subjectId, chapterId, category } = queryParams;
+    const isApproved = !!(student?.approved || jwtUser?.approved);
 
     // All students get access across all batches (plus free and unassigned resources)
     const batchConditions = [
@@ -431,6 +468,10 @@ export const getMyLibrary = async (jwtUser, queryParams = {}) => {
         { batchIds: { $exists: false } },
         { batchIds: { $size: 0 } },
     ];
+
+    if (isApproved && allowedBatchIds.length === 0) {
+        batchConditions.push({});
+    }
 
     const filter = { $or: batchConditions };
 
@@ -458,6 +499,8 @@ export const getMyLibrary = async (jwtUser, queryParams = {}) => {
                 { subjectId: { $regex: new RegExp(`^${escapedMapped}$`, "i") } },
                 { subject: { $regex: new RegExp(`^${escapedSubj}$`, "i") } },
                 { subject: { $regex: new RegExp(`^${escapedMapped}$`, "i") } },
+                { subjectId: { $regex: new RegExp(escapedSubj, "i") } },
+                { subject: { $regex: new RegExp(escapedSubj, "i") } },
             ]
         });
     }
@@ -465,11 +508,16 @@ export const getMyLibrary = async (jwtUser, queryParams = {}) => {
     if (chapterId && chapterId !== "All") {
         const cleanChapter = decodeURIComponent(chapterId).trim();
         const escapedChapter = cleanChapter.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const flexibleChapter = escapedChapter.replace(/\s+/g, '\\s*');
         filter.$and = filter.$and || [];
         filter.$and.push({
             $or: [
                 { chapterId: { $regex: new RegExp(`^${escapedChapter}$`, "i") } },
-                { chapter: { $regex: new RegExp(`^${escapedChapter}$`, "i") } }
+                { chapterId: { $regex: new RegExp(escapedChapter, "i") } },
+                { chapterId: { $regex: new RegExp(flexibleChapter, "i") } },
+                { chapter: { $regex: new RegExp(`^${escapedChapter}$`, "i") } },
+                { chapter: { $regex: new RegExp(escapedChapter, "i") } },
+                { title: { $regex: new RegExp(escapedChapter, "i") } },
             ]
         });
     }
@@ -479,7 +527,7 @@ export const getMyLibrary = async (jwtUser, queryParams = {}) => {
     }
 
     const resources = await Resource.find(filter)
-        .select("title subjectId chapterId category subject fileUrl fileSize isFree createdAt")
+        .select("title subjectId chapterId category subject fileUrl fileSize isFree createdAt batchIds")
         .sort({ createdAt: -1 });
 
     // Mobile drill-down → flat array
